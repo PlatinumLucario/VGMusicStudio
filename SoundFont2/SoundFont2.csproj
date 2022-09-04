@@ -1,29 +1,28 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <Authors>Kermalis</Authors>
-    <Company />
-    <PackageId>SoundFont2</PackageId>
-    <Product>SoundFont2</Product>
-    <AssemblyName>SoundFont2</AssemblyName>
-    <RootNamespace>Kermalis.SoundFont2</RootNamespace>
-    <Version>1.0.0.0</Version>
-    <OutputPath>..\Build</OutputPath>
-  </PropertyGroup>
+	<PropertyGroup>
+		<TargetFramework>net6.0</TargetFramework>
+		<OutputType>Library</OutputType>
+		<LangVersion>latest</LangVersion>
+		<RootNamespace>Kermalis.SoundFont2</RootNamespace>
+		<Nullable>enable</Nullable>
+		<OutputPath>..\Build</OutputPath>
 
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <TargetFramework>netcoreapp3.1</TargetFramework>
-  </PropertyGroup>
-  
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <TargetFramework>netcoreapp3.1</TargetFramework>
-    <GenerateSerializationAssemblies>Auto</GenerateSerializationAssemblies>
-    <DebugType>none</DebugType>
-    <DebugSymbols>false</DebugSymbols>
-  </PropertyGroup>
+		<Authors>Kermalis</Authors>
+		<Copyright>Kermalis</Copyright>
+		<Product>SoundFont2</Product>
+		<Title>SoundFont2</Title>
+		<AssemblyName>SoundFont2</AssemblyName>
+		<Version>1.1.0</Version>
 
-  <ItemGroup>
-    <ProjectReference Include="..\EndianBinaryIO\EndianBinaryIO.csproj" />
-  </ItemGroup>
+		<Configurations>Release</Configurations>
+		<GenerateSerializationAssemblies>Auto</GenerateSerializationAssemblies>
+		<DebugType>none</DebugType>
+		<DebugSymbols>false</DebugSymbols>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="EndianBinaryIO" Version="2.0.0" />
+	</ItemGroup>
 
 </Project>

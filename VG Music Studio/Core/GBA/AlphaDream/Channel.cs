@@ -55,7 +55,7 @@ namespace Kermalis.VGMusicStudio.Core.GBA.AlphaDream
             _pos = 0; _interPos = 0;
             Key = key;
             _adsr = adsr;
-            _sampleHeader = _mixer.Config.Reader.ReadObject<SampleHeader>(sampleOffset);
+            _sampleHeader = _mixer.Config.Reader.ReadObject<SampleHeader>();
             _sampleOffset = sampleOffset + 0x10;
             _bFixed = bFixed;
             Stopped = false;

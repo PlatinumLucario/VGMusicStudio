@@ -107,23 +107,6 @@ namespace Kermalis.VGMusicStudio.Core.GBA.AlphaDream
                 masterStep = (toMaster - fromMaster) * _samplesReciprocal;
                 masterLevel = fromMaster;
             }
-            for (int i = 0; i < Player.NumTracks; i++)
-            {
-                Track track = tracks[i];
-                if (track.Enabled && track.NoteDuration != 0 && !track.Channel.Stopped && !Mutes[i])
-                {
-                    float level = masterLevel;
-                    float[] buf = _trackBuffers[i];
-                    Array.Clear(buf, 0, buf.Length);
-                    track.Channel.Process(buf);
-                    for (int j = 0; j < SamplesPerBuffer; j++)
-                    {
-                        _audio.FloatBuffer[j * 2] += buf[j * 2] * level;
-                        _audio.FloatBuffer[(j * 2) + 1] += buf[(j * 2) + 1] * level;
-                        level += masterStep;
-                    }
-                }
-            }
             if (output)
             {
                 _buffer.AddSamples(_audio.ByteBuffer, 0, _audio.ByteBufferCount);

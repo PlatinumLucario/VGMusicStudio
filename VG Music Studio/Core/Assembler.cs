@@ -52,9 +52,10 @@ namespace Kermalis.VGMusicStudio.Core
             {
                 // Our example label is SEQ_STUFF at the binary offset 0x1000, curBaseOffset is 0x500, baseOffset is 0x1800
                 // There is a pointer (p) to SEQ_STUFF at the binary offset 0x1DFC
-                int oldPointer = EndianBitConverter.BytesToInt32(Binary, p.BinaryOffset, Endianness); // If there was a pointer to "SEQ_STUFF+4", the pointer would be 0x1504, at binary offset 0x1DFC
+                int oldPointer = EndianBinaryPrimitives.ReadInt32(Binary.AsSpan(p.BinaryOffset), Endianness); // If there was a pointer to "SEQ_STUFF+4", the pointer would be 0x1504, at binary offset 0x1DFC
                 int labelOffset = oldPointer - BaseOffset; // Then labelOffset is 0x1004 (SEQ_STUFF+4)
-                byte[] newPointerBytes = EndianBitConverter.Int32ToBytes(baseOffset + labelOffset, Endianness); // b will contain {0x04, 0x28, 0x00, 0x00} [0x2804] (SEQ_STUFF+4 + baseOffset)
+                byte[] newPointerBytes = new byte[4]; // newPointerBytes needs to be specified for Span<byte> to recognize it as an integer correctly in EndianBinaryPrimitives.WriteInt32 before writing to it
+                EndianBinaryPrimitives.WriteInt32(newPointerBytes, baseOffset + labelOffset, Endianness); // b will contain {0x04, 0x28, 0x00, 0x00} [0x2804] (SEQ_STUFF+4 + baseOffset)
                 for (int i = 0; i < 4; i++)
                 {
                     _bytes[p.BinaryOffset + i] = newPointerBytes[i]; // Copy the new pointer to binary offset 0x1DF4
@@ -216,7 +217,9 @@ namespace Kermalis.VGMusicStudio.Core
                         {
                             foreach (string a in args)
                             {
-                                _bytes.AddRange(EndianBitConverter.Int16ToBytes((short)ParseInt(a), Endianness));
+                                    byte[] bytes = new byte[2];
+                                    EndianBinaryPrimitives.WriteInt16(bytes, (short)ParseInt(a), Endianness);
+                                _bytes.AddRange(bytes);
                             }
                         }
                         catch
@@ -232,7 +235,9 @@ namespace Kermalis.VGMusicStudio.Core
                         {
                             foreach (string a in args)
                             {
-                                _bytes.AddRange(EndianBitConverter.Int32ToBytes(ParseInt(a), Endianness));
+                                    byte[] bytes = new byte[4];
+                                    EndianBinaryPrimitives.WriteInt32(bytes, (int)ParseInt(a), Endianness);
+                                _bytes.AddRange(bytes);
                             }
                         }
                         catch

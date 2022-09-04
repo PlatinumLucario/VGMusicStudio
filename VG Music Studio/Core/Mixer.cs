@@ -1,6 +1,4 @@
-﻿using Kermalis.VGMusicStudio.UI;
-using Kermalis.VGMusicStudio.Properties;
-using NAudio.CoreAudioApi;
+﻿using NAudio.CoreAudioApi;
 using NAudio.CoreAudioApi.Interfaces;
 using NAudio.Wave;
 using System;
@@ -9,7 +7,6 @@ namespace Kermalis.VGMusicStudio.Core
 {
     internal abstract class Mixer : IAudioSessionEventsHandler, IDisposable
     {
-        public readonly bool[] Mutes = new bool[SongInfoControl.SongInfo.MaxTracks];
         private IWavePlayer _out;
         private AudioSessionControl _appVolume;
         private DeviceState _device = DeviceState.Unplugged;
@@ -41,7 +38,7 @@ namespace Kermalis.VGMusicStudio.Core
         {
             if (_volChange)
             {
-                MainForm.Instance.SetVolumeBarValue(volume);
+                //MainForm.Instance.SetVolumeBarValue(volume);
             }
             _volChange = true;
         }
@@ -73,8 +70,8 @@ namespace Kermalis.VGMusicStudio.Core
         {
             if (disconnectReason == AudioSessionDisconnectReason.DisconnectReasonDeviceRemoval)
             {
-                Exception ex = new Exception();
-                FlexibleMessageBox.Show(ex, string.Format(Strings.AudioDeviceRemoved, _device));
+                //Exception ex = new Exception();
+                //FlexibleMessageBox.Show(ex, string.Format(Strings.AudioDeviceRemoved, _device));
             }
             if (disconnectReason == AudioSessionDisconnectReason.DisconnectReasonExclusiveModeOverride)
             {

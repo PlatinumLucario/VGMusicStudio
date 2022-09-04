@@ -35,8 +35,8 @@ namespace Kermalis.VGMusicStudio.Core.GBA.AlphaDream
                 {
                     ROM = rom;
                     Reader = new EndianBinaryReader(new MemoryStream(rom));
-                    GameCode = Reader.ReadString(4, false, 0xAC);
-                    Version = Reader.ReadByte(0xBC);
+                    GameCode = Reader.ReadInt32().CompareTo(0xAC).ToString();
+                    Version = (byte)Reader.ReadByte().CompareTo(0xBC);
                     gcv = $"{GameCode}_{Version:X2}";
                     var yaml = new YamlStream();
                     yaml.Load(fileStream);

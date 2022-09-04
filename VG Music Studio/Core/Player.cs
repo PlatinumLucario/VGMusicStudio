@@ -31,6 +31,5 @@ namespace Kermalis.VGMusicStudio.Core
         void Pause();
         void Stop();
         void Record(string fileName);
-        void GetSongState(UI.SongInfoControl.SongInfo info);
     }
 }
