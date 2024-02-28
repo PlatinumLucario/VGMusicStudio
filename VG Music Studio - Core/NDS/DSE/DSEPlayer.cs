@@ -8,6 +8,7 @@ public sealed class DSEPlayer : Player
 
 	private readonly DSEConfig _config;
 	internal readonly DSEMixer DMixer;
+	internal readonly DSEMixer_NAudio DMixer_NAudio;
 	internal readonly SWD MasterSWD;
 	private DSELoadedSong? _loadedSong;
 
@@ -17,11 +18,20 @@ public sealed class DSEPlayer : Player
 
 	public override ILoadedSong? LoadedSong => _loadedSong;
 	protected override Mixer Mixer => DMixer;
+	protected override Mixer_NAudio Mixer_NAudio => DMixer_NAudio;
 
 	public DSEPlayer(DSEConfig config, DSEMixer mixer)
 		: base(192)
 	{
 		DMixer = mixer;
+		_config = config;
+
+		MasterSWD = new SWD(Path.Combine(config.BGMPath, "bgm.swd"));
+	}
+	public DSEPlayer(DSEConfig config, DSEMixer_NAudio mixer)
+		: base(192)
+	{
+		DMixer_NAudio = mixer;
 		_config = config;
 
 		MasterSWD = new SWD(Path.Combine(config.BGMPath, "bgm.swd"));
@@ -49,7 +59,10 @@ public sealed class DSEPlayer : Player
 		TempoStack = 0;
 		_elapsedLoops = 0;
 		ElapsedTicks = 0;
-		DMixer.ResetFade();
+		if (Engine.Instance!.UseNewMixer)
+			DMixer.ResetFade();
+		else
+			DMixer_NAudio.ResetFade();
 		DSETrack[] tracks = _loadedSong!.Tracks;
 		for (int i = 0; i < tracks.Length; i++)
 		{
@@ -82,17 +95,35 @@ public sealed class DSEPlayer : Player
 			{
 				TickTrack(s, s.Tracks[i], ref allDone);
 			}
-			if (DMixer.IsFadeDone())
+			if (Engine.Instance!.UseNewMixer)
 			{
-				allDone = true;
+				if (DMixer.IsFadeDone())
+				{
+					allDone = true;
+				}
+			}
+			else
+			{
+				if (DMixer_NAudio.IsFadeDone())
+				{
+					allDone = true;
+				}
 			}
 		}
 		if (!allDone)
 		{
 			TempoStack += Tempo;
 		}
-		DMixer.ChannelTick();
-		DMixer.Process(playing, recording);
+		if (Engine.Instance!.UseNewMixer)
+		{
+			DMixer.ChannelTick();
+			DMixer.Process(playing, recording);
+		}
+		else
+		{
+			DMixer_NAudio.ChannelTick();
+			DMixer_NAudio.Process(playing, recording);
+		}
 		return allDone;
 	}
 	private void TickTrack(DSELoadedSong s, DSETrack track, ref bool allDone)
@@ -127,9 +158,19 @@ public sealed class DSEPlayer : Player
 
 		_elapsedLoops++;
 		UpdateElapsedTicksAfterLoop(s.Events[track.Index], track.CurOffset, track.Rest);
-		if (ShouldFadeOut && _elapsedLoops > NumLoops && !DMixer.IsFading())
+		if (Engine.Instance!.UseNewMixer)
 		{
-			DMixer.BeginFadeOut();
+			if (ShouldFadeOut && _elapsedLoops > NumLoops && !DMixer.IsFading())
+			{
+				DMixer.BeginFadeOut();
+			}
+		}
+		else
+		{
+			if (ShouldFadeOut && _elapsedLoops > NumLoops && !DMixer_NAudio.IsFading())
+			{
+				DMixer_NAudio.BeginFadeOut();
+			}
 		}
 	}
 }

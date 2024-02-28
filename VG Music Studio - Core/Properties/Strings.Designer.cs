@@ -358,7 +358,16 @@ namespace Kermalis.VGMusicStudio.Core.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to GBA Files.
+        ///   Looks up a localized string similar to All files (*.*).
+        /// </summary>
+        public static string FilterAllFiles {
+            get {
+                return ResourceManager.GetString("FilterAllFiles", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Game Boy Advance ROM (*.gba, *.srl).
         /// </summary>
         public static string FilterOpenGBA {
             get {
@@ -367,7 +376,7 @@ namespace Kermalis.VGMusicStudio.Core.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to SDAT Files.
+        ///   Looks up a localized string similar to Nitro Soundmaker Sound Data (*.sdat).
         /// </summary>
         public static string FilterOpenSDAT {
             get {
@@ -376,7 +385,7 @@ namespace Kermalis.VGMusicStudio.Core.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to DLS Files.
+        ///   Looks up a localized string similar to DLS Format (*.dls).
         /// </summary>
         public static string FilterSaveDLS {
             get {
@@ -385,7 +394,7 @@ namespace Kermalis.VGMusicStudio.Core.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to MIDI Files.
+        ///   Looks up a localized string similar to MIDI Format (*.mid, *.midi).
         /// </summary>
         public static string FilterSaveMIDI {
             get {
@@ -394,7 +403,7 @@ namespace Kermalis.VGMusicStudio.Core.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to SF2 Files.
+        ///   Looks up a localized string similar to SoundFont2 Format (*.sf2).
         /// </summary>
         public static string FilterSaveSF2 {
             get {
@@ -403,7 +412,7 @@ namespace Kermalis.VGMusicStudio.Core.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to WAV Files.
+        ///   Looks up a localized string similar to RIFF Wave (*.wav).
         /// </summary>
         public static string FilterSaveWAV {
             get {

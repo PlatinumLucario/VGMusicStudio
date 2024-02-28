@@ -1,6 +1,5 @@
 ﻿using Kermalis.VGMusicStudio.Core;
 using Kermalis.VGMusicStudio.Core.Util;
-using Kermalis.VGMusicStudio.WinForms.Util;
 using System.Collections.Generic;
 using System.Linq;
 

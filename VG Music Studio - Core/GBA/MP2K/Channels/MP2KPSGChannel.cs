@@ -20,6 +20,11 @@ internal abstract class MP2KPSGChannel : MP2KChannel
 	{
 		//
 	}
+	public MP2KPSGChannel(MP2KMixer_NAudio mixer)
+		: base(mixer)
+	{
+		//
+	}
 	protected void Init(MP2KTrack owner, NoteInfo note, ADSR env, int instPan)
 	{
 		State = EnvelopeState.Initializing;

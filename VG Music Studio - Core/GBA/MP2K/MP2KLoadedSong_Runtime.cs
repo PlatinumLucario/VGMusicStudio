@@ -57,36 +57,72 @@ internal sealed partial class MP2KLoadedSong
 				switch (type)
 				{
 					case VoiceType.PCM8:
-					{
-						bool bFixed = (v.Type & (int)VoiceFlags.Fixed) != 0;
-						bool bCompressed = _player.Config.HasPokemonCompression && ((v.Type & (int)VoiceFlags.Compressed) != 0);
-						_player.MMixer.AllocPCM8Channel(track, v.ADSR, ni,
-							track.GetVolume(), track.GetPanpot(), instPan, track.GetPitch(),
-							bFixed, bCompressed, v.Int4 - GBAUtils.CARTRIDGE_OFFSET);
-						return;
-					}
+						{
+							bool bFixed = (v.Type & (int)VoiceFlags.Fixed) != 0;
+							bool bCompressed = _player.Config.HasPokemonCompression && ((v.Type & (int)VoiceFlags.Compressed) != 0);
+							if (Engine.Instance!.UseNewMixer)
+							{
+								_player.MMixer.AllocPCM8Channel(track, v.ADSR, ni,
+									track.GetVolume(), track.GetPanpot(), instPan, track.GetPitch(),
+									bFixed, bCompressed, v.Int4 - GBAUtils.CARTRIDGE_OFFSET);
+							}
+							else
+							{
+								_player.MMixer_NAudio.AllocPCM8Channel(track, v.ADSR, ni,
+									track.GetVolume(), track.GetPanpot(), instPan, track.GetPitch(),
+									bFixed, bCompressed, v.Int4 - GBAUtils.CARTRIDGE_OFFSET);
+							}
+							return;
+						}
 					case VoiceType.Square1:
 					case VoiceType.Square2:
-					{
-						_player.MMixer.AllocPSGChannel(track, v.ADSR, ni,
-							track.GetVolume(), track.GetPanpot(), instPan, track.GetPitch(),
-							type, (SquarePattern)v.Int4);
-						return;
-					}
+						{
+							if (Engine.Instance!.UseNewMixer)
+							{
+								_player.MMixer.AllocPSGChannel(track, v.ADSR, ni,
+									track.GetVolume(), track.GetPanpot(), instPan, track.GetPitch(),
+									type, (SquarePattern)v.Int4);
+							}
+							else
+							{
+								_player.MMixer_NAudio.AllocPSGChannel(track, v.ADSR, ni,
+									track.GetVolume(), track.GetPanpot(), instPan, track.GetPitch(),
+									type, (SquarePattern)v.Int4);
+							}
+							return;
+						}
 					case VoiceType.PCM4:
-					{
-						_player.MMixer.AllocPSGChannel(track, v.ADSR, ni,
-							track.GetVolume(), track.GetPanpot(), instPan, track.GetPitch(),
-							type, v.Int4 - GBAUtils.CARTRIDGE_OFFSET);
-						return;
-					}
+						{
+							if (Engine.Instance!.UseNewMixer)
+							{
+								_player.MMixer.AllocPSGChannel(track, v.ADSR, ni,
+									track.GetVolume(), track.GetPanpot(), instPan, track.GetPitch(),
+									type, v.Int4 - GBAUtils.CARTRIDGE_OFFSET);
+							}
+							else
+							{
+								_player.MMixer_NAudio.AllocPSGChannel(track, v.ADSR, ni,
+									track.GetVolume(), track.GetPanpot(), instPan, track.GetPitch(),
+									type, v.Int4 - GBAUtils.CARTRIDGE_OFFSET);
+							}
+							return;
+						}
 					case VoiceType.Noise:
-					{
-						_player.MMixer.AllocPSGChannel(track, v.ADSR, ni,
-							track.GetVolume(), track.GetPanpot(), instPan, track.GetPitch(),
-							type, (NoisePattern)v.Int4);
-						return;
-					}
+						{
+							if (Engine.Instance!.UseNewMixer)
+							{
+								_player.MMixer.AllocPSGChannel(track, v.ADSR, ni,
+									track.GetVolume(), track.GetPanpot(), instPan, track.GetPitch(),
+									type, (NoisePattern)v.Int4);
+							}
+							else
+							{
+								_player.MMixer_NAudio.AllocPSGChannel(track, v.ADSR, ni,
+									track.GetVolume(), track.GetPanpot(), instPan, track.GetPitch(),
+									type, (NoisePattern)v.Int4);
+							}
+							return;
+						}
 				}
 				return; // Prevent infinite loop with invalid instruments
 			}

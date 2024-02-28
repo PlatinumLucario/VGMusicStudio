@@ -3,6 +3,7 @@
 internal abstract class AlphaDreamChannel
 {
 	protected readonly AlphaDreamMixer _mixer;
+	protected readonly AlphaDreamMixer_NAudio _mixer_NAudio;
 	public EnvelopeState State;
 	public byte Key;
 	public bool Stopped;
@@ -19,6 +20,10 @@ internal abstract class AlphaDreamChannel
 	protected AlphaDreamChannel(AlphaDreamMixer mixer)
 	{
 		_mixer = mixer;
+	}
+	protected AlphaDreamChannel(AlphaDreamMixer_NAudio mixer)
+	{
+		_mixer_NAudio = mixer;
 	}
 
 	public ChannelVolume GetVolume()

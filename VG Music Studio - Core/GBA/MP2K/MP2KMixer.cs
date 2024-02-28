@@ -1,5 +1,5 @@
-﻿using Kermalis.VGMusicStudio.Core.Util;
-using NAudio.Wave;
+﻿using Kermalis.VGMusicStudio.Core.Formats;
+using Kermalis.VGMusicStudio.Core.Util;
 using System;
 using System.Linq;
 
@@ -18,7 +18,7 @@ public sealed class MP2KMixer : Mixer
 	private float _fadeStepPerMicroframe;
 
 	internal readonly MP2KConfig Config;
-	private readonly WaveBuffer _audio;
+	private readonly Audio _audio;
 	private readonly float[][] _trackBuffers;
 	private readonly MP2KPCM8Channel[] _pcm8Channels;
 	private readonly MP2KSquareChannel _sq1;
@@ -26,9 +26,7 @@ public sealed class MP2KMixer : Mixer
 	private readonly MP2KPCM4Channel _pcm4;
 	private readonly MP2KNoiseChannel _noise;
 	private readonly MP2KPSGChannel[] _psgChannels;
-	private readonly BufferedWaveProvider _buffer;
-
-	protected override WaveFormat WaveFormat => _buffer.WaveFormat;
+	private readonly Wave _buffer;
 
 	internal MP2KMixer(MP2KConfig config)
 	{
@@ -46,17 +44,20 @@ public sealed class MP2KMixer : Mixer
 		_psgChannels = new MP2KPSGChannel[4] { _sq1 = new MP2KSquareChannel(this), _sq2 = new MP2KSquareChannel(this), _pcm4 = new MP2KPCM4Channel(this), _noise = new MP2KNoiseChannel(this), };
 
 		int amt = SamplesPerBuffer * 2;
-		_audio = new WaveBuffer(amt * sizeof(float)) { FloatBufferCount = amt };
+		Instance = this;
+		_audio = new Audio(amt) { FloatBufferCount = amt };
 		_trackBuffers = new float[0x10][];
 		for (int i = 0; i < _trackBuffers.Length; i++)
 		{
 			_trackBuffers[i] = new float[amt];
 		}
-		_buffer = new BufferedWaveProvider(WaveFormat.CreateIeeeFloatWaveFormat(SampleRate, 2))
+		_buffer = new Wave()
 		{
 			DiscardOnBufferOverflow = true,
 			BufferLength = SamplesPerBuffer * 64,
 		};
+		_buffer.CreateIeeeFloatWave((uint)SampleRate, 2);
+
 		Init(_buffer);
 	}
 
@@ -114,45 +115,45 @@ public sealed class MP2KMixer : Mixer
 		switch (type)
 		{
 			case VoiceType.Square1:
-			{
-				nChn = _sq1;
-				if (nChn.State < EnvelopeState.Releasing && nChn.Owner!.Index < owner.Index)
 				{
-					return null;
+					nChn = _sq1;
+					if (nChn.State < EnvelopeState.Releasing && nChn.Owner!.Index < owner.Index)
+					{
+						return null;
+					}
+					_sq1.Init(owner, note, env, instPan, (SquarePattern)arg);
+					break;
 				}
-				_sq1.Init(owner, note, env, instPan, (SquarePattern)arg);
-				break;
-			}
 			case VoiceType.Square2:
-			{
-				nChn = _sq2;
-				if (nChn.State < EnvelopeState.Releasing && nChn.Owner!.Index < owner.Index)
 				{
-					return null;
+					nChn = _sq2;
+					if (nChn.State < EnvelopeState.Releasing && nChn.Owner!.Index < owner.Index)
+					{
+						return null;
+					}
+					_sq2.Init(owner, note, env, instPan, (SquarePattern)arg);
+					break;
 				}
-				_sq2.Init(owner, note, env, instPan, (SquarePattern)arg);
-				break;
-			}
 			case VoiceType.PCM4:
-			{
-				nChn = _pcm4;
-				if (nChn.State < EnvelopeState.Releasing && nChn.Owner!.Index < owner.Index)
 				{
-					return null;
+					nChn = _pcm4;
+					if (nChn.State < EnvelopeState.Releasing && nChn.Owner!.Index < owner.Index)
+					{
+						return null;
+					}
+					_pcm4.Init(owner, note, env, instPan, (int)arg);
+					break;
 				}
-				_pcm4.Init(owner, note, env, instPan, (int)arg);
-				break;
-			}
 			case VoiceType.Noise:
-			{
-				nChn = _noise;
-				if (nChn.State < EnvelopeState.Releasing && nChn.Owner!.Index < owner.Index)
 				{
-					return null;
+					nChn = _noise;
+					if (nChn.State < EnvelopeState.Releasing && nChn.Owner!.Index < owner.Index)
+					{
+						return null;
+					}
+					_noise.Init(owner, note, env, instPan, (NoisePattern)arg);
+					break;
 				}
-				_noise.Init(owner, note, env, instPan, (NoisePattern)arg);
-				break;
-			}
 			default: return null;
 		}
 		nChn.SetVolume(vol, pan);
@@ -248,7 +249,7 @@ public sealed class MP2KMixer : Mixer
 			float[] buf = _trackBuffers[i];
 			for (int j = 0; j < SamplesPerBuffer; j++)
 			{
-				_audio.FloatBuffer[j * 2] += buf[j * 2] * level;
+				_audio.FloatBuffer![j * 2] += buf[j * 2] * level;
 				_audio.FloatBuffer[(j * 2) + 1] += buf[(j * 2) + 1] * level;
 				level += masterStep;
 			}

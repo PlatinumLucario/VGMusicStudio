@@ -12,6 +12,11 @@ internal sealed class AlphaDreamSquareChannel : AlphaDreamChannel
 	{
 		_pat = null!;
 	}
+	public AlphaDreamSquareChannel(AlphaDreamMixer_NAudio mixer)
+		: base(mixer)
+	{
+		_pat = null!;
+	}
 	public void Init(byte key, ADSR env, byte vol, sbyte pan, int pitch)
 	{
 		_pat = MP2KUtils.SquareD50; // TODO: Which square pattern?
@@ -77,9 +82,19 @@ internal sealed class AlphaDreamSquareChannel : AlphaDreamChannel
 		StepEnvelope();
 
 		ChannelVolume vol = GetVolume();
-		float interStep = _frequency * _mixer.SampleRateReciprocal;
-
-		int bufPos = 0; int samplesPerBuffer = _mixer.SamplesPerBuffer;
+		float interStep;
+		int bufPos = 0;
+		int samplesPerBuffer;
+		if (Engine.Instance!.UseNewMixer)
+		{
+			interStep = _frequency * _mixer.SampleRateReciprocal;
+			samplesPerBuffer = _mixer.SamplesPerBuffer;
+		}
+		else
+		{
+			interStep = _frequency * _mixer_NAudio.SampleRateReciprocal;
+			samplesPerBuffer = _mixer_NAudio.SamplesPerBuffer;
+		}
 		do
 		{
 			float samp = _pat[_pos];

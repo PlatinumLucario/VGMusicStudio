@@ -1,6 +1,6 @@
-﻿using Kermalis.VGMusicStudio.Core.NDS.SDAT;
+﻿using Kermalis.VGMusicStudio.Core.Formats;
+using Kermalis.VGMusicStudio.Core.NDS.SDAT;
 using Kermalis.VGMusicStudio.Core.Util;
-using NAudio.Wave;
 using System;
 
 namespace Kermalis.VGMusicStudio.Core.NDS.DSE;
@@ -17,9 +17,7 @@ public sealed class DSEMixer : Mixer
 	private float _fadeStepPerMicroframe;
 
 	private readonly DSEChannel[] _channels;
-	private readonly BufferedWaveProvider _buffer;
-
-	protected override WaveFormat WaveFormat => _buffer.WaveFormat;
+	private readonly Wave _buffer;
 
 	public DSEMixer()
 	{
@@ -36,11 +34,12 @@ public sealed class DSEMixer : Mixer
 			_channels[i] = new DSEChannel(i);
 		}
 
-		_buffer = new BufferedWaveProvider(new WaveFormat(sampleRate, 16, 2))
+		_buffer = new Wave()
 		{
 			DiscardOnBufferOverflow = true,
 			BufferLength = _samplesPerBuffer * 64,
 		};
+		_buffer.CreateIeeeFloatWave(sampleRate, 2, 16);
 		Init(_buffer);
 	}
 

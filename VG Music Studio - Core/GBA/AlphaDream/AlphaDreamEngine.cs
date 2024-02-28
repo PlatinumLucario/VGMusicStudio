@@ -8,7 +8,9 @@ public sealed class AlphaDreamEngine : Engine
 
 	public override AlphaDreamConfig Config { get; }
 	public override AlphaDreamMixer Mixer { get; }
+	public AlphaDreamMixer_NAudio Mixer_NAudio { get; }
 	public override AlphaDreamPlayer Player { get; }
+	public override bool UseNewMixer { get => false; }
 
 	public AlphaDreamEngine(byte[] rom)
 	{
@@ -18,8 +20,16 @@ public sealed class AlphaDreamEngine : Engine
 		}
 
 		Config = new AlphaDreamConfig(rom);
-		Mixer = new AlphaDreamMixer(Config);
-		Player = new AlphaDreamPlayer(Config, Mixer);
+		if (Engine.Instance!.UseNewMixer)
+		{
+			Mixer = new AlphaDreamMixer(Config);
+			Player = new AlphaDreamPlayer(Config, Mixer);
+		}
+		else
+		{
+			Mixer_NAudio = new AlphaDreamMixer_NAudio(Config);
+			Player = new AlphaDreamPlayer(Config, Mixer_NAudio);
+		}
 
 		AlphaDreamInstance = this;
 		Instance = this;

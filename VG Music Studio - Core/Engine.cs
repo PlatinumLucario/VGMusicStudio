@@ -9,8 +9,9 @@ public abstract class Engine : IDisposable
 	public abstract Config Config { get; }
 	public abstract Mixer Mixer { get; }
 	public abstract Player Player { get; }
+    public abstract bool UseNewMixer { get; }
 
-	public virtual void Dispose()
+    public virtual void Dispose()
 	{
 		Config.Dispose();
 		Mixer.Dispose();

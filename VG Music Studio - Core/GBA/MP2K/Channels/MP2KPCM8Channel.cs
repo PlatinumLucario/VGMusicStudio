@@ -19,6 +19,11 @@ internal sealed class MP2KPCM8Channel : MP2KChannel
 	{
 		//
 	}
+	public MP2KPCM8Channel(MP2KMixer_NAudio mixer)
+		: base(mixer)
+	{
+		//
+	}
 	public void Init(MP2KTrack owner, NoteInfo note, ADSR adsr, int sampleOffset, byte vol, sbyte pan, int instPan, int pitch, bool bFixed, bool bCompressed)
 	{
 		State = EnvelopeState.Initializing;
@@ -33,12 +38,19 @@ internal sealed class MP2KPCM8Channel : MP2KChannel
 		Note = note;
 		_adsr = adsr;
 		_instPan = instPan;
-		byte[] rom = _mixer.Config.ROM;
+		byte[] rom;
+		if (Engine.Instance!.UseNewMixer)
+			rom = _mixer!.Config.ROM;
+		else
+			rom = _mixer_NAudio!.Config.ROM;
 		_sampleHeader = SampleHeader.Get(rom, sampleOffset, out _sampleOffset);
 		_bFixed = bFixed;
 		_bCompressed = bCompressed;
 		_decompressedSample = bCompressed ? MP2KUtils.Decompress(rom.AsSpan(_sampleOffset), _sampleHeader.Length) : null;
-		_bGoldenSun = _mixer.Config.HasGoldenSunSynths && _sampleHeader.Length == 0 && _sampleHeader.DoesLoop == SampleHeader.LOOP_TRUE && _sampleHeader.LoopOffset == 0;
+		if (Engine.Instance!.UseNewMixer)
+			_bGoldenSun = _mixer!.Config.HasGoldenSunSynths && _sampleHeader.Length == 0 && _sampleHeader.DoesLoop == SampleHeader.LOOP_TRUE && _sampleHeader.LoopOffset == 0;
+		else
+			_bGoldenSun = _mixer_NAudio!.Config.HasGoldenSunSynths && _sampleHeader.Length == 0 && _sampleHeader.DoesLoop == SampleHeader.LOOP_TRUE && _sampleHeader.LoopOffset == 0;
 		if (_bGoldenSun)
 		{
 			_gsPSG = GoldenSunPSG.Get(rom.AsSpan(_sampleOffset));
@@ -50,11 +62,22 @@ internal sealed class MP2KPCM8Channel : MP2KChannel
 	public override ChannelVolume GetVolume()
 	{
 		const float MAX = 0x10_000;
-		return new ChannelVolume
+		if (Engine.Instance!.UseNewMixer)
 		{
-			LeftVol = _leftVol * _velocity / MAX * _mixer.PCM8MasterVolume,
-			RightVol = _rightVol * _velocity / MAX * _mixer.PCM8MasterVolume
-		};
+			return new ChannelVolume
+			{
+				LeftVol = _leftVol * _velocity / MAX * _mixer!.PCM8MasterVolume,
+				RightVol = _rightVol * _velocity / MAX * _mixer!.PCM8MasterVolume
+			};
+		}
+		else
+		{
+			return new ChannelVolume
+			{
+				LeftVol = _leftVol * _velocity / MAX * _mixer_NAudio!.PCM8MasterVolume,
+				RightVol = _rightVol * _velocity / MAX * _mixer_NAudio!.PCM8MasterVolume
+			};
+		}
 	}
 	public override void SetVolume(byte vol, sbyte pan)
 	{
@@ -153,7 +176,11 @@ internal sealed class MP2KPCM8Channel : MP2KChannel
 		}
 
 		ChannelVolume vol = GetVolume();
-		float interStep = _bFixed && !_bGoldenSun ? _mixer.SampleRate * _mixer.SampleRateReciprocal : _frequency * _mixer.SampleRateReciprocal;
+		float interStep;
+		if (Engine.Instance!.UseNewMixer)
+			interStep = _bFixed && !_bGoldenSun ? _mixer!.SampleRate * _mixer!.SampleRateReciprocal : _frequency * _mixer!.SampleRateReciprocal;
+		else
+			interStep = _bFixed && !_bGoldenSun ? _mixer_NAudio!.SampleRate * _mixer_NAudio!.SampleRateReciprocal : _frequency * _mixer_NAudio!.SampleRateReciprocal;
 		if (_bGoldenSun) // Most Golden Sun processing is thanks to ipatix
 		{
 			Process_GS(buffer, vol, interStep);
@@ -164,7 +191,10 @@ internal sealed class MP2KPCM8Channel : MP2KChannel
 		}
 		else
 		{
-			Process_Standard(buffer, vol, interStep, _mixer.Config.ROM);
+			if (Engine.Instance!.UseNewMixer)
+				Process_Standard(buffer, vol, interStep, _mixer!.Config.ROM);
+			else
+				Process_Standard(buffer, vol, interStep, _mixer_NAudio!.Config.ROM);
 		}
 	}
 	private void Process_GS(float[] buffer, ChannelVolume vol, float interStep)
@@ -173,79 +203,95 @@ internal sealed class MP2KPCM8Channel : MP2KChannel
 		switch (_gsPSG.Type)
 		{
 			case GoldenSunPSGType.Square:
-			{
-				_pos += _gsPSG.CycleSpeed << 24;
-				int iThreshold = (_gsPSG.MinimumCycle << 24) + _pos;
-				iThreshold = (iThreshold < 0 ? ~iThreshold : iThreshold) >> 8;
-				iThreshold = (iThreshold * _gsPSG.CycleAmplitude) + (_gsPSG.InitialCycle << 24);
-				float threshold = iThreshold / (float)0x100_000_000;
-
-				int bufPos = 0;
-				int samplesPerBuffer = _mixer.SamplesPerBuffer;
-				do
 				{
-					float samp = _interPos < threshold ? 0.5f : -0.5f;
-					samp += 0.5f - threshold;
-					buffer[bufPos++] += samp * vol.LeftVol;
-					buffer[bufPos++] += samp * vol.RightVol;
+					_pos += _gsPSG.CycleSpeed << 24;
+					int iThreshold = (_gsPSG.MinimumCycle << 24) + _pos;
+					iThreshold = (iThreshold < 0 ? ~iThreshold : iThreshold) >> 8;
+					iThreshold = (iThreshold * _gsPSG.CycleAmplitude) + (_gsPSG.InitialCycle << 24);
+					float threshold = iThreshold / (float)0x100_000_000;
 
-					_interPos += interStep;
-					if (_interPos >= 1)
+					int bufPos = 0;
+					int samplesPerBuffer;
+					if (Engine.Instance!.UseNewMixer)
+						samplesPerBuffer = _mixer!.SamplesPerBuffer;
+					else
+						samplesPerBuffer = _mixer_NAudio!.SamplesPerBuffer;
+					do
 					{
-						_interPos--;
-					}
-				} while (--samplesPerBuffer > 0);
-				break;
-			}
+						float samp = _interPos < threshold ? 0.5f : -0.5f;
+						samp += 0.5f - threshold;
+						buffer[bufPos++] += samp * vol.LeftVol;
+						buffer[bufPos++] += samp * vol.RightVol;
+
+						_interPos += interStep;
+						if (_interPos >= 1)
+						{
+							_interPos--;
+						}
+					} while (--samplesPerBuffer > 0);
+					break;
+				}
 			case GoldenSunPSGType.Saw:
-			{
-				const int FIX = 0x70;
-
-				int bufPos = 0;
-				int samplesPerBuffer = _mixer.SamplesPerBuffer;
-				do
 				{
-					_interPos += interStep;
-					if (_interPos >= 1)
+					const int FIX = 0x70;
+
+					int bufPos = 0;
+					int samplesPerBuffer;
+					if (Engine.Instance!.UseNewMixer)
+						samplesPerBuffer = _mixer!.SamplesPerBuffer;
+					else
+						samplesPerBuffer = _mixer_NAudio!.SamplesPerBuffer;
+					do
 					{
-						_interPos--;
-					}
-					int var1 = (int)(_interPos * 0x100) - FIX;
-					int var2 = (int)(_interPos * 0x10000) << 17;
-					int var3 = var1 - (var2 >> 27);
-					_pos = var3 + (_pos >> 1);
+						_interPos += interStep;
+						if (_interPos >= 1)
+						{
+							_interPos--;
+						}
+						int var1 = (int)(_interPos * 0x100) - FIX;
+						int var2 = (int)(_interPos * 0x10000) << 17;
+						int var3 = var1 - (var2 >> 27);
+						_pos = var3 + (_pos >> 1);
 
-					float samp = _pos / (float)0x100;
+						float samp = _pos / (float)0x100;
 
-					buffer[bufPos++] += samp * vol.LeftVol;
-					buffer[bufPos++] += samp * vol.RightVol;
-				} while (--samplesPerBuffer > 0);
-				break;
-			}
+						buffer[bufPos++] += samp * vol.LeftVol;
+						buffer[bufPos++] += samp * vol.RightVol;
+					} while (--samplesPerBuffer > 0);
+					break;
+				}
 			case GoldenSunPSGType.Triangle:
-			{
-				int bufPos = 0;
-				int samplesPerBuffer = _mixer.SamplesPerBuffer;
-				do
 				{
-					_interPos += interStep;
-					if (_interPos >= 1)
+					int bufPos = 0;
+					int samplesPerBuffer;
+					if (Engine.Instance!.UseNewMixer)
+						samplesPerBuffer = _mixer!.SamplesPerBuffer;
+					else
+						samplesPerBuffer = _mixer_NAudio!.SamplesPerBuffer;
+					do
 					{
-						_interPos--;
-					}
-					float samp = _interPos < 0.5f ? (_interPos * 4) - 1 : 3 - (_interPos * 4);
+						_interPos += interStep;
+						if (_interPos >= 1)
+						{
+							_interPos--;
+						}
+						float samp = _interPos < 0.5f ? (_interPos * 4) - 1 : 3 - (_interPos * 4);
 
-					buffer[bufPos++] += samp * vol.LeftVol;
-					buffer[bufPos++] += samp * vol.RightVol;
-				} while (--samplesPerBuffer > 0);
-				break;
-			}
+						buffer[bufPos++] += samp * vol.LeftVol;
+						buffer[bufPos++] += samp * vol.RightVol;
+					} while (--samplesPerBuffer > 0);
+					break;
+				}
 		}
 	}
 	private void Process_Compressed(float[] buffer, ChannelVolume vol, float interStep)
 	{
 		int bufPos = 0;
-		int samplesPerBuffer = _mixer.SamplesPerBuffer;
+		int samplesPerBuffer;
+		if (Engine.Instance!.UseNewMixer)
+			samplesPerBuffer = _mixer!.SamplesPerBuffer;
+		else
+			samplesPerBuffer = _mixer_NAudio!.SamplesPerBuffer;
 		do
 		{
 			float samp = _decompressedSample![_pos] / (float)0x80;
@@ -267,7 +313,11 @@ internal sealed class MP2KPCM8Channel : MP2KChannel
 	private void Process_Standard(float[] buffer, ChannelVolume vol, float interStep, byte[] rom)
 	{
 		int bufPos = 0;
-		int samplesPerBuffer = _mixer.SamplesPerBuffer;
+		int samplesPerBuffer;
+		if (Engine.Instance!.UseNewMixer)
+			samplesPerBuffer = _mixer!.SamplesPerBuffer;
+		else
+			samplesPerBuffer = _mixer_NAudio!.SamplesPerBuffer;
 		do
 		{
 			float samp = (sbyte)rom[_pos + _sampleOffset] / (float)0x80;

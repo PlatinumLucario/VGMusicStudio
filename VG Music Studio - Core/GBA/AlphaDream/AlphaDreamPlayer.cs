@@ -12,6 +12,7 @@ public sealed class AlphaDreamPlayer : Player
 	internal readonly AlphaDreamTrack[] Tracks;
 	internal readonly AlphaDreamConfig Config;
 	private readonly AlphaDreamMixer _mixer;
+	private readonly AlphaDreamMixer_NAudio _mixer_NAudio;
 	private AlphaDreamLoadedSong? _loadedSong;
 
 	internal byte Tempo;
@@ -20,12 +21,26 @@ public sealed class AlphaDreamPlayer : Player
 
 	public override ILoadedSong? LoadedSong => _loadedSong;
 	protected override Mixer Mixer => _mixer;
+	protected override Mixer_NAudio Mixer_NAudio => _mixer_NAudio;
 
 	internal AlphaDreamPlayer(AlphaDreamConfig config, AlphaDreamMixer mixer)
 		: base(GBAUtils.AGB_FPS)
 	{
 		Config = config;
 		_mixer = mixer;
+
+		Tracks = new AlphaDreamTrack[NUM_TRACKS];
+		for (byte i = 0; i < NUM_TRACKS; i++)
+		{
+			Tracks[i] = new AlphaDreamTrack(i, mixer);
+		}
+	}
+
+	internal AlphaDreamPlayer(AlphaDreamConfig config, AlphaDreamMixer_NAudio mixer)
+		: base(GBAUtils.AGB_FPS)
+	{
+		Config = config;
+		_mixer_NAudio = mixer;
 
 		Tracks = new AlphaDreamTrack[NUM_TRACKS];
 		for (byte i = 0; i < NUM_TRACKS; i++)
@@ -70,7 +85,10 @@ public sealed class AlphaDreamPlayer : Player
 		TempoStack = 0;
 		_elapsedLoops = 0;
 		ElapsedTicks = 0;
-		_mixer.ResetFade();
+		if (Engine.Instance!.UseNewMixer)
+			_mixer.ResetFade();
+		else
+			_mixer_NAudio.ResetFade();
 		for (int i = 0; i < NUM_TRACKS; i++)
 		{
 			Tracks[i].Init();
@@ -88,28 +106,56 @@ public sealed class AlphaDreamPlayer : Player
 	protected override bool Tick(bool playing, bool recording)
 	{
 		bool allDone = false; // TODO: Individual track tempo
-		while (!allDone && TempoStack >= 75)
+		if (Engine.Instance!.UseNewMixer)
 		{
-			TempoStack -= 75;
-			allDone = true;
-			for (int i = 0; i < NUM_TRACKS; i++)
+			while (!allDone && TempoStack >= 75)
 			{
-				AlphaDreamTrack track = Tracks[i];
-				if (track.IsEnabled)
+				TempoStack -= 75;
+				allDone = true;
+				for (int i = 0; i < NUM_TRACKS; i++)
 				{
-					TickTrack(track, ref allDone);
+					AlphaDreamTrack track = Tracks[i];
+					if (track.IsEnabled)
+					{
+						TickTrack(track, ref allDone);
+					}
+				}
+				if (_mixer.IsFadeDone())
+				{
+					allDone = true;
 				}
 			}
-			if (_mixer.IsFadeDone())
+			if (!allDone)
 			{
-				allDone = true;
+				TempoStack += Tempo;
 			}
+			_mixer.Process(Tracks, playing, recording);
 		}
-		if (!allDone)
+		else
 		{
-			TempoStack += Tempo;
+			while (!allDone && TempoStack >= 75)
+			{
+				TempoStack -= 75;
+				allDone = true;
+				for (int i = 0; i < NUM_TRACKS; i++)
+				{
+					AlphaDreamTrack track = Tracks[i];
+					if (track.IsEnabled)
+					{
+						TickTrack(track, ref allDone);
+					}
+				}
+				if (_mixer_NAudio.IsFadeDone())
+				{
+					allDone = true;
+				}
+			}
+			if (!allDone)
+			{
+				TempoStack += Tempo;
+			}
+			_mixer_NAudio.Process(Tracks, playing, recording);
 		}
-		_mixer.Process(Tracks, playing, recording);
 		return allDone;
 	}
 	private void TickTrack(AlphaDreamTrack track, ref bool allDone)
@@ -158,10 +204,21 @@ public sealed class AlphaDreamPlayer : Player
 		}
 
 		_elapsedLoops++;
-		UpdateElapsedTicksAfterLoop(s.Events[track.Index]!, track.DataOffset, track.Rest);
-		if (ShouldFadeOut && _elapsedLoops > NumLoops && !_mixer.IsFading())
+		if (Engine.Instance!.UseNewMixer)
 		{
-			_mixer.BeginFadeOut();
+			UpdateElapsedTicksAfterLoop(s.Events[track.Index]!, track.DataOffset, track.Rest);
+			if (ShouldFadeOut && _elapsedLoops > NumLoops && !_mixer.IsFading())
+			{
+				_mixer.BeginFadeOut();
+			}
+		}
+		else
+		{
+			UpdateElapsedTicksAfterLoop(s.Events[track.Index]!, track.DataOffset, track.Rest);
+			if (ShouldFadeOut && _elapsedLoops > NumLoops && !_mixer_NAudio.IsFading())
+			{
+				_mixer_NAudio.BeginFadeOut();
+			}
 		}
 	}
 }

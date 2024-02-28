@@ -1,5 +1,5 @@
 ﻿using Kermalis.VGMusicStudio.Core.Util;
-using NAudio.Wave;
+using Kermalis.VGMusicStudio.Core.Formats;
 using System;
 
 namespace Kermalis.VGMusicStudio.Core.GBA.AlphaDream;
@@ -15,11 +15,9 @@ public sealed class AlphaDreamMixer : Mixer
 	private float _fadeStepPerMicroframe;
 
 	public readonly AlphaDreamConfig Config;
-	private readonly WaveBuffer _audio;
+	private readonly Audio _audio;
 	private readonly float[][] _trackBuffers = new float[AlphaDreamPlayer.NUM_TRACKS][];
-	private readonly BufferedWaveProvider _buffer;
-
-	protected override WaveFormat WaveFormat => _buffer.WaveFormat;
+	private readonly Wave _buffer;
 
 	internal AlphaDreamMixer(AlphaDreamConfig config)
 	{
@@ -30,16 +28,18 @@ public sealed class AlphaDreamMixer : Mixer
 		_samplesReciprocal = 1f / SamplesPerBuffer;
 
 		int amt = SamplesPerBuffer * 2;
-		_audio = new WaveBuffer(amt * sizeof(float)) { FloatBufferCount = amt };
+		_audio = new Audio(amt) { FloatBufferCount = amt };
 		for (int i = 0; i < AlphaDreamPlayer.NUM_TRACKS; i++)
 		{
 			_trackBuffers[i] = new float[amt];
 		}
-		_buffer = new BufferedWaveProvider(WaveFormat.CreateIeeeFloatWaveFormat(sampleRate, 2)) // TODO
+		_buffer = new Wave()
 		{
 			DiscardOnBufferOverflow = true,
 			BufferLength = SamplesPerBuffer * 64
 		};
+		_buffer.CreateIeeeFloatWave(sampleRate, 2); // TODO
+
 		Init(_buffer);
 	}
 
@@ -110,7 +110,7 @@ public sealed class AlphaDreamMixer : Mixer
 			track.Channel.Process(buf);
 			for (int j = 0; j < SamplesPerBuffer; j++)
 			{
-				_audio.FloatBuffer[j * 2] += buf[j * 2] * level;
+				_audio.FloatBuffer![j * 2] += buf[j * 2] * level;
 				_audio.FloatBuffer[(j * 2) + 1] += buf[(j * 2) + 1] * level;
 				level += masterStep;
 			}
