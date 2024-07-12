@@ -693,8 +693,16 @@ internal sealed partial class SDATLoadedSong
 				_player.ElapsedTicks++;
 			}
 			_player.TempoStack += _player.Tempo;
-			_player.SMixer.ChannelTick();
-			_player.SMixer.EmulateProcess();
+			if (Engine.Instance!.UseNewMixer)
+			{
+				_player.SMixer.ChannelTick();
+				_player.SMixer.EmulateProcess();
+			}
+			else
+			{
+				_player.SMixer_NAudio.ChannelTick();
+				_player.SMixer_NAudio.EmulateProcess();
+			}
 		}
 		for (int trackIndex = 0; trackIndex < 0x10; trackIndex++)
 		{
@@ -732,8 +740,16 @@ internal sealed partial class SDATLoadedSong
 				}
 			}
 			_player.TempoStack += _player.Tempo;
-			_player.SMixer.ChannelTick();
-			_player.SMixer.EmulateProcess();
+			if (Engine.Instance!.UseNewMixer)
+			{
+				_player.SMixer.ChannelTick();
+				_player.SMixer.EmulateProcess();
+			}
+			else
+			{
+				_player.SMixer_NAudio.ChannelTick();
+				_player.SMixer_NAudio.EmulateProcess();
+			}
 		}
 	finish:
 		for (int i = 0; i < 0x10; i++)

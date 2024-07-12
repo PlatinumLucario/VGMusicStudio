@@ -25,6 +25,7 @@ public abstract class Player : IDisposable
 {
 	protected abstract string Name { get; }
 	protected abstract Mixer Mixer { get; }
+	protected abstract Mixer_NAudio Mixer_NAudio { get; }
 
 	public abstract ILoadedSong? LoadedSong { get; }
 	public bool ShouldFadeOut { get; set; }

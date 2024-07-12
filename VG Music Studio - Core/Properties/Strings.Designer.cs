@@ -358,7 +358,16 @@ namespace Kermalis.VGMusicStudio.Core.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Game Boy Advance binary (*.gba, *srl)|*.gba;*.srl|All files (*.*)|*.*.
+        ///   Looks up a localized string similar to All files (*.*).
+        /// </summary>
+        public static string FilterAllFiles {
+            get {
+                return ResourceManager.GetString("FilterAllFiles", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Game Boy Advance ROM (*.gba, *.srl).
         /// </summary>
         public static string FilterOpenGBA {
             get {
@@ -367,7 +376,7 @@ namespace Kermalis.VGMusicStudio.Core.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Nitro Soundmaker Sound Data (*.sdat)|*.sdat|All files (*.*)|*.*.
+        ///   Looks up a localized string similar to Nitro Soundmaker Sound Data (*.sdat).
         /// </summary>
         public static string FilterOpenSDAT {
             get {
@@ -376,7 +385,7 @@ namespace Kermalis.VGMusicStudio.Core.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to DLS Files (*.dls)|*.dls.
+        ///   Looks up a localized string similar to DLS Format (*.dls).
         /// </summary>
         public static string FilterSaveDLS {
             get {
@@ -385,7 +394,7 @@ namespace Kermalis.VGMusicStudio.Core.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to MIDI Files (*.mid, *.midi)|*.mid;*.midi.
+        ///   Looks up a localized string similar to MIDI Format (*.mid, *.midi).
         /// </summary>
         public static string FilterSaveMIDI {
             get {
@@ -394,7 +403,7 @@ namespace Kermalis.VGMusicStudio.Core.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to SF2 Files (*.sf2)|*.sf2.
+        ///   Looks up a localized string similar to SoundFont2 Format (*.sf2).
         /// </summary>
         public static string FilterSaveSF2 {
             get {
@@ -403,74 +412,11 @@ namespace Kermalis.VGMusicStudio.Core.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to WAV Files (*.wav)|*.wav.
+        ///   Looks up a localized string similar to RIFF Wave (*.wav).
         /// </summary>
         public static string FilterSaveWAV {
             get {
                 return ResourceManager.GetString("FilterSaveWAV", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to All files (*.*).
-        /// </summary>
-        public static string GTKAllFiles {
-            get {
-                return ResourceManager.GetString("GTKAllFiles", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Game Boy Advance binary (*.gba, *.srl).
-        /// </summary>
-        public static string GTKFilterOpenGBA {
-            get {
-                return ResourceManager.GetString("GTKFilterOpenGBA", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Nitro Soundmaker Sound Data (*.sdat).
-        /// </summary>
-        public static string GTKFilterOpenSDAT {
-            get {
-                return ResourceManager.GetString("GTKFilterOpenSDAT", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to DLS Soundfont Files (*.dls).
-        /// </summary>
-        public static string GTKFilterSaveDLS {
-            get {
-                return ResourceManager.GetString("GTKFilterSaveDLS", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to MIDI Sequence Files (*.mid, *.midi).
-        /// </summary>
-        public static string GTKFilterSaveMIDI {
-            get {
-                return ResourceManager.GetString("GTKFilterSaveMIDI", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to SF2 Soundfont Files (*.sf2).
-        /// </summary>
-        public static string GTKFilterSaveSF2 {
-            get {
-                return ResourceManager.GetString("GTKFilterSaveSF2", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Wave Audio Data (*.wav).
-        /// </summary>
-        public static string GTKFilterSaveWAV {
-            get {
-                return ResourceManager.GetString("GTKFilterSaveWAV", resourceCulture);
             }
         }
         

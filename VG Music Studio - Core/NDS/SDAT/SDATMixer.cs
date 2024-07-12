@@ -1,5 +1,5 @@
-﻿using Kermalis.VGMusicStudio.Core.Util;
-using NAudio.Wave;
+﻿using Kermalis.VGMusicStudio.Core.Formats;
+using Kermalis.VGMusicStudio.Core.Util;
 using System;
 
 namespace Kermalis.VGMusicStudio.Core.NDS.SDAT;
@@ -14,9 +14,7 @@ public sealed class SDATMixer : Mixer
 	private float _fadeStepPerMicroframe;
 
 	internal SDATChannel[] Channels;
-	private readonly BufferedWaveProvider _buffer;
-
-	protected override WaveFormat WaveFormat => _buffer.WaveFormat;
+	private readonly Wave _buffer;
 
 	internal SDATMixer()
 	{
@@ -33,11 +31,12 @@ public sealed class SDATMixer : Mixer
 			Channels[i] = new SDATChannel(i);
 		}
 
-		_buffer = new BufferedWaveProvider(new WaveFormat(sampleRate, 16, 2))
+		_buffer = new Wave()
 		{
 			DiscardOnBufferOverflow = true,
 			BufferLength = _samplesPerBuffer * 64
 		};
+		_buffer.CreateIeeeFloatWave(sampleRate, 2, 16);
 		Init(_buffer);
 	}
 

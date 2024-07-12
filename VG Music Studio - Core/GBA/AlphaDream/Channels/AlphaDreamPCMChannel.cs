@@ -12,6 +12,10 @@ internal sealed class AlphaDreamPCMChannel : AlphaDreamChannel
 	{
 		//
 	}
+	public AlphaDreamPCMChannel(AlphaDreamMixer_NAudio mixer) : base(mixer)
+	{
+		//
+	}
 	public void Init(byte key, ADSR adsr, int sampleOffset, bool bFixed)
 	{
 		_velocity = adsr.A;
@@ -20,7 +24,10 @@ internal sealed class AlphaDreamPCMChannel : AlphaDreamChannel
 		Key = key;
 		_adsr = adsr;
 
-		_sampleHeader = new SampleHeader(_mixer.Config.ROM, sampleOffset, out _sampleOffset);
+		if (Engine.Instance!.UseNewMixer)
+			_sampleHeader = new SampleHeader(_mixer.Config.ROM, sampleOffset, out _sampleOffset);
+		else
+			_sampleHeader = new SampleHeader(_mixer_NAudio.Config.ROM, sampleOffset, out _sampleOffset);
 		_bFixed = bFixed;
 		Stopped = false;
 	}
@@ -80,31 +87,63 @@ internal sealed class AlphaDreamPCMChannel : AlphaDreamChannel
 		StepEnvelope();
 
 		ChannelVolume vol = GetVolume();
-		float interStep = (_bFixed ? _sampleHeader.SampleRate >> 10 : _frequency) * _mixer.SampleRateReciprocal;
-		int bufPos = 0; int samplesPerBuffer = _mixer.SamplesPerBuffer;
-		do
+		if (Engine.Instance!.UseNewMixer)
 		{
-			float samp = (_mixer.Config.ROM[_pos + _sampleOffset] - 0x80) / (float)0x80;
-
-			buffer[bufPos++] += samp * vol.LeftVol;
-			buffer[bufPos++] += samp * vol.RightVol;
-
-			_interPos += interStep;
-			int posDelta = (int)_interPos;
-			_interPos -= posDelta;
-			_pos += posDelta;
-			if (_pos >= _sampleHeader.Length)
+			float interStep = (_bFixed ? _sampleHeader.SampleRate >> 10 : _frequency) * _mixer.SampleRateReciprocal;
+			int bufPos = 0; int samplesPerBuffer = _mixer.SamplesPerBuffer;
+			do
 			{
-				if (_sampleHeader.DoesLoop == 0x40000000)
+				float samp = (_mixer.Config.ROM[_pos + _sampleOffset] - 0x80) / (float)0x80;
+
+				buffer[bufPos++] += samp * vol.LeftVol;
+				buffer[bufPos++] += samp * vol.RightVol;
+
+				_interPos += interStep;
+				int posDelta = (int)_interPos;
+				_interPos -= posDelta;
+				_pos += posDelta;
+				if (_pos >= _sampleHeader.Length)
 				{
-					_pos = _sampleHeader.LoopOffset;
+					if (_sampleHeader.DoesLoop == 0x40000000)
+					{
+						_pos = _sampleHeader.LoopOffset;
+					}
+					else
+					{
+						Stopped = true;
+						break;
+					}
 				}
-				else
+			} while (--samplesPerBuffer > 0);
+		}
+		else
+		{
+			float interStep = (_bFixed ? _sampleHeader.SampleRate >> 10 : _frequency) * _mixer_NAudio.SampleRateReciprocal;
+			int bufPos = 0; int samplesPerBuffer = _mixer_NAudio.SamplesPerBuffer;
+			do
+			{
+				float samp = (_mixer_NAudio.Config.ROM[_pos + _sampleOffset] - 0x80) / (float)0x80;
+
+				buffer[bufPos++] += samp * vol.LeftVol;
+				buffer[bufPos++] += samp * vol.RightVol;
+
+				_interPos += interStep;
+				int posDelta = (int)_interPos;
+				_interPos -= posDelta;
+				_pos += posDelta;
+				if (_pos >= _sampleHeader.Length)
 				{
-					Stopped = true;
-					break;
+					if (_sampleHeader.DoesLoop == 0x40000000)
+					{
+						_pos = _sampleHeader.LoopOffset;
+					}
+					else
+					{
+						Stopped = true;
+						break;
+					}
 				}
-			}
-		} while (--samplesPerBuffer > 0);
+			} while (--samplesPerBuffer > 0);
+		}
 	}
 }

@@ -1,7 +1,6 @@
 ﻿using Kermalis.VGMusicStudio.Core;
 using Kermalis.VGMusicStudio.Core.Properties;
 using Kermalis.VGMusicStudio.Core.Util;
-using Kermalis.VGMusicStudio.WinForms.Util;
 using System;
 using System.ComponentModel;
 using System.Drawing;
@@ -298,7 +297,7 @@ internal sealed class SongInfoControl : Control
 			else
 			{
 				const int DELTA = 125;
-				alpha = (int)WinFormsUtils.Lerp(velocity * 0.5f, 0f, DELTA);
+				alpha = (int)GUIUtils.Lerp(velocity * 0.5f, 0f, DELTA);
 				alpha += 255 - DELTA;
 			}
 			_solidBrush.Color = Color.FromArgb(alpha, color);

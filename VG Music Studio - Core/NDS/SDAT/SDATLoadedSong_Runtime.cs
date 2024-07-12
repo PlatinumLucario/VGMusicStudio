@@ -78,7 +78,10 @@ internal sealed partial class SDATLoadedSong
 	private void TryStartChannel(SBNK.InstrumentData inst, SDATTrack track, byte note, byte velocity, int duration, out SDATChannel? channel)
 	{
 		InstrumentType type = inst.Type;
-		channel = _player.SMixer.AllocateChannel(type, track);
+		if (Engine.Instance!.UseNewMixer)
+			channel = _player.SMixer.AllocateChannel(type, track);
+		else
+			channel = _player.SMixer_NAudio.AllocateChannel(type, track);
 		if (channel is null)
 		{
 			return;

@@ -13,6 +13,7 @@ public sealed class SDATPlayer : Player
 	private readonly string?[] _voiceTypeCache = new string?[256];
 	internal readonly SDATConfig Config;
 	internal readonly SDATMixer SMixer;
+	internal readonly SDATMixer_NAudio SMixer_NAudio;
 	private SDATLoadedSong? _loadedSong;
 
 	internal byte Volume;
@@ -24,12 +25,24 @@ public sealed class SDATPlayer : Player
 
 	public override ILoadedSong? LoadedSong => _loadedSong;
 	protected override Mixer Mixer => SMixer;
+	protected override Mixer_NAudio Mixer_NAudio => SMixer_NAudio;
 
 	internal SDATPlayer(SDATConfig config, SDATMixer mixer)
 		: base(192)
 	{
 		Config = config;
 		SMixer = mixer;
+
+		for (byte i = 0; i < 0x10; i++)
+		{
+			Tracks[i] = new SDATTrack(i, this);
+		}
+	}
+	internal SDATPlayer(SDATConfig config, SDATMixer_NAudio mixer)
+		: base(192)
+	{
+		Config = config;
+		SMixer_NAudio = mixer;
 
 		for (byte i = 0; i < 0x10; i++)
 		{
@@ -80,7 +93,10 @@ public sealed class SDATPlayer : Player
 		TempoStack = 0;
 		_elapsedLoops = 0;
 		ElapsedTicks = 0;
-		SMixer.ResetFade();
+		if (Engine.Instance!.UseNewMixer)
+			SMixer.ResetFade();
+		else
+			SMixer_NAudio.ResetFade();
 		_loadedSong!.InitEmulation();
 		for (int i = 0; i < 0x10; i++)
 		{
@@ -107,34 +123,68 @@ public sealed class SDATPlayer : Player
 	protected override bool Tick(bool playing, bool recording)
 	{
 		bool allDone = false;
-		while (!allDone && TempoStack >= 240)
+		if (Engine.Instance!.UseNewMixer)
 		{
-			TempoStack -= 240;
-			allDone = true;
+			while (!allDone && TempoStack >= 240)
+			{
+				TempoStack -= 240;
+				allDone = true;
+				for (int i = 0; i < 0x10; i++)
+				{
+					TickTrack(i, ref allDone);
+				}
+				if (SMixer.IsFadeDone())
+				{
+					allDone = true;
+				}
+			}
+			if (!allDone)
+			{
+				TempoStack += Tempo;
+			}
 			for (int i = 0; i < 0x10; i++)
 			{
-				TickTrack(i, ref allDone);
+				SDATTrack track = Tracks[i];
+				if (track.Enabled)
+				{
+					track.UpdateChannels();
+				}
 			}
-			if (SMixer.IsFadeDone())
+			SMixer.ChannelTick();
+			SMixer.Process(playing, recording);
+			return allDone;
+		}
+		else
+		{
+			while (!allDone && TempoStack >= 240)
 			{
+				TempoStack -= 240;
 				allDone = true;
+				for (int i = 0; i < 0x10; i++)
+				{
+					TickTrack(i, ref allDone);
+				}
+				if (SMixer_NAudio.IsFadeDone())
+				{
+					allDone = true;
+				}
 			}
-		}
-		if (!allDone)
-		{
-			TempoStack += Tempo;
-		}
-		for (int i = 0; i < 0x10; i++)
-		{
-			SDATTrack track = Tracks[i];
-			if (track.Enabled)
+			if (!allDone)
 			{
-				track.UpdateChannels();
+				TempoStack += Tempo;
 			}
+			for (int i = 0; i < 0x10; i++)
+			{
+				SDATTrack track = Tracks[i];
+				if (track.Enabled)
+				{
+					track.UpdateChannels();
+				}
+			}
+			SMixer_NAudio.ChannelTick();
+			SMixer_NAudio.Process(playing, recording);
+			return allDone;
 		}
-		SMixer.ChannelTick();
-		SMixer.Process(playing, recording);
-		return allDone;
 	}
 	private void TickTrack(int trackIndex, ref bool allDone)
 	{
@@ -187,9 +237,19 @@ public sealed class SDATPlayer : Player
 				break;
 			}
 		}
-		if (ShouldFadeOut && _elapsedLoops > NumLoops && !SMixer.IsFading())
+		if (Engine.Instance!.UseNewMixer)
 		{
-			SMixer.BeginFadeOut();
+			if (ShouldFadeOut && _elapsedLoops > NumLoops && !SMixer.IsFading())
+			{
+				SMixer.BeginFadeOut();
+			}
+		}
+		else
+		{
+			if (ShouldFadeOut && _elapsedLoops > NumLoops && !SMixer_NAudio.IsFading())
+			{
+				SMixer_NAudio.BeginFadeOut();
+			}
 		}
 	}
 }

@@ -38,6 +38,20 @@ internal sealed class AlphaDreamTrack
 			Channel = new AlphaDreamPCMChannel(mixer);
 		}
 	}
+	public AlphaDreamTrack(byte i, AlphaDreamMixer_NAudio mixer)
+	{
+		Index = i;
+		if (i >= 8)
+		{
+			Type = GBAUtils.PSGTypes[i & 3];
+			Channel = new AlphaDreamSquareChannel(mixer); // TODO: PSG Channels 3 and 4
+		}
+		else
+		{
+			Type = "PCM8";
+			Channel = new AlphaDreamPCMChannel(mixer);
+		}
+	}
 	// 0x819B040
 	public void Init()
 	{
