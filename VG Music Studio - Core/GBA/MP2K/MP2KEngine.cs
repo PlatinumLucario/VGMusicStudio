@@ -8,7 +8,7 @@ public sealed class MP2KEngine : Engine
 
     public override MP2KConfig Config { get; }
     public override MP2KMixer Mixer { get; }
-    public MP2KMixer_NAudio Mixer_NAudio { get; }
+    public override MP2KMixer_NAudio Mixer_NAudio { get; }
     public override MP2KPlayer Player { get; }
     public override bool UseNewMixer { get => true; }
 
@@ -27,6 +27,7 @@ public sealed class MP2KEngine : Engine
         }
         else
         {
+            Mixer = new MP2KMixer();
             Mixer_NAudio = new MP2KMixer_NAudio(Config);
             Player = new MP2KPlayer(Config, Mixer_NAudio);
         }

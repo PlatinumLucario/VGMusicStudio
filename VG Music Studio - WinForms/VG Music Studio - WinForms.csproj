@@ -21,7 +21,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="EndianBinaryIO" Version="2.1.0" /> <!--Only used for VGMSDebug right now-->
+		<PackageReference Include="EndianBinaryIO" Version="2.1.1" /> <!--Only used for VGMSDebug right now-->
 		
 		<!--These 3 are .NET framework 4.6.1 but still work-->
 		<PackageReference Include="Microsoft.WindowsAPICodePack-Core" Version="1.1.0.2">

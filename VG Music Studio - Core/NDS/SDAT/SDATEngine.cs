@@ -6,7 +6,7 @@ public sealed class SDATEngine : Engine
 
 	public override SDATConfig Config { get; }
 	public override SDATMixer Mixer { get; }
-	public SDATMixer_NAudio Mixer_NAudio { get; }
+	public override SDATMixer_NAudio Mixer_NAudio { get; }
 	public override SDATPlayer Player { get; }
 	public override bool UseNewMixer { get => false; }
 

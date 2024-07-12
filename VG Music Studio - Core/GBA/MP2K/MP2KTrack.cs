@@ -202,18 +202,21 @@ internal sealed class MP2KTrack
 			for (int j = 0; j < channels.Length; j++)
 			{
 				MP2KChannel c = channels[j];
-				if (c.State < EnvelopeState.Releasing)
+				if (c is not null)
 				{
-					tin.Keys[numKeys++] = c.Note.OriginalNote;
-				}
-				ChannelVolume vol = c.GetVolume();
-				if (vol.LeftVol > left)
-				{
-					left = vol.LeftVol;
-				}
-				if (vol.RightVol > right)
-				{
-					right = vol.RightVol;
+					if (c.State < EnvelopeState.Releasing)
+					{
+						tin.Keys[numKeys++] = c.Note.OriginalNote;
+					}
+					ChannelVolume vol = c.GetVolume();
+					if (vol.LeftVol > left)
+					{
+						left = vol.LeftVol;
+					}
+					if (vol.RightVol > right)
+					{
+						right = vol.RightVol;
+					}
 				}
 			}
 			tin.Keys[numKeys] = byte.MaxValue; // There's no way for numKeys to be after the last index in the array

@@ -737,7 +737,7 @@ internal sealed class MainForm : ThemedForm
 	}
 	private void Mixer_VolumeChanged(float volume)
 	{
-		_volumeBar.ValueChanged -= VolumeBar_ValueChanged;
+		//_volumeBar.ValueChanged -= VolumeBar_ValueChanged;
 		_volumeBar.Value = (int)(volume * _volumeBar.Maximum);
 		_volumeBar.ValueChanged += VolumeBar_ValueChanged;
 	}

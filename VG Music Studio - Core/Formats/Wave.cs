@@ -1,4 +1,5 @@
 ﻿using Kermalis.EndianBinaryIO;
+using NAudio.Utils;
 using System;
 using System.IO;
 
@@ -50,6 +51,30 @@ public class Wave
         }
     }
 
+    public int BufferedBytes
+    {
+        get
+        {
+            if (this != null)
+            {
+                return Count;
+            }
+
+            return 0;
+        }
+    }
+
+    public int Count
+    {
+        get
+        {
+            lock (LockObject!)
+            {
+                return ByteCount;
+            }
+        }
+    }
+
     public Wave()
     {
         InStream = new MemoryStream();
@@ -72,8 +97,8 @@ public class Wave
         ExtraSize = 0;
         return new Wave();
     }
-    public Wave CreateIeeeFloatWave(uint sampleRate, ushort channels) => CreateFormat(sampleRate, channels, (ushort)(4 * channels), sampleRate* BlockAlign, 32);
-    public Wave CreateIeeeFloatWave(uint sampleRate, ushort channels, ushort bits) => CreateFormat(sampleRate, channels, (ushort)(4 * channels), sampleRate * BlockAlign, bits);
+    public Wave CreateIeeeFloatWave(uint sampleRate, ushort channels) => CreateFormat(sampleRate, channels, (ushort)(4 * channels), sampleRate * (ushort)(4 * channels), 32);
+    public Wave CreateIeeeFloatWave(uint sampleRate, ushort channels, ushort bits) => CreateFormat(sampleRate, channels, (ushort)(4 * channels), sampleRate * (ushort)(4 * channels), bits);
 
     public void AddSamples(Span<byte> buffer, int offset, int count)
     {

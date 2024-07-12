@@ -28,7 +28,7 @@ public sealed class AlphaDreamMixer : Mixer
 		_samplesReciprocal = 1f / SamplesPerBuffer;
 
 		int amt = SamplesPerBuffer * 2;
-		_audio = new Audio(amt) { FloatBufferCount = amt };
+		_audio = new Audio(amt) { Float32BufferCount = amt };
 		for (int i = 0; i < AlphaDreamPlayer.NUM_TRACKS; i++)
 		{
 			_trackBuffers[i] = new float[amt];
@@ -110,8 +110,8 @@ public sealed class AlphaDreamMixer : Mixer
 			track.Channel.Process(buf);
 			for (int j = 0; j < SamplesPerBuffer; j++)
 			{
-				_audio.FloatBuffer![j * 2] += buf[j * 2] * level;
-				_audio.FloatBuffer[(j * 2) + 1] += buf[(j * 2) + 1] * level;
+				_audio.Float32Buffer![j * 2] += buf[j * 2] * level;
+				_audio.Float32Buffer[(j * 2) + 1] += buf[(j * 2) + 1] * level;
 				level += masterStep;
 			}
 		}

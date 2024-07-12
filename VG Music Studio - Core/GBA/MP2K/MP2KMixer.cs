@@ -28,6 +28,8 @@ public sealed class MP2KMixer : Mixer
 	private readonly MP2KPSGChannel[] _psgChannels;
 	private readonly Wave _buffer;
 
+	internal MP2KMixer() { }
+
 	internal MP2KMixer(MP2KConfig config)
 	{
 		Config = config;
@@ -45,7 +47,7 @@ public sealed class MP2KMixer : Mixer
 
 		int amt = SamplesPerBuffer * 2;
 		Instance = this;
-		_audio = new Audio(amt) { FloatBufferCount = amt };
+		_audio = new Audio(amt * sizeof(float)) { Float32BufferCount = amt };
 		_trackBuffers = new float[0x10][];
 		for (int i = 0; i < _trackBuffers.Length; i++)
 		{
@@ -249,14 +251,15 @@ public sealed class MP2KMixer : Mixer
 			float[] buf = _trackBuffers[i];
 			for (int j = 0; j < SamplesPerBuffer; j++)
 			{
-				_audio.FloatBuffer![j * 2] += buf[j * 2] * level;
-				_audio.FloatBuffer[(j * 2) + 1] += buf[(j * 2) + 1] * level;
+				_audio.Float32Buffer![j * 2] += buf[j * 2] * level;
+				_audio.Float32Buffer[(j * 2) + 1] += buf[(j * 2) + 1] * level;
 				level += masterStep;
 			}
 		}
 		if (output)
 		{
 			_buffer.AddSamples(_audio.ByteBuffer, 0, _audio.ByteBufferCount);
+			Instance!.Buffer = _audio.Float32Buffer!;
 		}
 		if (recording)
 		{

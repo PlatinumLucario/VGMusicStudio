@@ -6,7 +6,7 @@ public sealed class DSEEngine : Engine
 
 	public override DSEConfig Config { get; }
 	public override DSEMixer Mixer { get; }
-	public DSEMixer_NAudio Mixer_NAudio { get; }
+	public override DSEMixer_NAudio Mixer_NAudio { get; }
 	public override DSEPlayer Player { get; }
 	public override bool UseNewMixer { get => false; }
 

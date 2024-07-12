@@ -10,410 +10,470 @@ namespace Kermalis.VGMusicStudio.Core;
 
 public abstract class Mixer : IDisposable
 {
-	public static event Action<float>? VolumeChanged;
+    public static event Action<float>? VolumeChanged;
 
-	public Wave? WaveData;
-	public EndianBinaryReader? Reader;
-	public byte[] Buffer;
+    public Wave? WaveData;
+    public EndianBinaryReader? Reader;
+    public float[] Buffer;
 
-	public readonly bool[] Mutes;
-	public int SizeInBytes;
-	public uint CombinedSamplesPerBuffer;
-	public int SizeToAllocateInBytes;
-	public long FinalFrameSize;
-	public long TotalFrames;
-	internal long Pos = 0;
-	internal float Vol = 1;
+    public readonly bool[] Mutes;
+    public int SizeInBytes;
+    public uint FramesPerBuffer;
+    public uint CombinedSamplesPerBuffer;
+    public int SizeToAllocateInBytes;
+    public long FinalFrameSize;
+    public long TotalFrames;
+    internal long Pos = 0;
+    internal float Vol = 1;
 
-	public int freePos = 0;
-	public int dataPos = 0;
-	public int freeCount;
-	public int dataCount = 0;
+    public int freePos = 0;
+    public int dataPos = 0;
+    public int freeCount;
+    public int dataCount = 0;
 
-	public readonly object CountLock = new object();
+    public readonly object CountLock = new object();
 
-	private bool _shouldSendVolUpdateEvent = true;
+    private bool _shouldSendVolUpdateEvent = true;
 
-	protected Wave? _waveWriter;
+    protected Wave? _waveWriter;
 
-	internal bool PlayingBack = false;
-	public StreamParameters OParams;
-	public StreamParameters DefaultOutputParams { get; private set; }
+    internal bool PlayingBack = false;
+    public StreamParameters OParams;
+    public StreamParameters DefaultOutputParams { get; private set; }
 
-	private Stream? Stream;
-	private bool IsDisposed = false;
+    private Stream? Stream;
+    private bool IsDisposed = false;
 
-	public static Mixer? Instance { get; set; }
+    public static Mixer? Instance { get; set; }
 
-	protected Mixer()
-	{
-		Mutes = new bool[SongState.MAX_TRACKS];
-	}
+    protected Mixer()
+    {
+        Mutes = new bool[SongState.MAX_TRACKS];
+        Buffer = null!;
+    }
 
-	protected void Init(Wave waveData)
-	{
-		// First, check if the instance contains something
-		if (WaveData == null)
-		{
-			IsDisposed = false;
+    protected void Init(Wave waveData)
+    {
+        // First, check if the instance contains something
+        if (WaveData == null)
+        {
+            IsDisposed = false;
 
-			Pa.Initialize();
-			WaveData = waveData;
-			Reader = new EndianBinaryReader(new MemoryStream(Buffer!));
+            Pa.Initialize();
+            WaveData = waveData;
             //Instance = this;
 
             // Try setting up an output device
             OParams.device = Pa.DefaultOutputDevice;
-			if (OParams.device == Pa.NoDevice)
-				throw new Exception("No default audio output device is available.");
+            if (OParams.device == Pa.NoDevice)
+                throw new Exception("No default audio output device is available.");
 
-			OParams.channelCount = 2;
-			OParams.sampleFormat = SampleFormat.Float32;
-			OParams.suggestedLatency = Pa.GetDeviceInfo(OParams.device).defaultLowOutputLatency;
-			OParams.hostApiSpecificStreamInfo = IntPtr.Zero;
+            OParams.channelCount = 2;
+            OParams.sampleFormat = SampleFormat.Float32;
+            OParams.suggestedLatency = Pa.GetDeviceInfo(OParams.device).defaultLowOutputLatency;
+            OParams.hostApiSpecificStreamInfo = IntPtr.Zero;
 
-			// Set it as a the default
-			DefaultOutputParams = OParams;
-		}
+            // Set it as a the default
+            DefaultOutputParams = OParams;
+        }
 
-		Sound();
+        Sound();
 
-		Play();
-	}
+        Play();
+    }
 
-	private void Sound()
-	{
-		Stream = new Stream(
-			null,
-			OParams,
-			WaveData!.SampleRate,
-			CombinedSamplesPerBuffer,
-			StreamFlags.ClipOff,
-			PlayCallback,
-			this
-		);
+    private void Sound()
+    {
+        Stream = new Stream(
+            null,
+            OParams,
+            WaveData!.SampleRate,
+            FramesPerBuffer,
+            StreamFlags.ClipOff,
+            PlayCallback,
+            this
+        );
 
-		FinalFrameSize = CombinedSamplesPerBuffer;
-		TotalFrames = WaveData.Channels * WaveData.BufferLength;
-	}
+        FinalFrameSize = FramesPerBuffer * 2;
+        TotalFrames = WaveData.Channels * WaveData.BufferLength;
+    }
 
-	private static StreamCallbackResult PlayCallback(
-		nint input, nint output,
-		uint frameCount,
-		ref StreamCallbackTimeInfo timeInfo,
-		StreamCallbackFlags statusFlags,
-		nint data
-	)
-	{
-		// Ensure there's no memory allocated in this block to prevent issues
-		Mixer d = Stream.GetUserData<Mixer>(data);
+    private static StreamCallbackResult PlayCallback(
+        nint input, nint output,
+        uint frameCount,
+        ref StreamCallbackTimeInfo timeInfo,
+        StreamCallbackFlags statusFlags,
+        nint data
+    )
+    {
+        // Ensure there's no memory allocated in this block to prevent issues
+        Mixer d = Stream.GetUserData<Mixer>(data);
 
-		long numRead = 0;
-		unsafe
-		{
-			// Do a zero-out memset
-			float* buffer = (float*)output;
-			for (uint i = 0; i < d.FinalFrameSize; i++)
-				*buffer++ = 0;
+        long numRead = 0;
+        Span<float> buffer;
+        unsafe
+        {
+            buffer = new Span<float>(output.ToPointer(), (int)d.FinalFrameSize);
+        }
 
-			// If we're reading data, play it back
-			if (d.PlayingBack)
-			{
-				// Read the data
-				numRead = 8192;
-				//numRead = d.ReadFloat(output, d.FinalFrameSize);
+        // Do a zero-out memset
+        //float* buffer = (float*)output;
+        //for (uint i = 0; i < d.FinalFrameSize; i++)
+        //    buffer[i] = 0;
 
-				// Apply volume
-				buffer = (float*)output;
-				for (int i = 0; i < numRead; i++)
-					*buffer++ *= d.Volume;
-			}
-		}
+        // If we're reading data, play it back
+        if (d.PlayingBack)
+        {
+            // Read the data
+            numRead = d.FinalFrameSize;
 
-		// Increment counter
-		d.Pos += numRead;
+            //for (int i = 0; i < numRead; i++)
+            //    buffer[i] = d.Buffer[i] >> 7;
 
-		// If it's at end of the data
-		if (d.PlayingBack && (numRead < frameCount))
-		{
-			if (d.WaveData!.IsLooped)
-				d.Cursor = d.WaveData.LoopStart;
-			else
-				d.Cursor = 0;
-				d.PlayingBack = false;
-		}
+            // Apply volume with buffer value
+            for (int i = 0; i < numRead; i++)
+                buffer[i] = d.Buffer[i] * d.Vol;
+            //numRead = d.ReadFloat(output, d.FinalFrameSize);
 
-		// Continue on
-		return StreamCallbackResult.Continue;
-	}
+            // Apply volume
+            //buffer = (float*)output;
+            //for (int i = 0; i < numRead; i++)
+            //    buffer[i] *= d.Volume;
+        }
 
-	private long ReadFloat(nint outData, long nElements)
-	{
-		if (Reader == null)
-		{
-			Reader = new EndianBinaryReader(new MemoryStream(WaveData!.Buffer!));
-		}
-		if (outData > nElements)
-		{
-			Reader.Stream.Position = outData = (nint)WaveData!.LoopStart;
-			return WaveData.LoopStart;
-		}
-		else
-		{
-			Reader.Stream.Position = outData;
-			return Reader!.ReadInt16();
-		}
-		//if (dataCount < nElements)
-		//{
-		//    // underrun
-		//    std::fill(outData, outData + nElements, sample{ 0.0f, 0.0f});
-		//}
-		//else
-		//{
-		//    // output
-		//    std::unique_lock < std::mutex > lock (CountLock) ;
-		//    while (nElements > 0)
-		//    {
-		//        int count = takeChunk(outData, nElements);
-		//        outData += count;
-		//        nElements -= count;
-		//    }
-		//    sig.notify_one();
-		//}
-	}
+        //// Increment counter
+        //d.Pos += numRead;
 
-	public float Volume
-	{
-		get => Vol;
-		set => Vol = Math.Max(Math.Min(value, 0), 1);
-	}
+        //// If it's at end of the data
+        //if (d.PlayingBack && (numRead < frameCount))
+        //{
+        //    if (d.WaveData!.IsLooped)
+        //        d.Cursor = d.WaveData.LoopStart;
+        //    else
+        //        d.Cursor = 0;
+        //        d.PlayingBack = false;
+        //        return StreamCallbackResult.Complete;
+        //}
 
-	public bool IsPlaying
-	{
-		get => PlayingBack;
-	}
+        // Continue on
+        return StreamCallbackResult.Continue;
+    }
 
-	public float Cursor
-	{
-		get => (float)(Pos) / (float)(TotalFrames) * (float)TimeSpan.FromSeconds(Buffer!.LongLength).TotalSeconds;
-		set
-		{
-			// Do math
-			float per = value / (float)TimeSpan.FromSeconds(Buffer!.LongLength).TotalSeconds;
-			long frame = (long)(per * TotalFrames);
+    private long ReadFloat(nint outData, long nElements)
+    {
+        if (Reader == null)
+        {
+            Reader = new EndianBinaryReader(new MemoryStream(WaveData!.Buffer!));
+        }
+        if (outData > nElements)
+        {
+            Reader.Stream.Position = outData = (nint)WaveData!.LoopStart;
+            return WaveData.LoopStart;
+        }
+        else
+        {
+            Reader.Stream.Position = outData;
+            return Reader!.ReadInt16();
+        }
+        //if (dataCount < nElements)
+        //{
+        //    // underrun
+        //    std::fill(outData, outData + nElements, sample{ 0.0f, 0.0f});
+        //}
+        //else
+        //{
+        //    // output
+        //    std::unique_lock < std::mutex > lock (CountLock) ;
+        //    while (nElements > 0)
+        //    {
+        //        int count = takeChunk(outData, nElements);
+        //        outData += count;
+        //        nElements -= count;
+        //    }
+        //    sig.notify_one();
+        //}
+    }
 
-			// Clamp
-			frame = Math.Max(Math.Min(frame, 0), TotalFrames);
+    public float Volume
+    {
+        get => Vol;
+        set => Vol = Math.Clamp(value, 0, 1);
+    }
 
-			// Set (stop playback for a very short while, to stop some back skipping noises)
-			bool wasPlaying = IsPlaying;
-			if (Pos != TotalFrames)          // this check stops a segfault when the audio has reached the end of playback
-				Pause();
+    public bool IsPlaying
+    {
+        get => PlayingBack;
+    }
 
-			Pos = frame;
-			Reader!.Stream.Seek(Pos / WaveData!.Channels, SeekOrigin.Begin);
+    public float Cursor
+    {
+        get => (float)(Pos) / (float)(TotalFrames) * (float)TimeSpan.FromSeconds(Buffer!.LongLength).TotalSeconds;
+        set
+        {
+            // Do math
+            float per = value / (float)TimeSpan.FromSeconds(Buffer!.LongLength).TotalSeconds;
+            long frame = (long)(per * TotalFrames);
 
-			if (wasPlaying)
-				Play();
-		}
-	}
+            // Clamp
+            frame = Math.Max(Math.Min(frame, 0), TotalFrames);
 
-	public void Play()
-	{
-		PlayingBack = true;
+            // Set (stop playback for a very short while, to stop some back skipping noises)
+            bool wasPlaying = IsPlaying;
+            if (Pos != TotalFrames)          // this check stops a segfault when the audio has reached the end of playback
+                Pause();
 
-		if (Stream!.IsStopped)
-			Stream.Start();
-	}
+            Pos = frame;
+            Reader!.Stream.Seek(Pos / WaveData!.Channels, SeekOrigin.Begin);
 
-	public void Pause()
-	{
-		PlayingBack = false;
+            if (wasPlaying)
+                Play();
+        }
+    }
 
-		if (Stream!.IsActive)
-			Stream.Stop();
-	}
+    public void Play()
+    {
+        PlayingBack = true;
 
-	public float GetVolume()
-	{
-		return Vol;
-	}
+        if (Stream!.IsStopped)
+            Stream.Start();
+    }
 
-	public void SetVolume(float volume)
-	{
-		Vol = Math.Max(Math.Min(volume, 0), 1);
-	}
+    public void Pause()
+    {
+        PlayingBack = false;
 
-	public void CreateWaveWriter(string fileName)
-	{
-		_waveWriter = new Wave(fileName);
-	}
-	public void CloseWaveWriter()
-	{
+        if (Stream!.IsActive)
+            Stream.Stop();
+    }
 
-	}
+    public float GetVolume()
+    {
+        return Vol;
+    }
 
-	public virtual void Dispose()
-	{
-		if (IsDisposed) return;
+    public void SetVolume(float volume)
+    {
+        if (!Engine.Instance!.UseNewMixer)
+            Engine.Instance.Mixer_NAudio.SetVolume(volume);
+        else
+            Vol = Math.Clamp(volume, 0, 1);
+    }
 
-		Stream!.Dispose();
-		Reader!.Stream.Dispose();
-		GC.SuppressFinalize(this);
+    public void CreateWaveWriter(string fileName)
+    {
+        _waveWriter = new Wave(fileName);
+    }
+    public void CloseWaveWriter()
+    {
 
-		IsDisposed = true;
-	}
+    }
 
-	public interface IAudio
-	{
-		byte[] ByteBuffer { get; }
-		float[] FloatBuffer { get; }
-		short[] ShortBuffer { get; }
-		int[] IntBuffer { get; }
-	}
+    public virtual void Dispose()
+    {
+        if (IsDisposed || Stream is null) return;
 
-	[StructLayout(LayoutKind.Explicit, Pack = 2)]
-	public class Audio : IAudio
-	{
-		[FieldOffset(0)]
-		public int NumberOfBytes;
-		[FieldOffset(8)]
-		public byte[] ByteBuffer;
-		[FieldOffset(8)]
-		public float[]? FloatBuffer;
-		[FieldOffset(8)]
-		public short[]? ShortBuffer;
-		[FieldOffset(8)]
-		public int[]? IntBuffer;
+        Stream!.Dispose();
+        //Reader!.Stream.Dispose();
+        GC.SuppressFinalize(this);
 
-		byte[] IAudio.ByteBuffer => ByteBuffer;
-		float[] IAudio.FloatBuffer => FloatBuffer!;
-		short[] IAudio.ShortBuffer => ShortBuffer!;
-		int[] IAudio.IntBuffer => IntBuffer!;
+        IsDisposed = true;
+    }
 
-		public int ByteBufferCount
-		{
-			get
-			{
-				return NumberOfBytes;
-			}
-			set
-			{
-				NumberOfBytes = CheckValidityCount("ByteBufferCount", value, 1);
-			}
-		}
+    public interface IAudio
+    {
+        Span<byte> ByteBuffer { get; }
+        Span<short> Int16Buffer { get; }
+        Span<int> Int32Buffer { get; }
+        Span<long> Int64Buffer { get; }
+        Span<Int128> Int128Buffer { get; }
+        Span<Half> Float16Buffer { get; }
+        Span<float> Float32Buffer { get; }
+        Span<double> Float64Buffer { get; }
+        Span<decimal> Float128Buffer { get; }
+    }
 
-		public int ShortBufferCount
-		{
-			get
-			{
-				return NumberOfBytes / 2;
-			}
-			set
-			{
-				NumberOfBytes = CheckValidityCount("ShortBufferCount", value, 2);
-			}
-		}
+    [StructLayout(LayoutKind.Explicit, Pack = 2)]
+    public class Audio : IAudio
+    {
+        [FieldOffset(0)]
+        public int NumberOfBytes;
+        [FieldOffset(8)]
+        public byte[]? ByteBuffer;
+        [FieldOffset(8)]
+        public short[]? Int16Buffer;
+        [FieldOffset(8)]
+        public int[]? Int32Buffer;
+        [FieldOffset(8)]
+        public long[]? Int64Buffer;
+        [FieldOffset(8)]
+        public Int128[]? Int128Buffer;
+        [FieldOffset(8)]
+        public Half[]? Float16Buffer;
+        [FieldOffset(8)]
+        public float[]? Float32Buffer;
+        [FieldOffset(8)]
+        public double[]? Float64Buffer;
+        [FieldOffset(8)]
+        public decimal[]? Float128Buffer;
 
-		public int IntBufferCount
-		{
-			get
-			{
-				return NumberOfBytes / 4;
-			}
-			set
-			{
-				NumberOfBytes = CheckValidityCount("IntBufferCount", value, 4);
-			}
-		}
+        Span<byte> IAudio.ByteBuffer => ByteBuffer!;
+        Span<short> IAudio.Int16Buffer => Int16Buffer!;
+        Span<int> IAudio.Int32Buffer => Int32Buffer!;
+        Span<long> IAudio.Int64Buffer => Int64Buffer!;
+        Span<Int128> IAudio.Int128Buffer => Int128Buffer!;
+        Span<Half> IAudio.Float16Buffer => Float16Buffer!;
+        Span<float> IAudio.Float32Buffer => Float32Buffer!;
+        Span<double> IAudio.Float64Buffer => Float64Buffer!;
+        Span<decimal> IAudio.Float128Buffer => Float128Buffer!;
 
-		public int LongBufferCount
-		{
-			get
-			{
-				return NumberOfBytes / 8;
-			}
-			set
-			{
-				NumberOfBytes = CheckValidityCount("LongBufferCount", value, 8);
-			}
-		}
+        public int ByteBufferCount
+        {
+            get
+            {
+                return NumberOfBytes;
+            }
+            set
+            {
+                NumberOfBytes = CheckValidityCount("ByteBufferCount", value, 1);
+            }
+        }
 
-		public int HalfBufferCount
-		{
-			get
-			{
-				return NumberOfBytes / 2;
-			}
-			set
-			{
-				NumberOfBytes = CheckValidityCount("HalfBufferCount", value, 2);
-			}
-		}
+        public int Int16BufferCount
+        {
+            get
+            {
+                return NumberOfBytes / 2;
+            }
+            set
+            {
+                NumberOfBytes = CheckValidityCount("Int16BufferCount", value, 2);
+            }
+        }
 
-		public int FloatBufferCount
-		{
-			get
-			{
-				return NumberOfBytes / 4;
-			}
-			set
-			{
-				NumberOfBytes = CheckValidityCount("FloatBufferCount", value, 4);
-			}
-		}
+        public int Int32BufferCount
+        {
+            get
+            {
+                return NumberOfBytes / 4;
+            }
+            set
+            {
+                NumberOfBytes = CheckValidityCount("Int32BufferCount", value, 4);
+            }
+        }
 
-		public int DoubleBufferCount
-		{
-			get
-			{
-				return NumberOfBytes / 8;
-			}
-			set
-			{
-				NumberOfBytes = CheckValidityCount("DoubleBufferCount", value, 8);
-			}
-		}
+        public int Int64BufferCount
+        {
+            get
+            {
+                return NumberOfBytes / 8;
+            }
+            set
+            {
+                NumberOfBytes = CheckValidityCount("Int64BufferCount", value, 8);
+            }
+        }
 
-		public Audio(int combinedSamplesPerBuffer)
-		{
-			Instance!.CombinedSamplesPerBuffer = (uint)combinedSamplesPerBuffer;
-			Instance.SizeInBytes = combinedSamplesPerBuffer * sizeof(float);
-			int num = Instance.SizeInBytes % 4;
-			Instance.SizeToAllocateInBytes = (num == 0) ? Instance.SizeInBytes : (Instance.SizeInBytes + 4 - num);
-			Instance.Buffer = ByteBuffer = new byte[Instance.SizeToAllocateInBytes];
-			NumberOfBytes = 0;
-		}
+        public int Int128BufferCount
+        {
+            get
+            {
+                return NumberOfBytes / 16;
+            }
+            set
+            {
+                NumberOfBytes = CheckValidityCount("Int128BufferCount", value, 16);
+            }
+        }
 
-		public static implicit operator byte[](Audio waveBuffer)
-		{
-			return waveBuffer.ByteBuffer;
-		}
+        public int Float16BufferCount
+        {
+            get
+            {
+                return NumberOfBytes / 2;
+            }
+            set
+            {
+                NumberOfBytes = CheckValidityCount("Float16BufferCount", value, 2);
+            }
+        }
 
-		private int CheckValidityCount(string argName, int value, int sizeOfValue)
-		{
-			int num = value * sizeOfValue;
-			if (num % 4 != 0)
-			{
-				throw new ArgumentOutOfRangeException(argName, $"{argName} cannot set a count ({num}) that is not 4 bytes aligned ");
-			}
+        public int Float32BufferCount
+        {
+            get
+            {
+                return NumberOfBytes / 4;
+            }
+            set
+            {
+                NumberOfBytes = CheckValidityCount("Float32BufferCount", value, 4);
+            }
+        }
 
-			if (value < 0 || value > ByteBuffer.Length / sizeOfValue)
-			{
-				throw new ArgumentOutOfRangeException(argName, $"{argName} cannot set a count that exceed max count {ByteBuffer.Length / sizeOfValue}");
-			}
+        public int Float64BufferCount
+        {
+            get
+            {
+                return NumberOfBytes / 8;
+            }
+            set
+            {
+                NumberOfBytes = CheckValidityCount("Float64BufferCount", value, 8);
+            }
+        }
 
-			return num;
-		}
+        public int Float128BufferCount
+        {
+            get
+            {
+                return NumberOfBytes / 16;
+            }
+            set
+            {
+                NumberOfBytes = CheckValidityCount("Float128BufferCount", value, 16);
+            }
+        }
 
-		public void Clear()
-		{
-			Array.Clear(ByteBuffer, 0, ByteBuffer.Length);
-		}
+        public Audio(int sizeToAllocateInBytes)
+        {
+            Instance!.FramesPerBuffer = (uint)(sizeToAllocateInBytes / sizeof(float)) / 2;
+            //Instance.CombinedSamplesPerBuffer = (uint)SamplesPerBuffer * 2;
+            Instance.SizeInBytes = sizeToAllocateInBytes;
+            int num = Instance.SizeInBytes % 4;
+            Instance.SizeToAllocateInBytes = (num == 0) ? Instance.SizeInBytes : (Instance.SizeInBytes + 4 - num);
+            Instance.Buffer = Float32Buffer = new float[Instance.SizeToAllocateInBytes];
+            NumberOfBytes = 0;
+        }
 
-		public void Copy(Array destinationArray)
-		{
-			Array.Copy(ByteBuffer, destinationArray, NumberOfBytes);
-		}
-	}
+        public static implicit operator byte[](Audio waveBuffer)
+        {
+            return waveBuffer.ByteBuffer!;
+        }
+
+        private int CheckValidityCount(string argName, int value, int sizeOfValue)
+        {
+            int num = value * sizeOfValue;
+            if (num % 4 != 0)
+            {
+                throw new ArgumentOutOfRangeException(argName, $"{argName} cannot set a count ({num}) that is not 4 bytes aligned ");
+            }
+
+            if (value < 0 || value > ByteBuffer.Length / sizeOfValue)
+            {
+                throw new ArgumentOutOfRangeException(argName, $"{argName} cannot set a count that exceeds max count of {ByteBuffer.Length / sizeOfValue}.");
+            }
+
+            return num;
+        }
+
+        public void Clear()
+        {
+            Array.Clear(ByteBuffer, 0, ByteBuffer.Length);
+        }
+
+        public void Copy(Array destinationArray)
+        {
+            Array.Copy(ByteBuffer, destinationArray, NumberOfBytes);
+        }
+    }
 }

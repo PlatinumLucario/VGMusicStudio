@@ -8,7 +8,7 @@ public sealed class AlphaDreamEngine : Engine
 
 	public override AlphaDreamConfig Config { get; }
 	public override AlphaDreamMixer Mixer { get; }
-	public AlphaDreamMixer_NAudio Mixer_NAudio { get; }
+	public override AlphaDreamMixer_NAudio Mixer_NAudio { get; }
 	public override AlphaDreamPlayer Player { get; }
 	public override bool UseNewMixer { get => false; }
 
