@@ -61,7 +61,6 @@ internal class GTK4Utils : DialogUtils
     {
         if (isFile)
         {
-
             var ff = FileFilter.New();
             Convert(filterName, fileExtensions, ff);
 
@@ -107,8 +106,8 @@ internal class GTK4Utils : DialogUtils
             }
             else
             {
-                var p = Gtk.Window.New();
-                Gtk.Internal.FileDialog.Open(d.Handle, p.Handle, IntPtr.Zero, _openCallback, IntPtr.Zero);
+                var p = MainWindow.Instance;
+                Gtk.Internal.FileDialog.Open(d.Handle, p!.Handle, IntPtr.Zero, _openCallback, IntPtr.Zero);
             }
             //d.Open(Handle, IntPtr.Zero, _openCallback, IntPtr.Zero);
             return null!;
@@ -149,7 +148,7 @@ internal class GTK4Utils : DialogUtils
                 var p = Gtk.Window.New();
                 Gtk.Internal.FileDialog.SelectFolder(d.Handle, p.Handle, IntPtr.Zero, _selectFolderCallback, IntPtr.Zero);
             }
-            return null!;
+            return path!;
         }
     }
 

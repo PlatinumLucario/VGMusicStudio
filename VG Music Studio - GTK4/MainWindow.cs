@@ -37,7 +37,7 @@ internal sealed class MainWindow : Window
     private bool _stopUI = false;
     private bool _autoplay = false;
 
-    public static Window Instance { get; private set; }
+    public static Window? Instance { get; private set; }
 
     #region Widgets
 
@@ -780,73 +780,74 @@ internal sealed class MainWindow : Window
     }
     private void OpenMP2K(Gio.SimpleAction sender, EventArgs e)
     {
-        var inFile = GTK4Utils.CreateLoadDialog(["*.gba", "*.srl"], Strings.MenuOpenMP2K, Strings.FilterOpenGBA);
-        if (inFile is null)
+        //var inFile = GTK4Utils.CreateLoadDialog(["*.gba", "*.srl"], Strings.MenuOpenMP2K, Strings.FilterOpenGBA);
+        //if (inFile is not null)
+        //{
+        //    OpenMP2KFinish(inFile);
+        //}
+
+
+        FileFilter filterGBA = FileFilter.New();
+        filterGBA.SetName(Strings.FilterOpenGBA);
+        filterGBA.AddPattern("*.gba");
+        filterGBA.AddPattern("*.srl");
+        FileFilter allFiles = FileFilter.New();
+        allFiles.SetName(Strings.FilterAllFiles);
+        allFiles.AddPattern("*.*");
+
+        if (Gtk.Functions.GetMinorVersion() <= 8)
         {
-            return;
+            var d = FileChooserNative.New(
+                Strings.MenuOpenMP2K,
+                this,
+                FileChooserAction.Open,
+                "Open",
+                "Cancel");
+
+
+            d.AddFilter(filterGBA);
+            d.AddFilter(allFiles);
+
+            d.OnResponse += (sender, e) =>
+            {
+                if (e.ResponseId != (int)ResponseType.Accept)
+                {
+                    d.Unref();
+                    return;
+                }
+                var path = d.GetFile()!.GetPath() ?? "";
+                OpenMP2KFinish(path);
+                d.Unref();
+            };
+            d.Show();
         }
-        OpenMP2KFinish(inFile);
-        //FileFilter filterGBA = FileFilter.New();
-        //filterGBA.SetName(Strings.FilterOpenGBA);
-        //filterGBA.AddPattern("*.gba");
-        //filterGBA.AddPattern("*.srl");
-        //FileFilter allFiles = FileFilter.New();
-        //allFiles.SetName(Strings.FilterAllFiles);
-        //allFiles.AddPattern("*.*");
-
-        //if (Gtk.Functions.GetMinorVersion() <= 8)
-        //{
-        //    var d = FileChooserNative.New(
-        //        Strings.MenuOpenMP2K,
-        //        this,
-        //        FileChooserAction.Open,
-        //        "Open",
-        //        "Cancel");
-
-
-        //    d.AddFilter(filterGBA);
-        //    d.AddFilter(allFiles);
-
-        //    d.OnResponse += (sender, e) =>
-        //    {
-        //        if (e.ResponseId != (int)ResponseType.Accept)
-        //        {
-        //            d.Unref();
-        //            return;
-        //        }
-        //        var path = d.GetFile()!.GetPath() ?? "";
-        //        OpenMP2KFinish(path);
-        //        d.Unref();
-        //    };
-        //    d.Show();
-        //}
-        //else
-        //{
-        //    var d = FileDialog.New();
-        //    d.SetTitle(Strings.MenuOpenMP2K);
-        //    var filters = Gio.ListStore.New(FileFilter.GetGType());
-        //    filters.Append(filterGBA);
-        //    filters.Append(allFiles);
-        //    d.SetFilters(filters);
-        //    _openCallback = (source, res, data) =>
-        //    {
-        //        var fileHandle = Gtk.Internal.FileDialog.OpenFinish(d.Handle, res, out ErrorHandle);
-        //        if (fileHandle != IntPtr.Zero)
-        //        {
-        //            var path = Marshal.PtrToStringUTF8(Gio.Internal.File.GetPath(fileHandle).DangerousGetHandle());
-        //            OpenMP2KFinish(path!);
-        //            filterGBA.Unref();
-        //            allFiles.Unref();
-        //            filters.Unref();
-        //            GObject.Internal.Object.Unref(fileHandle);
-        //            d.Unref();
-        //            return;
-        //        }
-        //        d.Unref();
-        //    };
-        //    Gtk.Internal.FileDialog.Open(d.Handle, Handle, IntPtr.Zero, _openCallback, IntPtr.Zero);
-        //    //d.Open(Handle, IntPtr.Zero, _openCallback, IntPtr.Zero);
-        //}
+        else
+        {
+            var d = FileDialog.New();
+            d.SetTitle(Strings.MenuOpenMP2K);
+            var filters = Gio.ListStore.New(FileFilter.GetGType());
+            filters.Append(filterGBA);
+            filters.Append(allFiles);
+            d.SetFilters(filters);
+            _openCallback = (source, res, data) =>
+            {
+                var fileHandle = Gtk.Internal.FileDialog.OpenFinish(d.Handle, res, out ErrorHandle);
+                if (fileHandle != IntPtr.Zero)
+                {
+                    var path = Marshal.PtrToStringUTF8(Gio.Internal.File.GetPath(fileHandle).DangerousGetHandle());
+                    OpenMP2KFinish(path!);
+                    filterGBA.Unref();
+                    allFiles.Unref();
+                    filters.Unref();
+                    GObject.Internal.Object.Unref(fileHandle);
+                    d.Unref();
+                    return;
+                }
+                d.Unref();
+            };
+            Gtk.Internal.FileDialog.Open(d.Handle, Handle, IntPtr.Zero, _openCallback, IntPtr.Zero);
+            //d.Open(Handle, IntPtr.Zero, _openCallback, IntPtr.Zero);
+        }
     }
     private void OpenMP2KFinish(string path)
     {

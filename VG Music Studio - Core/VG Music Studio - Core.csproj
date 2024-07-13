@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFramework>net7.0</TargetFramework>
+		<TargetFramework>net8.0</TargetFramework>
 		<OutputType>Library</OutputType>
 		<LangVersion>latest</LangVersion>
 		<RootNamespace>Kermalis.VGMusicStudio.Core</RootNamespace>
@@ -11,18 +11,16 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="EndianBinaryIO" Version="2.1.0" />
+		<PackageReference Include="EndianBinaryIO" Version="2.1.1" />
+		<PackageReference Include="KMIDI" Version="1.0.0" />
 		<PackageReference Include="NAudio.Core" Version="2.2.1" />
 		<PackageReference Include="NAudio.Wasapi" Version="2.2.1" />
-		<PackageReference Include="YamlDotNet" Version="15.1.2" />
+		<PackageReference Include="YamlDotNet" Version="15.3.0" />
 		<PackageReference Condition="$([MSBuild]::IsOSPlatform('Linux')) And '$(Platform)' != 'ARM64'" Include="org.portaudio.runtime.linux-x64" Version="19.7.5" />
 		<PackageReference Condition="$([MSBuild]::IsOSPlatform('OSX')) And '$(Platform)' != 'ARM64'" Include="org.portaudio.runtime.osx-x64" Version="19.7.5" />
 		<PackageReference Condition="$([MSBuild]::IsOSPlatform('Windows')) And '$(Platform)' != 'ARM64'" Include="org.portaudio.runtime.win-x64" Version="19.7.5" />
 		<Reference Include="DLS2">
 			<HintPath>Dependencies\DLS2.dll</HintPath>
-		</Reference>
-		<Reference Include="KMIDI">
-			<HintPath>Dependencies\KMIDI.dll</HintPath>
 		</Reference>
 		<Reference Include="SoundFont2">
 			<HintPath>Dependencies\SoundFont2.dll</HintPath>

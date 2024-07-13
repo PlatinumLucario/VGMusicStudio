@@ -280,6 +280,259 @@
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 			<TargetPath>%(Filename)%(Extension)</TargetPath>
 		</ContentWithTargetPath>
+
+    <ContentWithTargetPath Include="C:/msys64/mingw64/bin/libfribidi-0.dll" Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' ">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <TargetPath>%(Filename)%(Extension)</TargetPath>
+    </ContentWithTargetPath>
+    <ContentWithTargetPath Include="C:/msys64/mingw64/bin/libglib-2.0-0.dll" Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' ">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <TargetPath>%(Filename)%(Extension)</TargetPath>
+    </ContentWithTargetPath>
+    <ContentWithTargetPath Include="C:/msys64/mingw64/bin/libgio-2.0-0.dll" Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' ">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <TargetPath>%(Filename)%(Extension)</TargetPath>
+    </ContentWithTargetPath>
+    <ContentWithTargetPath Include="C:/msys64/mingw64/bin/libgobject-2.0-0.dll" Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' ">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <TargetPath>%(Filename)%(Extension)</TargetPath>
+    </ContentWithTargetPath>
+    <ContentWithTargetPath Include="C:/msys64/mingw64/bin/libappstream-5.dll" Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' ">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <TargetPath>%(Filename)%(Extension)</TargetPath>
+    </ContentWithTargetPath>
+    <ContentWithTargetPath Include="C:/msys64/mingw64/bin/libgraphene-1.0-0.dll" Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' ">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <TargetPath>%(Filename)%(Extension)</TargetPath>
+    </ContentWithTargetPath>
+    <ContentWithTargetPath Include="C:/msys64/mingw64/bin/libintl-8.dll" Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' ">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <TargetPath>%(Filename)%(Extension)</TargetPath>
+    </ContentWithTargetPath>
+    <ContentWithTargetPath Include="C:/msys64/mingw64/bin/libintl-8.dll" Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' ">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <TargetPath>%(Filename)%(Extension)</TargetPath>
+    </ContentWithTargetPath>
+    <ContentWithTargetPath Include="C:/msys64/mingw64/bin/libpango-1.0-0.dll" Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' ">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <TargetPath>%(Filename)%(Extension)</TargetPath>
+    </ContentWithTargetPath>
+    <ContentWithTargetPath Include="C:/msys64/mingw64/bin/libpcre2-8-0.dll" Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' ">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <TargetPath>%(Filename)%(Extension)</TargetPath>
+    </ContentWithTargetPath>
+    <ContentWithTargetPath Include="C:/msys64/mingw64/bin/zlib1.dll" Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' ">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <TargetPath>%(Filename)%(Extension)</TargetPath>
+    </ContentWithTargetPath>
+    <ContentWithTargetPath Include="C:/msys64/mingw64/bin/libgmodule-2.0-0.dll" Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' ">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <TargetPath>%(Filename)%(Extension)</TargetPath>
+    </ContentWithTargetPath>
+    <ContentWithTargetPath Include="C:/msys64/mingw64/bin/libffi-8.dll" Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' ">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <TargetPath>%(Filename)%(Extension)</TargetPath>
+    </ContentWithTargetPath>
+    <ContentWithTargetPath Include="C:/msys64/mingw64/bin/libgtk-4-1.dll" Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' ">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <TargetPath>%(Filename)%(Extension)</TargetPath>
+    </ContentWithTargetPath>
+    <ContentWithTargetPath Include="C:/msys64/mingw64/bin/libgcc_s_seh-1.dll" Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' ">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <TargetPath>%(Filename)%(Extension)</TargetPath>
+    </ContentWithTargetPath>
+    <ContentWithTargetPath Include="C:/msys64/mingw64/bin/libcurl-4.dll" Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' ">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <TargetPath>%(Filename)%(Extension)</TargetPath>
+    </ContentWithTargetPath>
+    <ContentWithTargetPath Include="C:/msys64/mingw64/bin/libxml2-2.dll" Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' ">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <TargetPath>%(Filename)%(Extension)</TargetPath>
+    </ContentWithTargetPath>
+    <ContentWithTargetPath Include="C:/msys64/mingw64/bin/libxmlb-2.dll" Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' ">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <TargetPath>%(Filename)%(Extension)</TargetPath>
+    </ContentWithTargetPath>
+    <ContentWithTargetPath Include="C:/msys64/mingw64/bin/libyaml-0-2.dll" Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' ">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <TargetPath>%(Filename)%(Extension)</TargetPath>
+    </ContentWithTargetPath>
+    <ContentWithTargetPath Include="C:/msys64/mingw64/bin/libzstd.dll" Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' ">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <TargetPath>%(Filename)%(Extension)</TargetPath>
+    </ContentWithTargetPath>
+    <ContentWithTargetPath Include="C:/msys64/mingw64/bin/libiconv-2.dll" Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' ">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <TargetPath>%(Filename)%(Extension)</TargetPath>
+    </ContentWithTargetPath>
+    <ContentWithTargetPath Include="C:/msys64/mingw64/bin/libharfbuzz-0.dll" Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' ">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <TargetPath>%(Filename)%(Extension)</TargetPath>
+    </ContentWithTargetPath>
+    <ContentWithTargetPath Include="C:/msys64/mingw64/bin/libthai-0.dll" Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' ">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <TargetPath>%(Filename)%(Extension)</TargetPath>
+    </ContentWithTargetPath>
+    <ContentWithTargetPath Include="C:/msys64/mingw64/bin/libcairo-gobject-2.dll" Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' ">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <TargetPath>%(Filename)%(Extension)</TargetPath>
+    </ContentWithTargetPath>
+    <ContentWithTargetPath Include="C:/msys64/mingw64/bin/libcairo-2.dll" Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' ">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <TargetPath>%(Filename)%(Extension)</TargetPath>
+    </ContentWithTargetPath>
+    <ContentWithTargetPath Include="C:/msys64/mingw64/bin/libcairo-script-interpreter-2.dll" Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' ">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <TargetPath>%(Filename)%(Extension)</TargetPath>
+    </ContentWithTargetPath>
+    <ContentWithTargetPath Include="C:/msys64/mingw64/bin/libfontconfig-1.dll" Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' ">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <TargetPath>%(Filename)%(Extension)</TargetPath>
+    </ContentWithTargetPath>
+    <ContentWithTargetPath Include="C:/msys64/mingw64/bin/libjpeg-8.dll" Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' ">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <TargetPath>%(Filename)%(Extension)</TargetPath>
+    </ContentWithTargetPath>
+    <ContentWithTargetPath Include="C:/msys64/mingw64/bin/libepoxy-0.dll" Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' ">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <TargetPath>%(Filename)%(Extension)</TargetPath>
+    </ContentWithTargetPath>
+    <ContentWithTargetPath Include="C:/msys64/mingw64/bin/libgdk_pixbuf-2.0-0.dll" Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' ">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <TargetPath>%(Filename)%(Extension)</TargetPath>
+    </ContentWithTargetPath>
+    <ContentWithTargetPath Include="C:/msys64/mingw64/bin/libpangocairo-1.0-0.dll" Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' ">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <TargetPath>%(Filename)%(Extension)</TargetPath>
+    </ContentWithTargetPath>
+    <ContentWithTargetPath Include="C:/msys64/mingw64/bin/libpangoft2-1.0-0.dll" Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' ">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <TargetPath>%(Filename)%(Extension)</TargetPath>
+    </ContentWithTargetPath>
+    <ContentWithTargetPath Include="C:/msys64/mingw64/bin/libpangowin32-1.0-0.dll" Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' ">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <TargetPath>%(Filename)%(Extension)</TargetPath>
+    </ContentWithTargetPath>
+    <ContentWithTargetPath Include="C:/msys64/mingw64/bin/libpng16-16.dll" Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' ">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <TargetPath>%(Filename)%(Extension)</TargetPath>
+    </ContentWithTargetPath>
+    <ContentWithTargetPath Include="C:/msys64/mingw64/bin/libtiff-6.dll" Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' ">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <TargetPath>%(Filename)%(Extension)</TargetPath>
+    </ContentWithTargetPath>
+    <ContentWithTargetPath Include="C:/msys64/mingw64/bin/libwinpthread-1.dll" Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' ">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <TargetPath>%(Filename)%(Extension)</TargetPath>
+    </ContentWithTargetPath>
+    <ContentWithTargetPath Include="C:/msys64/mingw64/bin/libidn2-0.dll" Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' ">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <TargetPath>%(Filename)%(Extension)</TargetPath>
+    </ContentWithTargetPath>
+    <ContentWithTargetPath Include="C:/msys64/mingw64/bin/libbrotlidec.dll" Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' ">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <TargetPath>%(Filename)%(Extension)</TargetPath>
+    </ContentWithTargetPath>
+    <ContentWithTargetPath Include="C:/msys64/mingw64/bin/libnghttp3-9.dll" Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' ">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <TargetPath>%(Filename)%(Extension)</TargetPath>
+    </ContentWithTargetPath>
+    <ContentWithTargetPath Include="C:/msys64/mingw64/bin/libnghttp2-14.dll" Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' ">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <TargetPath>%(Filename)%(Extension)</TargetPath>
+    </ContentWithTargetPath>
+    <ContentWithTargetPath Include="C:/msys64/mingw64/bin/libpsl-5.dll" Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' ">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <TargetPath>%(Filename)%(Extension)</TargetPath>
+    </ContentWithTargetPath>
+    <ContentWithTargetPath Include="C:/msys64/mingw64/bin/libssh2-1.dll" Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' ">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <TargetPath>%(Filename)%(Extension)</TargetPath>
+    </ContentWithTargetPath>
+    <ContentWithTargetPath Include="C:/msys64/mingw64/bin/libcrypto-3-x64.dll" Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' ">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <TargetPath>%(Filename)%(Extension)</TargetPath>
+    </ContentWithTargetPath>
+    <ContentWithTargetPath Include="C:/msys64/mingw64/bin/libssl-3-x64.dll" Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' ">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <TargetPath>%(Filename)%(Extension)</TargetPath>
+    </ContentWithTargetPath>
+    <ContentWithTargetPath Include="C:/msys64/mingw64/bin/liblzma-5.dll" Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' ">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <TargetPath>%(Filename)%(Extension)</TargetPath>
+    </ContentWithTargetPath>
+    <ContentWithTargetPath Include="C:/msys64/mingw64/bin/liblzma-5.dll" Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' ">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <TargetPath>%(Filename)%(Extension)</TargetPath>
+    </ContentWithTargetPath>
+    <ContentWithTargetPath Include="C:/msys64/mingw64/bin/libfreetype-6.dll" Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' ">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <TargetPath>%(Filename)%(Extension)</TargetPath>
+    </ContentWithTargetPath>
+    <ContentWithTargetPath Include="C:/msys64/mingw64/bin/libgraphite2.dll" Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' ">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <TargetPath>%(Filename)%(Extension)</TargetPath>
+    </ContentWithTargetPath>
+    <ContentWithTargetPath Include="C:/msys64/mingw64/bin/libdatrie-1.dll" Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' ">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <TargetPath>%(Filename)%(Extension)</TargetPath>
+    </ContentWithTargetPath>
+    <ContentWithTargetPath Include="C:/msys64/mingw64/bin/libpixman-1-0.dll" Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' ">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <TargetPath>%(Filename)%(Extension)</TargetPath>
+    </ContentWithTargetPath>
+    <ContentWithTargetPath Include="C:/msys64/mingw64/bin/libstdc++-6.dll" Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' ">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <TargetPath>%(Filename)%(Extension)</TargetPath>
+    </ContentWithTargetPath>
+    <ContentWithTargetPath Include="C:/msys64/mingw64/bin/libstdc++-6.dll" Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' ">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <TargetPath>%(Filename)%(Extension)</TargetPath>
+    </ContentWithTargetPath>
+    <ContentWithTargetPath Include="C:/msys64/mingw64/bin/liblzo2-2.dll" Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' ">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <TargetPath>%(Filename)%(Extension)</TargetPath>
+    </ContentWithTargetPath>
+    <ContentWithTargetPath Include="C:/msys64/mingw64/bin/libexpat-1.dll" Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' ">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <TargetPath>%(Filename)%(Extension)</TargetPath>
+    </ContentWithTargetPath>
+    <ContentWithTargetPath Include="C:/msys64/mingw64/bin/libdeflate.dll" Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' ">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <TargetPath>%(Filename)%(Extension)</TargetPath>
+    </ContentWithTargetPath>
+    <ContentWithTargetPath Include="C:/msys64/mingw64/bin/libLerc.dll" Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' ">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <TargetPath>%(Filename)%(Extension)</TargetPath>
+    </ContentWithTargetPath>
+    <ContentWithTargetPath Include="C:/msys64/mingw64/bin/libjbig-0.dll" Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' ">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <TargetPath>%(Filename)%(Extension)</TargetPath>
+    </ContentWithTargetPath>
+    <ContentWithTargetPath Include="C:/msys64/mingw64/bin/libwebp-7.dll" Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' ">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <TargetPath>%(Filename)%(Extension)</TargetPath>
+    </ContentWithTargetPath>
+    <ContentWithTargetPath Include="C:/msys64/mingw64/bin/libbrotlicommon.dll" Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' ">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <TargetPath>%(Filename)%(Extension)</TargetPath>
+    </ContentWithTargetPath>
+    <ContentWithTargetPath Include="C:/msys64/mingw64/bin/libunistring-5.dll" Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' ">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <TargetPath>%(Filename)%(Extension)</TargetPath>
+    </ContentWithTargetPath>
+    <ContentWithTargetPath Include="C:/msys64/mingw64/bin/libunistring-5.dll" Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' ">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <TargetPath>%(Filename)%(Extension)</TargetPath>
+    </ContentWithTargetPath>
+    <ContentWithTargetPath Include="C:/msys64/mingw64/bin/libbz2-1.dll" Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' ">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <TargetPath>%(Filename)%(Extension)</TargetPath>
+    </ContentWithTargetPath>
+    <ContentWithTargetPath Include="C:/msys64/mingw64/bin/libsharpyuv-0.dll" Condition=" '$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Windows)))' ">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <TargetPath>%(Filename)%(Extension)</TargetPath>
+    </ContentWithTargetPath>
 	</ItemGroup>
 
 </Project>

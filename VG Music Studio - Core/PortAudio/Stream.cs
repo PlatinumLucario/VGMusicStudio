@@ -313,6 +313,10 @@ namespace PortAudio
         {
             ErrorCode ec = Native.Pa_StopStream(streamPtr);
             if (ec != ErrorCode.NoError)
+                if (ec == ErrorCode.TimedOut)
+                    throw new PortAudioException(ec, "Unable to stop PortAudio stream due to an active callback loop.\n" +
+                        "A StreamCallbackResult must be set to 'Complete' or 'Abort' before a stream can be stopped.\n" +
+                        "Error Code: " + ec.ToString());
                 throw new PortAudioException(ec, "Error stopping PortAudio Stream.\nError Code: " + ec.ToString());
         }
 

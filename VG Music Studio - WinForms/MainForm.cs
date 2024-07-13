@@ -218,7 +218,7 @@ internal sealed class MainForm : ThemedForm
 	}
 	private void SongsComboBox_SelectedIndexChanged(object? sender, EventArgs e)
 	{
-		var item = (ImageComboBoxItem)_songsComboBox.SelectedItem;
+		var item = (ImageComboBoxItem)_songsComboBox.SelectedItem!;
 		switch (item.Item)
 		{
 			case Config.Song song:
