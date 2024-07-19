@@ -31,8 +31,6 @@ internal sealed class MainWindow : Window
     private PlayingPlaylist? _playlist;
     private int _curSong = -1;
 
-    private static bool IsWindows() => RuntimeInformation.IsOSPlatform(OSPlatform.Windows); // Because WASAPI (via NAudio) is the only audio backend currently.
-
     private bool _songEnded = false;
     private bool _stopUI = false;
     private bool _autoplay = false;
@@ -76,25 +74,18 @@ internal sealed class MainWindow : Window
 
     // Menu Items
     private readonly Gio.MenuItem _fileItem, _openDSEItem, _openAlphaDreamItem, _openMP2KItem, _openSDATItem,
-        _dataItem, _trackViewerItem, _exportDLSItem, _exportSF2Item, _exportMIDIItem, _exportWAVItem, _playlistItem, _endPlaylistItem; 
+        _dataItem, _trackViewerItem, _exportDLSItem, _exportSF2Item, _exportMIDIItem, _exportWAVItem, _playlistItem, _endPlaylistItem;
 
     // Menu Actions
     private Gio.SimpleAction _openDSEAction, _openAlphaDreamAction, _openMP2KAction, _openSDATAction,
         _dataAction, _trackViewerAction, _exportDLSAction, _exportSF2Action, _exportMIDIAction, _exportWAVAction, _playlistAction, _endPlaylistAction,
         _soundSequenceAction;
 
-    private Signal<Gio.SimpleAction> _openDSESignal;
-
-    private SignalHandler<Gio.SimpleAction> _openDSEHandler;
-
     // Main Box
     private Box _mainBox, _configButtonBox, _configPlayerButtonBox, _configSpinButtonBox, _configScaleBox;
 
-    // Volume Button to indicate volume status
-    private readonly VolumeButton _volumeButton;
-
     // One Scale controling volume and one Scale for the sequenced track
-    private Scale _volumeScale, _positionScale;
+    private Scale _volumeBar, _positionBar;
 
     // Mouse Click Gesture
     private GestureClick _positionGestureClick, _sequencesGestureClick;
@@ -137,8 +128,8 @@ internal sealed class MainWindow : Window
         Title = ConfigUtils.PROGRAM_NAME; // Sets the title to the name of the program, which is "VG Music Studio"
         _app = app;
 
-        // Configures SetVolumeScale method with the MixerVolumeChanged Event action
-		Mixer.VolumeChanged += SetVolumeScale;
+        // Configures SetVolumeBar method with the MixerVolumeChanged Event action
+        Mixer.VolumeChanged += SetVolumeBar;
 
         // LibAdwaita Header Bar
         _headerBar = Adw.HeaderBar.New();
@@ -282,35 +273,32 @@ internal sealed class MainWindow : Window
         _timer = new Timer();
         _timer.Elapsed += Timer_Tick;
 
-        // Volume Scale
-        _volumeScale = Scale.NewWithRange(Orientation.Horizontal, 0, 100, 1);
-        _volumeScale.Sensitive = false;
-        _volumeScale.ShowFillLevel = true;
-        _volumeScale.DrawValue = false;
-        _volumeScale.WidthRequest = 250;
+        // Volume Bar
+        _volumeBar = Scale.New(Orientation.Horizontal, Gtk.Adjustment.New(0, 0, 100, 1, 10, 0));
+        _volumeBar.Sensitive = false;
+        _volumeBar.ShowFillLevel = true;
+        _volumeBar.DrawValue = false;
+        _volumeBar.WidthRequest = 250;
 
-        // Position Scale
-        _positionScale = Scale.NewWithRange(Orientation.Horizontal, 0, 1, 1); // The Upper value property must contain a value of 1 or higher for the widget to show upon startup
-        _positionScale.Sensitive = false;
-        _positionScale.ShowFillLevel = true;
-        _positionScale.DrawValue = false;
-        _positionScale.WidthRequest = 250;
-        _positionScale.RestrictToFillLevel = false;
-        _positionScale.SetRange(1, double.MaxValue);
+        // Position Bar
+        _positionBar = Scale.New(Orientation.Horizontal, Gtk.Adjustment.New(0, 0, 100, 1, 10, 0)); // The Upper value property must contain a value of 1 or higher for the widget to show upon startup
         _positionGestureClick = GestureClick.New();
-        if (_positionGestureClick.Button == 1)
-        {
-            _positionScale.OnValueChanged += PositionScale_MouseButtonRelease;
-            _positionScale.OnValueChanged -= PositionScale_MouseButtonRelease;
-            _positionScale.OnValueChanged += PositionScale_MouseButtonPress;
-            _positionScale.OnValueChanged -= PositionScale_MouseButtonPress;
-        }
-        //_positionScale.Focusable = true;
-        //_positionScale.HasOrigin = true;
-        //_positionScale.Visible = true;
-        //_positionScale.FillLevel = _positionAdjustment.Upper;
-        //_positionGestureClick.OnReleased += PositionScale_MouseButtonRelease; // ButtonRelease must go first, otherwise the scale it will follow the mouse cursor upon loading
-        //_positionGestureClick.OnPressed += PositionScale_MouseButtonPress;
+        _positionBar.AddController(_positionGestureClick);
+        _positionBar.Sensitive = false;
+        _positionBar.ShowFillLevel = true;
+        _positionBar.DrawValue = false;
+        _positionBar.WidthRequest = 250;
+        _positionBar.RestrictToFillLevel = false;
+        _positionBar.OnChangeValue += PositionBar_ChangeValue;
+        _positionBar.OnMoveSlider += PositionBar_MoveSlider;
+        _positionBar.OnValueChanged += PositionBar_ValueChanged;
+        _positionGestureClick.OnStopped += PositionBar_MouseButtonRelease;
+        _positionGestureClick.OnCancel += PositionBar_MouseButtonRelease;
+        _positionGestureClick.OnPressed += PositionBar_MouseButtonPress;
+        _positionGestureClick.OnReleased += PositionBar_MouseButtonRelease;
+        _positionGestureClick.OnUnpairedRelease += PositionBar_MouseButtonRelease;
+        _positionGestureClick.OnEnd += PositionBar_MouseButtonRelease;
+        _positionGestureClick.OnBegin += PositionBar_MouseButtonPress;
 
         // Sound Sequence List
         //_soundSequenceList = new SoundSequenceList { Sensitive = false };
@@ -350,13 +338,13 @@ internal sealed class MainWindow : Window
             _sequenceNumberSpinButton.Hide();
             _configSpinButtonBox.Append(_sequenceNumberSpinButton);
         }
-        
-        _volumeScale.MarginStart = 20;
-        _volumeScale.MarginEnd = 20;
-        _configScaleBox.Append(_volumeScale);
-        _positionScale.MarginStart = 20;
-        _positionScale.MarginEnd = 20;
-        _configScaleBox.Append(_positionScale);
+
+        // _volumeBar.MarginStart = 20;
+        // _volumeBar.MarginEnd = 20;
+        _configScaleBox.Append(_volumeBar);
+        // _positionBar.MarginStart = 20;
+        // _positionBar.MarginEnd = 20;
+        _configScaleBox.Append(_positionBar);
 
         _mainBox.Append(_headerBar);
         _mainBox.Append(_popoverMenuBar);
@@ -380,35 +368,43 @@ internal sealed class MainWindow : Window
     }
 
     // When the value is changed on the volume scale
-    private void VolumeScale_ValueChanged(object sender, EventArgs e)
+    private void VolumeBar_ValueChanged(object sender, EventArgs e)
     {
-        Engine.Instance!.Mixer.SetVolume((float)(_volumeScale.Adjustment!.Value / _volumeScale.Adjustment.Upper));
+        Engine.Instance!.Mixer.SetVolume((float)(_volumeBar.Adjustment!.Value / _volumeBar.Adjustment.Upper));
     }
 
     // Sets the volume scale to the specified position
-    public void SetVolumeScale(float volume)
+    public void SetVolumeBar(float volume)
     {
-        _volumeScale.OnValueChanged -= VolumeScale_ValueChanged;
-        _volumeScale.Adjustment!.Value = (int)(volume * _volumeScale.Adjustment.Upper);
-        _volumeScale.OnValueChanged += VolumeScale_ValueChanged;
+        _volumeBar.Adjustment!.Value = (int)(volume * _volumeBar.Adjustment.Upper);
+        _volumeBar.OnValueChanged += VolumeBar_ValueChanged;
     }
 
-    private bool _positionScaleFree = true;
-    private void PositionScale_MouseButtonRelease(object sender, EventArgs args)
+    private bool _positionBarFree = true;
+    private void PositionBar_MouseButtonRelease(object sender, EventArgs args)
     {
-        if (_positionGestureClick.Button == 1) // Number 1 is Left Mouse Button
-        {
-            Engine.Instance!.Player.SetSongPosition((long)_positionScale.GetValue()); // Sets the value based on the position when mouse button is released
-            _positionScaleFree = true; // Sets _positionScaleFree to true when mouse button is released
-            LetUIKnowPlayerIsPlaying(); // This method will run the void that tells the UI that the player is playing a track
-        }
+        Engine.Instance!.Player.SetSongPosition((long)_positionBar.ValuePos); // Sets the value based on the position when mouse button is released
+        _positionBarFree = true; // Sets _positionBarFree to true when mouse button is released
+        LetUIKnowPlayerIsPlaying(); // This method will run the void that tells the UI that the player is playing a track
     }
-    private void PositionScale_MouseButtonPress(object sender, EventArgs args)
+    private bool PositionBar_ChangeValue(object sender, EventArgs args)
     {
-        if (_positionGestureClick.Button == 1) // Number 1 is Left Mouse Button
-        {
-            _positionScaleFree = false;
-        }
+        _positionBarFree = false;
+
+        return false;
+    }
+    private void PositionBar_MoveSlider(object sender, EventArgs args) =>
+        _positionBarFree = true;
+    private void PositionBar_ValueChanged(object sender, EventArgs args)
+    {
+        if (Engine.Instance is not null)
+            _positionBar.SetValue(Engine.Instance!.Player.ElapsedTicks); // Sets the value based on the position when mouse button is released
+        _positionBarFree = true; // Sets _positionBarFree to true when mouse button is released
+        LetUIKnowPlayerIsPlaying(); // This method will run the void that tells the UI that the player is playing a track
+    }
+    private void PositionBar_MouseButtonPress(object sender, EventArgs args)
+    {
+        _positionBarFree = false;
     }
 
     private void SequenceNumberSpinButton_ValueChanged(object sender, EventArgs e)
@@ -448,12 +444,12 @@ internal sealed class MainWindow : Window
                 this.Title = $"{ConfigUtils.PROGRAM_NAME} - {songs[songIndex].Name}"; // TODO: Make this a func
                 //_sequencesColumnView.SortColumnId = songs.IndexOf(song) + 1; // + 1 because the "Music" playlist is first in the combobox
             }
-            //_positionScale.Adjustment!.Upper = double.MaxValue;
+            //_positionBar.Adjustment!.Upper = double.MaxValue;
             _duration = (int)(Engine.Instance!.Player.LoadedSong!.MaxTicks + 0.5);
-            _positionScale.SetRange(0, _duration);
+            _positionBar.SetRange(0, _duration);
             //_positionAdjustment.LargeChange = (long)(_positionAdjustment.Upper / 10) >> 64;
             //_positionAdjustment.SmallChange = (long)(_positionAdjustment.LargeChange / 4) >> 64;
-            _positionScale.Show();
+            _positionBar.Show();
             //_songInfo.SetNumTracks(Engine.Instance.Player.LoadedSong.Events.Length);
             if (_autoplay)
             {
@@ -464,7 +460,7 @@ internal sealed class MainWindow : Window
         {
             //_songInfo.SetNumTracks(0);
         }
-        _positionScale.Sensitive = _exportWAVAction.Enabled = success;
+        _positionBar.Sensitive = _exportWAVAction.Enabled = success;
         _exportMIDIAction.Enabled = success && MP2KEngine.MP2KInstance is not null;
         _exportDLSAction.Enabled = _exportSF2Action.Enabled = success && AlphaDreamEngine.AlphaDreamInstance is not null;
 
@@ -855,25 +851,16 @@ internal sealed class MainWindow : Window
         {
             DisposeEngine();
         }
-        
-        if (IsWindows())
+
+        try
         {
-            try
-            {
-                _ = new MP2KEngine(File.ReadAllBytes(path));
-            }
-            catch (Exception ex)
-            {
-                //_dialog = Adw.MessageDialog.New(this, Strings.ErrorOpenMP2K, ex.ToString());
-                //FlexibleMessageBox.Show(ex, Strings.ErrorOpenMP2K);
-                DisposeEngine();
-                ExceptionDialog(ex, Strings.ErrorOpenMP2K);
-                return;
-            }
+            _ = new MP2KEngine(File.ReadAllBytes(path));
         }
-        else
+        catch (Exception ex)
         {
-            var ex = new PlatformNotSupportedException();
+            //_dialog = Adw.MessageDialog.New(this, Strings.ErrorOpenMP2K, ex.ToString());
+            //FlexibleMessageBox.Show(ex, Strings.ErrorOpenMP2K);
+            DisposeEngine();
             ExceptionDialog(ex, Strings.ErrorOpenMP2K);
             return;
         }
@@ -1030,7 +1017,7 @@ internal sealed class MainWindow : Window
     private void ExportSF2(Gio.SimpleAction sender, EventArgs e)
     {
         AlphaDreamConfig cfg = AlphaDreamEngine.AlphaDreamInstance!.Config;
-        
+
         FileFilter ff = FileFilter.New();
         ff.SetName(Strings.FilterSaveSF2);
         ff.AddPattern("*.sf2");
@@ -1293,7 +1280,7 @@ internal sealed class MainWindow : Window
 #endif
         _autoplay = false;
         SetAndLoadSequence(Engine.Instance.Config.Playlists[0].Songs.Count == 0 ? 0 : Engine.Instance.Config.Playlists[0].Songs[0].Index);
-        _sequenceNumberSpinButton.Sensitive = _buttonPlay.Sensitive = _volumeScale.Sensitive = true;
+        _sequenceNumberSpinButton.Sensitive = _buttonPlay.Sensitive = _volumeBar.Sensitive = true;
         Show();
     }
     private void DisposeEngine()
@@ -1342,25 +1329,17 @@ internal sealed class MainWindow : Window
     }
     private void SongEnded()
     {
+        _songEnded = true;
         _stopUI = true;
     }
 
-    // This updates _positionScale and _positionAdjustment to the value specified
+    // This updates _positionBar and _positionAdjustment to the value specified
     // Note: Gtk.Scale is dependent on Gtk.Adjustment, which is why _positionAdjustment is used instead
     private void UpdatePositionIndicators(long ticks)
     {
-        if (_positionScaleFree)
+        if (_positionBarFree)
         {
-            if (ticks < _duration)
-            {
-                // TODO: Implement GStreamer functions to replace Gtk.Adjustment
-                _positionScale.SetRange(1, _duration);
-                _positionScale.SetValue(ticks); // A Gtk.Adjustment field must be used here to avoid issues
-            }
-            else
-            {
-                return;
-            }
+            _positionBar.Adjustment!.Value = ticks;
         }
     }
 }

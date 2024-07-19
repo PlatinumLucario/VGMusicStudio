@@ -91,6 +91,10 @@ public abstract class Player : IDisposable
 			InitEmulation();
 			State = PlayerState.Playing;
 			CreateThread();
+			if (Engine.Instance!.UseNewMixer)
+			{
+				Mixer.Instance!.Start();
+			}
 		}
 	}
 	public void TogglePlaying()
@@ -119,6 +123,11 @@ public abstract class Player : IDisposable
 			State = PlayerState.Stopped;
 			WaitThread();
 			OnStopped();
+			if (Engine.Instance!.UseNewMixer)
+			{
+				Mixer.Stop();
+				ElapsedTicks = 0;
+			}
 		}
 	}
 	public void Record(string fileName)

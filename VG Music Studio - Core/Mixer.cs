@@ -77,13 +77,11 @@ public abstract class Mixer : IDisposable
         }
 
         Sound();
-
-        Stream!.Start();
     }
 
     private void Sound()
     {
-        Stream = new Stream(
+        Instance!.Stream = new Stream(
             null,
             OParams,
             WaveData!.SampleRate,
@@ -96,6 +94,9 @@ public abstract class Mixer : IDisposable
         FinalFrameSize = FramesPerBuffer * WaveData.Channels;
         Buffer = new Span<float>(new float[SizeToAllocateInBytes]).ToArray();
     }
+    
+    public void Start() => Instance!.Stream!.Start();
+    public void Stop() => Instance!.Stream!.Stop();
 
     private static StreamCallbackResult PlayCallback(
         nint input, nint output,

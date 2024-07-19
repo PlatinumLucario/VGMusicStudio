@@ -16,7 +16,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ContentWithTargetPath Include="$(SolutionDir)/VG Music Studio - Core/*.yaml">
+		<ContentWithTargetPath Include="../VG Music Studio - Core/*.yaml">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 			<TargetPath>%(Filename)%(Extension)</TargetPath>
 		</ContentWithTargetPath>
