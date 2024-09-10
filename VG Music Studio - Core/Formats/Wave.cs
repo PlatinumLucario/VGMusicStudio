@@ -1,5 +1,4 @@
 ﻿using Kermalis.EndianBinaryIO;
-using NAudio.Utils;
 using System;
 using System.IO;
 

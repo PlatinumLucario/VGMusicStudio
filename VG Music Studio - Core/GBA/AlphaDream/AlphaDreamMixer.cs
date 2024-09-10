@@ -28,7 +28,7 @@ public sealed class AlphaDreamMixer : Mixer
 		_samplesReciprocal = 1f / SamplesPerBuffer;
 
 		int amt = SamplesPerBuffer * 2;
-		_audio = new Audio(amt) { Float32BufferCount = amt };
+		_audio = new Audio(amt * sizeof(float)) { Float32BufferCount = amt };
 		for (int i = 0; i < AlphaDreamPlayer.NUM_TRACKS; i++)
 		{
 			_trackBuffers[i] = new float[amt];

@@ -1,4 +1,5 @@
-﻿using Kermalis.VGMusicStudio.Core.Util;
+﻿using PortAudio;
+using Kermalis.VGMusicStudio.Core.Util;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -37,6 +38,7 @@ public abstract class Player : IDisposable
 
 	private readonly TimeBarrier _time;
 	private Thread? _thread;
+	public bool IsStopped = true;
 
 	protected Player(double ticksPerSecond)
 	{
@@ -50,10 +52,81 @@ public abstract class Player : IDisposable
 	protected abstract void OnStopped();
 
 	protected abstract bool Tick(bool playing, bool recording);
+	
+	internal static StreamCallbackResult PlayCallback(
+		nint input, nint output,
+		uint frameCount,
+		ref StreamCallbackTimeInfo timeInfo,
+		StreamCallbackFlags statusFlags,
+		nint userData
+	)
+	{
+		// Marshal.AllocHGlobal() or any related functions cannot and must not be used
+		// in this callback, otherwise it will cause an OutOfMemoryException.
+		//
+		// The memory is already allocated by the output and userData params by
+		// the native PortAudio library itself.
+		
+		var player = Engine.Instance!.Player;
+		
+		Mixer.Audio d = Mixer.Instance!.Stream!.GetUserData<Mixer.Audio>(userData);
+
+		if (!Mixer.Instance.Stream.UDHandle.IsAllocated)
+		{
+			return StreamCallbackResult.Abort;
+		}
+		
+		var frameSize = (int)Mixer.Instance.FinalFrameSize;
+		float[] frameBuffer = new float[frameSize];
+		for (int i = 0; i < frameSize; i++)
+			frameBuffer[i] = d.Float32Buffer![i];
+		
+		float[] newBuffer = new float[frameSize];
+		for (int i = 0; i < frameSize; i++)
+		{
+			newBuffer[i] = Math.Clamp(frameBuffer[i], -1f, 1f);
+		}
+		// for (int i = 0; i < newBuffer.Length; i++)
+		// {
+		// 	System.Diagnostics.Debug.WriteLine("Buffer value: " + newBuffer[i].ToString());
+		// }
+
+		Span<float> buffer;
+		unsafe
+		{
+			buffer = new((float*)output, frameSize);
+		}
+
+		// Zero out the memory buffer output before applying buffer values
+		for (int i = 0; i < frameSize; i++)
+			buffer[i] = 0;
+
+		// If we're reading data, play it back
+		if (player.State == PlayerState.Playing)
+		{
+			// Apply buffer value
+			for (int i = 0; i < frameSize; i++)
+				buffer[i] = newBuffer[i];
+
+			for (int i = 0; i < frameSize; i++)
+				buffer[i] *= Mixer.Instance.Volume;
+		}
+
+		if (player.State is PlayerState.Playing or PlayerState.Paused)
+		{
+			// Continue if the song isn't finished
+			return StreamCallbackResult.Continue;
+		}
+		else
+		{
+			// Complete the callback when song is finished
+			return StreamCallbackResult.Complete;
+		}
+	}
 
 	protected void CreateThread()
 	{
-		_thread = new Thread(TimerTick) { Name = Name + " Tick" };
+		_thread = new Thread(TimerLoop) { Name = Name + " Tick" };
 		_thread.Start();
 	}
 	protected void WaitThread()
@@ -90,10 +163,18 @@ public abstract class Player : IDisposable
 			Stop();
 			InitEmulation();
 			State = PlayerState.Playing;
-			CreateThread();
 			if (Engine.Instance!.UseNewMixer)
 			{
-				Mixer.Instance!.Start();
+				if (IsStopped)
+				{
+					IsStopped = false;
+					CreateThread();
+					Mixer.Instance!.Stream!.Start();
+				}
+			}
+			else
+			{
+				CreateThread();
 			}
 		}
 	}
@@ -102,18 +183,18 @@ public abstract class Player : IDisposable
 		switch (State)
 		{
 			case PlayerState.Playing:
-			{
-				State = PlayerState.Paused;
-				WaitThread();
-				break;
-			}
+				{
+					State = PlayerState.Paused;
+					WaitThread();
+					break;
+				}
 			case PlayerState.Paused:
 			case PlayerState.Stopped:
-			{
-				State = PlayerState.Playing;
-				CreateThread();
-				break;
-			}
+				{
+					State = PlayerState.Playing;
+					CreateThread();
+					break;
+				}
 		}
 	}
 	public void Stop()
@@ -125,8 +206,12 @@ public abstract class Player : IDisposable
 			OnStopped();
 			if (Engine.Instance!.UseNewMixer)
 			{
-				Mixer.Stop();
-				ElapsedTicks = 0;
+				if (!IsStopped)
+				{
+					IsStopped = true;
+					//_time.Stop();
+					Mixer.Instance!.Stream!.Stop();
+				}
 			}
 		}
 	}
@@ -163,34 +248,41 @@ public abstract class Player : IDisposable
 		TogglePlaying();
 	}
 
-	private void TimerTick()
+	private void TimerLoop()
 	{
 		_time.Start();
 		while (true)
 		{
-			PlayerState state = State;
-			bool playing = state == PlayerState.Playing;
-			bool recording = state == PlayerState.Recording;
+			var state = State;
+			var playing = state == PlayerState.Playing;
+			var recording = state == PlayerState.Recording;
 			if (!playing && !recording)
 			{
 				break;
 			}
-
-			bool allDone = Tick(playing, recording);
-			if (allDone)
+			if (TimerTick(_time, playing, recording) is true)
 			{
-				// TODO: lock state
-				_time.Stop(); // TODO: Don't need timer if recording
-				State = PlayerState.Stopped;
-				SongEnded?.Invoke();
 				return;
-			}
-			if (playing)
-			{
-				_time.Wait();
 			}
 		}
 		_time.Stop();
+	}
+	private bool TimerTick(TimeBarrier time, bool playing, bool recording)
+	{
+		bool allDone = Tick(playing, recording);
+		if (allDone)
+		{
+			// TODO: lock state
+			time.Stop(); // TODO: Don't need timer if recording
+			State = PlayerState.Stopped;
+			SongEnded?.Invoke();
+			return allDone;
+		}
+		if (playing)
+		{
+			time.Wait();
+		}
+		return false;
 	}
 
 	public void Dispose()

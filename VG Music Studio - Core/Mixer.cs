@@ -3,7 +3,6 @@ using System;
 using System.Runtime.InteropServices;
 using Kermalis.EndianBinaryIO;
 using Kermalis.VGMusicStudio.Core.Formats;
-using System.IO;
 using Stream = PortAudio.Stream;
 
 namespace Kermalis.VGMusicStudio.Core;
@@ -21,24 +20,16 @@ public abstract class Mixer : IDisposable
     public uint FramesPerBuffer;
     public int SizeToAllocateInBytes;
     public long FinalFrameSize;
-    internal long Pos = 0;
-    internal float Vol = 1.0f;
-
-    public int freePos = 0;
-    public int dataPos = 0;
-    public int freeCount;
-    public int dataCount = 0;
+    private float Vol = 1;
 
     public readonly object CountLock = new object();
-
-    private bool _shouldSendVolUpdateEvent = true;
 
     protected Wave? _waveWriter;
 
     public StreamParameters OParams;
     public StreamParameters DefaultOutputParams { get; private set; }
 
-    private Stream? Stream;
+    public Stream? Stream;
     private bool IsDisposed = false;
 
     public static Mixer? Instance { get; set; }
@@ -49,9 +40,9 @@ public abstract class Mixer : IDisposable
         Buffer = null!;
     }
 
-    protected void Init(Wave waveData) => Init(waveData, SampleFormat.Float32);
-
-    protected void Init(Wave waveData, SampleFormat sampleFormat)
+    protected void Init(Wave waveData) => Init(waveData, new Audio(SizeToAllocateInBytes), SampleFormat.Float32);
+    protected void Init(Wave waveData, Audio audioData) => Init(waveData, audioData, SampleFormat.Float32);
+    protected void Init(Wave waveData, Audio audioData, SampleFormat sampleFormat)
     {
         // First, check if the instance contains something
         if (WaveData == null)
@@ -60,7 +51,6 @@ public abstract class Mixer : IDisposable
 
             Pa.Initialize();
             WaveData = waveData;
-            //Instance = this;
 
             // Try setting up an output device
             OParams.device = Pa.DefaultOutputDevice;
@@ -76,59 +66,40 @@ public abstract class Mixer : IDisposable
             DefaultOutputParams = OParams;
         }
 
-        Sound();
-    }
-
-    private void Sound()
-    {
         Instance!.Stream = new Stream(
             null,
             OParams,
             WaveData!.SampleRate,
             FramesPerBuffer,
             StreamFlags.ClipOff,
-            PlayCallback,
-            this
+            Player.PlayCallback,
+            audioData
         );
 
-        FinalFrameSize = FramesPerBuffer * WaveData.Channels;
-        Buffer = new Span<float>(new float[SizeToAllocateInBytes]).ToArray();
+        FinalFrameSize = FramesPerBuffer * 2;
+        Buffer = new Span<float>(audioData.Float32Buffer).ToArray();
     }
-    
-    public void Start() => Instance!.Stream!.Start();
-    public void Stop() => Instance!.Stream!.Stop();
 
-    private static StreamCallbackResult PlayCallback(
-        nint input, nint output,
-        uint frameCount,
-        ref StreamCallbackTimeInfo timeInfo,
-        StreamCallbackFlags statusFlags,
-        nint data
-    )
+    private int ProcessFrame(Span<float> output, Span<float> buffer, int framesPerBuffer)
     {
-        // Ensure there's no memory allocated in this block to prevent issues
-        Mixer d = Stream.GetUserData<Mixer>(data);
+        float counter = 0;
 
-        Span<float> buffer;
-        unsafe
+        counter += framesPerBuffer;
+        while (counter >= Instance!.FramesPerBuffer)
         {
-            buffer = new Span<float>(output.ToPointer(), (int)d.FinalFrameSize);
+            counter -= Instance.FramesPerBuffer;
         }
 
-        // Do a zero-out memset
-        for (int i = 0; i < d.FinalFrameSize; i++)
-            buffer[i] = 0;
-
-        // If we're reading data, play it back
-        if (Engine.Instance!.Player.State == PlayerState.Playing)
+        framesPerBuffer = (int)(Instance.FramesPerBuffer * 2);
+        float[] outBuffer = buffer.ToArray();
+        
+        float[] outBuf = output.ToArray();
+        for (int i = 0; i < framesPerBuffer; i++)
         {
-            // Apply volume with buffer value
-            for (int i = 0; i < d.FinalFrameSize; i++)
-                buffer[i] = d.Buffer[i] * d.Vol;
+            outBuf[i] = outBuffer[i];
         }
 
-        // Continue on
-        return StreamCallbackResult.Continue;
+        return 1;
     }
 
     public float Volume

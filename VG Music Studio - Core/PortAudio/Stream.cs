@@ -2,6 +2,7 @@
 // Author:      Benjamin N. Summerton <https://16bpp.net>
 
 using System;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace PortAudio
@@ -19,6 +20,19 @@ namespace PortAudio
             StreamFlags streamFlags,
             IntPtr streamCallback,                      // `PaStreamCallback *`
             IntPtr userData                             // `void *`
+        );
+
+        [DllImport(PortAudioDLL)]
+        [return: MarshalAs(UnmanagedType.I4)]
+        public static extern ErrorCode Pa_OpenDefaultStream(
+            out IntPtr stream,
+            int numInputChannels,
+            int numOutputChannels,
+            SampleFormat sampleFormat,
+            double sampleRate,
+            System.UInt32 framesPerBuffer,
+            IntPtr streamCallback,
+            IntPtr userData
         );
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
@@ -69,6 +83,22 @@ namespace PortAudio
 
         [DllImport(PortAudioDLL)]
         public static extern double Pa_GetStreamCpuLoad(IntPtr stream);     // `PaStream *`
+
+        [DllImport(PortAudioDLL)]
+        [return: MarshalAs(UnmanagedType.I4)]
+        public static extern ErrorCode Pa_ReadStream(
+            nint stream,                                                    // `PaStream *`
+            nint buffer,                                                    // `void *`
+            ulong frames                                                    // `unsigned long`
+        );
+
+        [DllImport(PortAudioDLL)]
+        [return: MarshalAs(UnmanagedType.I4)]
+        public static extern ErrorCode Pa_WriteStream(
+            nint stream,                                                    // `PaStream *`
+            nint buffer,                                                    // `const void *`
+            ulong frames                                                    // `unsigned long`
+        );
     }
 
     /// <summary>
@@ -95,8 +125,8 @@ namespace PortAudio
         private GCHandle userDataHandle;
 
         // Callback structures
-        private _NativeInterfacingCallback<Callback> streamCallback = null;
-        private _NativeInterfacingCallback<FinishedCallback> finishedCallback = null;
+        private _NativeInterfacingCallback<Callback>? streamCallback;
+        private _NativeInterfacingCallback<FinishedCallback>? finishedCallback;
 
         /// <summary>
         /// The input parameters for this stream, if any
@@ -170,9 +200,16 @@ namespace PortAudio
         /// @see PaStreamParameters, PaStreamCallback, Pa_ReadStream, Pa_WriteStream,
         /// Pa_GetStreamReadAvailable, Pa_GetStreamWriteAvailable
         /// </summary>
+        /// <param name="inputParameters"></param>
+        /// <param name="outputParameters"></param>
+        /// <param name="sampleRate"></param>
+        /// <param name="framesPerBuffer"></param>
+        /// <param name="streamFlags"></param>
+        /// <param name="callback"></param>
+        /// <param name="userData"></param>
         public Stream(
-            StreamParameters? inParams,
-            StreamParameters? outParams,
+            StreamParameters? inputParameters,
+            StreamParameters? outputParameters,
             double sampleRate,
             System.UInt32 framesPerBuffer,
             StreamFlags streamFlags,
@@ -187,28 +224,28 @@ namespace PortAudio
             userDataHandle = GCHandle.Alloc(userData);
 
             // Set the ins and the outs
-            InputParameters = inParams;
-            OutputParameters = outParams;
+            InputParameters = inputParameters;
+            OutputParameters = outputParameters;
 
             // If the in/out params are set, then we need to make some P/Invoke friendly memory
-            IntPtr inParamsPtr = IntPtr.Zero;
-            IntPtr outParamsPtr = IntPtr.Zero;
-            if (inParams.HasValue)
+            IntPtr inputParametersPtr = IntPtr.Zero;
+            IntPtr outputParametersPtr = IntPtr.Zero;
+            if (inputParameters.HasValue)
             {
-                inParamsPtr = Marshal.AllocHGlobal(Marshal.SizeOf(inParams.Value));
-                Marshal.StructureToPtr<StreamParameters>(inParams.Value, inParamsPtr, false);
+                inputParametersPtr = Marshal.AllocHGlobal(Marshal.SizeOf(inputParameters.Value));
+                Marshal.StructureToPtr<StreamParameters>(inputParameters.Value, inputParametersPtr, false);
             }
-            if (outParams.HasValue)
+            if (outputParameters.HasValue)
             {
-                outParamsPtr = Marshal.AllocHGlobal(Marshal.SizeOf(outParams.Value));
-                Marshal.StructureToPtr<StreamParameters>(outParams.Value, outParamsPtr, false);
+                outputParametersPtr = Marshal.AllocHGlobal(Marshal.SizeOf(outputParameters.Value));
+                Marshal.StructureToPtr<StreamParameters>(outputParameters.Value, outputParametersPtr, false);
             }
 
             // Open the stream
             ErrorCode ec = Native.Pa_OpenStream(
                 out streamPtr,
-                inParamsPtr,
-                outParamsPtr,
+                inputParametersPtr,
+                outputParametersPtr,
                 sampleRate,
                 framesPerBuffer,
                 streamFlags,
@@ -219,12 +256,80 @@ namespace PortAudio
                 throw new PortAudioException(ec, "Error opening PortAudio Stream.\nError Code: " + ec.ToString());
 
             // Cleanup the in/out params ptrs
-            if (inParamsPtr != IntPtr.Zero)
-                Marshal.FreeHGlobal(inParamsPtr);
-            if (outParamsPtr != IntPtr.Zero)
-                Marshal.FreeHGlobal(outParamsPtr);
+            if (inputParametersPtr != IntPtr.Zero)
+                Marshal.FreeHGlobal(inputParametersPtr);
+            if (outputParametersPtr != IntPtr.Zero)
+                Marshal.FreeHGlobal(outputParametersPtr);
         }
+        
+        /// <summary>
+        /// A simplified version of Pa_OpenStream() that opens the default input
+        /// and/or output devices.
+        ///
+        /// @param stream The address of a PaStream pointer which will receive
+        /// a pointer to the newly opened stream.
+        ///
+        /// @param numInputChannels  The number of channels of sound that will be supplied
+        /// to the stream callback or returned by Pa_ReadStream(). It can range from 1 to
+        /// the value of maxInputChannels in the PaDeviceInfo record for the default input
+        /// device. If 0 the stream is opened as an output-only stream.
+        ///
+        /// @param numOutputChannels The number of channels of sound to be delivered to the
+        /// stream callback or passed to Pa_WriteStream. It can range from 1 to the value
+        /// of maxOutputChannels in the PaDeviceInfo record for the default output device.
+        /// If 0 the stream is opened as an input-only stream.
+        ///
+        /// @param sampleFormat The sample format of both the input and output buffers
+        /// provided to the callback or passed to and from Pa_ReadStream() and Pa_WriteStream().
+        /// sampleFormat may be any of the formats described by the PaSampleFormat
+        /// enumeration.
+        ///
+        /// @param sampleRate Same as Pa_OpenStream parameter of the same name.
+        /// @param framesPerBuffer Same as Pa_OpenStream parameter of the same name.
+        /// @param streamCallback Same as Pa_OpenStream parameter of the same name.
+        /// @param userData Same as Pa_OpenStream parameter of the same name.
+        ///
+        /// @return As for Pa_OpenStream
+        ///
+        /// @see Pa_OpenStream, PaStreamCallback
+        /// </summary>
+        /// <param name="numInputChannels"></param>
+        /// <param name="numOutputChannels"></param>
+        /// <param name="sampleFormat"></param>
+        /// <param name="sampleRate"></param>
+        /// <param name="framesPerBuffer"></param>
+        /// <param name="callback"></param>
+        /// <param name="userData"></param>
+        public Stream(
+            System.Int32 numInputChannels,
+            System.Int32 numOutputChannels,
+            SampleFormat sampleFormat,
+            double sampleRate,
+            System.UInt32 framesPerBuffer,
+            Callback callback,
+            object userData
+        )
+        {
+            // Setup the steam's callback
+            streamCallback = new _NativeInterfacingCallback<Callback>(callback);
 
+            // Take control of the userdata object
+            userDataHandle = GCHandle.Alloc(userData);
+
+            // Open the stream
+            ErrorCode ec = Native.Pa_OpenDefaultStream(
+                out streamPtr,
+                numInputChannels,
+                numOutputChannels,
+                sampleFormat,
+                sampleRate,
+                framesPerBuffer,
+                streamCallback.Ptr,
+                GCHandle.ToIntPtr(userDataHandle)
+            );
+            if (ec != ErrorCode.NoError)
+                throw new PortAudioException(ec, "Error opening PortAudio Stream.\nError Code: " + ec.ToString());
+        }
         ~Stream()
         {
             Dispose(false);
@@ -255,7 +360,7 @@ namespace PortAudio
             // Free Unmanaged resources
             Close();
             userDataHandle.Free();
-            streamCallback.Free();
+            streamCallback!.Free();
             if (finishedCallback != null)
                 finishedCallback.Free();
 
@@ -317,7 +422,8 @@ namespace PortAudio
                     throw new PortAudioException(ec, "Unable to stop PortAudio stream due to an active callback loop.\n" +
                         "A StreamCallbackResult must be set to 'Complete' or 'Abort' before a stream can be stopped.\n" +
                         "Error Code: " + ec.ToString());
-                throw new PortAudioException(ec, "Error stopping PortAudio Stream.\nError Code: " + ec.ToString());
+                else
+                    throw new PortAudioException(ec, "Error stopping PortAudio Stream.\nError Code: " + ec.ToString());
         }
 
         /// <summary>
@@ -330,6 +436,263 @@ namespace PortAudio
             if (ec != ErrorCode.NoError)
                 throw new PortAudioException(ec, "Error aborting PortAudio Stream.\nError Code: " + ec.ToString());
         }
+
+        #region ReadInput
+        /// <summary>
+        /// Reads the audio input when the stream is opened and processing.
+        /// The stream must be started with `Pa_StartStream()` before using this.
+        /// 
+        /// @param buffer The audio input buffer that will be read.
+        /// 
+        /// @param frames The number of frames in the audio input buffer.
+        /// </summary>
+        public void ReadInput(Span<byte> buffer, ulong frames)
+        {
+            nint buffPtr;
+            unsafe
+            {
+                buffPtr = (nint)Unsafe.AsPointer(ref MemoryMarshal.GetReference(buffer));
+            }
+            ErrorCode ec = Native.Pa_ReadStream(streamPtr, buffPtr, frames);
+            if (ec != ErrorCode.NoError)
+            {
+                throw new PortAudioException(ec, "Error reading PortAudio Input Stream.\nError Code: " + ec.ToString());
+            }
+        }
+        public void ReadInput(Span<short> buffer, ulong frames)
+        {
+            nint buffPtr;
+            unsafe
+            {
+                buffPtr = (nint)Unsafe.AsPointer(ref MemoryMarshal.GetReference(buffer));
+            }
+            ErrorCode ec = Native.Pa_ReadStream(streamPtr, buffPtr, frames);
+            if (ec != ErrorCode.NoError)
+            {
+                throw new PortAudioException(ec, "Error reading PortAudio Input Stream.\nError Code: " + ec.ToString());
+            }
+        }
+        public void ReadInput(Span<int> buffer, ulong frames)
+        {
+            nint buffPtr;
+            unsafe
+            {
+                buffPtr = (nint)Unsafe.AsPointer(ref MemoryMarshal.GetReference(buffer));
+            }
+            ErrorCode ec = Native.Pa_ReadStream(streamPtr, buffPtr, frames);
+            if (ec != ErrorCode.NoError)
+            {
+                throw new PortAudioException(ec, "Error reading PortAudio Input Stream.\nError Code: " + ec.ToString());
+            }
+        }
+        public void ReadInput(Span<long> buffer, ulong frames)
+        {
+            nint buffPtr;
+            unsafe
+            {
+                buffPtr = (nint)Unsafe.AsPointer(ref MemoryMarshal.GetReference(buffer));
+            }
+            ErrorCode ec = Native.Pa_ReadStream(streamPtr, buffPtr, frames);
+            if (ec != ErrorCode.NoError)
+            {
+                throw new PortAudioException(ec, "Error reading PortAudio Input Stream.\nError Code: " + ec.ToString());
+            }
+        }
+        public void ReadInput(Span<Int128> buffer, ulong frames)
+        {
+            nint buffPtr;
+            unsafe
+            {
+                buffPtr = (nint)Unsafe.AsPointer(ref MemoryMarshal.GetReference(buffer));
+            }
+            ErrorCode ec = Native.Pa_ReadStream(streamPtr, buffPtr, frames);
+            if (ec != ErrorCode.NoError)
+            {
+                throw new PortAudioException(ec, "Error reading PortAudio Input Stream.\nError Code: " + ec.ToString());
+            }
+        }
+        public void ReadInput(Span<Half> buffer, ulong frames)
+        {
+            nint buffPtr;
+            unsafe
+            {
+                buffPtr = (nint)Unsafe.AsPointer(ref MemoryMarshal.GetReference(buffer));
+            }
+            ErrorCode ec = Native.Pa_ReadStream(streamPtr, buffPtr, frames);
+            if (ec != ErrorCode.NoError)
+            {
+                throw new PortAudioException(ec, "Error reading PortAudio Input Stream.\nError Code: " + ec.ToString());
+            }
+        }
+        public void ReadInput(Span<float> buffer, ulong frames)
+        {
+            nint buffPtr;
+            unsafe
+            {
+                buffPtr = (nint)Unsafe.AsPointer(ref MemoryMarshal.GetReference(buffer));
+            }
+            ErrorCode ec = Native.Pa_ReadStream(streamPtr, buffPtr, frames);
+            if (ec != ErrorCode.NoError)
+            {
+                throw new PortAudioException(ec, "Error reading PortAudio Input Stream.\nError Code: " + ec.ToString());
+            }
+        }
+        public void ReadInput(Span<double> buffer, ulong frames)
+        {
+            nint buffPtr;
+            unsafe
+            {
+                buffPtr = (nint)Unsafe.AsPointer(ref MemoryMarshal.GetReference(buffer));
+            }
+            ErrorCode ec = Native.Pa_ReadStream(streamPtr, buffPtr, frames);
+            if (ec != ErrorCode.NoError)
+            {
+                throw new PortAudioException(ec, "Error reading PortAudio Input Stream.\nError Code: " + ec.ToString());
+            }
+        }
+        public void ReadInput(Span<decimal> buffer, ulong frames)
+        {
+            nint buffPtr;
+            unsafe
+            {
+                buffPtr = (nint)Unsafe.AsPointer(ref MemoryMarshal.GetReference(buffer));
+            }
+            ErrorCode ec = Native.Pa_ReadStream(streamPtr, buffPtr, frames);
+            if (ec != ErrorCode.NoError)
+            {
+                throw new PortAudioException(ec, "Error reading PortAudio Input Stream.\nError Code: " + ec.ToString());
+            }
+        }
+        #endregion
+
+        #region WriteOutput
+        /// <summary>
+        /// Writes the audio output when the stream is opened and processing.
+        /// The stream must be started with `Pa_StartStream()` before using this.
+        /// 
+        /// @param buffer The audio output buffer that will be written.
+        /// 
+        /// @param frames The number of frames in the audio output buffer.
+        /// </summary>
+        public void WriteOutput(Span<byte> buffer, ulong frames)
+        {
+            nint buffPtr;
+            unsafe
+            {
+                buffPtr = (nint)Unsafe.AsPointer(ref MemoryMarshal.GetReference(buffer));
+            }
+            ErrorCode ec = Native.Pa_WriteStream(streamPtr, buffPtr, frames);
+            if (ec != ErrorCode.NoError)
+            {
+                throw new PortAudioException(ec, "Error writing PortAudio Output Stream.\nError Code: " + ec.ToString());
+            }
+        }
+        public void WriteOutput(Span<short> buffer, ulong frames)
+        {
+            nint buffPtr;
+            unsafe
+            {
+                buffPtr = (nint)Unsafe.AsPointer(ref MemoryMarshal.GetReference(buffer));
+            }
+            ErrorCode ec = Native.Pa_WriteStream(streamPtr, buffPtr, frames);
+            if (ec != ErrorCode.NoError)
+            {
+                throw new PortAudioException(ec, "Error writing PortAudio Output Stream.\nError Code: " + ec.ToString());
+            }
+        }
+        public void WriteOutput(Span<int> buffer, ulong frames)
+        {
+            nint buffPtr;
+            unsafe
+            {
+                buffPtr = (nint)Unsafe.AsPointer(ref MemoryMarshal.GetReference(buffer));
+            }
+            ErrorCode ec = Native.Pa_WriteStream(streamPtr, buffPtr, frames);
+            if (ec != ErrorCode.NoError)
+            {
+                throw new PortAudioException(ec, "Error writing PortAudio Output Stream.\nError Code: " + ec.ToString());
+            }
+        }
+        public void WriteOutput(Span<long> buffer, ulong frames)
+        {
+            nint buffPtr;
+            unsafe
+            {
+                buffPtr = (nint)Unsafe.AsPointer(ref MemoryMarshal.GetReference(buffer));
+            }
+            ErrorCode ec = Native.Pa_WriteStream(streamPtr, buffPtr, frames);
+            if (ec != ErrorCode.NoError)
+            {
+                throw new PortAudioException(ec, "Error writing PortAudio Output Stream.\nError Code: " + ec.ToString());
+            }
+        }
+        public void WriteOutput(Span<Int128> buffer, ulong frames)
+        {
+            nint buffPtr;
+            unsafe
+            {
+                buffPtr = (nint)Unsafe.AsPointer(ref MemoryMarshal.GetReference(buffer));
+            }
+            ErrorCode ec = Native.Pa_WriteStream(streamPtr, buffPtr, frames);
+            if (ec != ErrorCode.NoError)
+            {
+                throw new PortAudioException(ec, "Error writing PortAudio Output Stream.\nError Code: " + ec.ToString());
+            }
+        }
+        public void WriteOutput(Span<Half> buffer, ulong frames)
+        {
+            nint buffPtr;
+            unsafe
+            {
+                buffPtr = (nint)Unsafe.AsPointer(ref MemoryMarshal.GetReference(buffer));
+            }
+            ErrorCode ec = Native.Pa_WriteStream(streamPtr, buffPtr, frames);
+            if (ec != ErrorCode.NoError)
+            {
+                throw new PortAudioException(ec, "Error writing PortAudio Output Stream.\nError Code: " + ec.ToString());
+            }
+        }
+        public void WriteOutput(Span<float> buffer, ulong frames)
+        {
+            nint buffPtr;
+            unsafe
+            {
+                buffPtr = (nint)Unsafe.AsPointer(ref MemoryMarshal.GetReference(buffer));
+            }
+            ErrorCode ec = Native.Pa_WriteStream(streamPtr, buffPtr, frames);
+            if (ec != ErrorCode.NoError)
+            {
+                throw new PortAudioException(ec, "Error writing PortAudio Output Stream.\nError Code: " + ec.ToString());
+            }
+        }
+        public void WriteOutput(Span<double> buffer, ulong frames)
+        {
+            nint buffPtr;
+            unsafe
+            {
+                buffPtr = (nint)Unsafe.AsPointer(ref MemoryMarshal.GetReference(buffer));
+            }
+            ErrorCode ec = Native.Pa_WriteStream(streamPtr, buffPtr, frames);
+            if (ec != ErrorCode.NoError)
+            {
+                throw new PortAudioException(ec, "Error writing PortAudio Output Stream.\nError Code: " + ec.ToString());
+            }
+        }
+        public void WriteOutput(Span<decimal> buffer, ulong frames)
+        {
+            nint buffPtr;
+            unsafe
+            {
+                buffPtr = (nint)Unsafe.AsPointer(ref MemoryMarshal.GetReference(buffer));
+            }
+            ErrorCode ec = Native.Pa_WriteStream(streamPtr, buffPtr, frames);
+            if (ec != ErrorCode.NoError)
+            {
+                throw new PortAudioException(ec, "Error writing PortAudio Output Stream.\nError Code: " + ec.ToString());
+            }
+        }
+        #endregion
+
         #endregion // Operations
 
         #region Properties
@@ -526,9 +889,15 @@ namespace PortAudio
         /// <param name="userDataPtr"></param>
         /// <typeparam name="UD">The type of data that was put into the stream</typeparam>
         /// <returns></returns>
-        public static UD GetUserData<UD>(IntPtr userDataPtr) =>
-            (UD)GCHandle.FromIntPtr(userDataPtr).Target;
-
+        public UD GetUserData<UD>(nint userDataPtr)
+        {
+            UDHandle = GCHandle.FromIntPtr(userDataPtr);
+            return (UD)GCHandle.FromIntPtr(userDataPtr).Target!;
+        }
+        internal GCHandle UDHandle
+        {
+            get; private set;
+        }
 
         /// <summary>
         /// This is an internal structure to aid with C# Callbacks that interface with P/Invoke functions.

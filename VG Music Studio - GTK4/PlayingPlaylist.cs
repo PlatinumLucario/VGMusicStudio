@@ -34,7 +34,7 @@ internal sealed class PlayingPlaylist
 		int prevSong = _playedSongs[prevIndex];
 		_playedSongs.RemoveAt(prevIndex);
 		_remainingSongs.Insert(0, curSong);
-		parent.SetAndLoadSequence(prevSong);
+		parent.SetAndLoadSong(prevSong);
 	}
 	public void SetAndLoadNextSong(MainWindow parent)
 	{
@@ -48,6 +48,6 @@ internal sealed class PlayingPlaylist
 		}
 		int nextSong = _remainingSongs[0];
 		_remainingSongs.RemoveAt(0);
-		parent.SetAndLoadSequence(nextSong);
+		parent.SetAndLoadSong(nextSong);
 	}
 }

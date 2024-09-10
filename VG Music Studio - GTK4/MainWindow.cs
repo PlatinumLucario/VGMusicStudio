@@ -40,16 +40,14 @@ internal sealed class MainWindow : Window
     #region Widgets
 
     // Buttons
-    private readonly Button _buttonPlay, _buttonPause, _buttonStop;
-
-    // A Box specifically made to contain two contents inside
-    private readonly Box _splitContainerBox;
+    private Button _buttonPlay, _buttonPause, _buttonStop;
 
     // Spin Button for the numbered tracks
     private readonly SpinButton _sequenceNumberSpinButton;
 
     // Timer
-    private readonly Timer _timer;
+    private GLib.Source _source;
+    private readonly GLib.Timer _timer;
 
     // Popover Menu Bar
     private readonly PopoverMenuBar _popoverMenuBar;
@@ -59,9 +57,6 @@ internal sealed class MainWindow : Window
 
     // LibAdwaita Application
     private readonly Adw.Application _app;
-
-    // LibAdwaita Message Dialog
-    private Adw.MessageDialog _dialog;
 
     // Menu Model
     //private readonly Gio.MenuModel _mainMenu;
@@ -74,12 +69,11 @@ internal sealed class MainWindow : Window
 
     // Menu Items
     private readonly Gio.MenuItem _fileItem, _openDSEItem, _openAlphaDreamItem, _openMP2KItem, _openSDATItem,
-        _dataItem, _trackViewerItem, _exportDLSItem, _exportSF2Item, _exportMIDIItem, _exportWAVItem, _playlistItem, _endPlaylistItem;
+        _dataItem, _exportDLSItem, _exportSF2Item, _exportMIDIItem, _exportWAVItem, _playlistItem, _endPlaylistItem;
 
     // Menu Actions
     private Gio.SimpleAction _openDSEAction, _openAlphaDreamAction, _openMP2KAction, _openSDATAction,
-        _dataAction, _trackViewerAction, _exportDLSAction, _exportSF2Action, _exportMIDIAction, _exportWAVAction, _playlistAction, _endPlaylistAction,
-        _soundSequenceAction;
+        _exportDLSAction, _exportSF2Action, _exportMIDIAction, _exportWAVAction, _endPlaylistAction;
 
     // Main Box
     private Box _mainBox, _configButtonBox, _configPlayerButtonBox, _configSpinButtonBox, _configScaleBox;
@@ -88,12 +82,7 @@ internal sealed class MainWindow : Window
     private Scale _volumeBar, _positionBar;
 
     // Mouse Click Gesture
-    private GestureClick _positionGestureClick, _sequencesGestureClick;
-
-    // Event Controller
-    private EventArgs _openDSEEvent, _openAlphaDreamEvent, _openMP2KEvent, _openSDATEvent,
-        _dataEvent, _trackViewerEvent, _exportDLSEvent, _exportSF2Event, _exportMIDIEvent, _exportWAVEvent, _playlistEvent, _endPlaylistEvent,
-        _sequencesEventController;
+    private GestureClick _positionGestureClick;
 
     // Adjustments are for indicating the numbers and the position of the scale
     private readonly Adjustment _sequenceNumberAdjustment;
@@ -111,7 +100,7 @@ internal sealed class MainWindow : Window
     private GLib.Internal.ErrorOwnedHandle ErrorHandle = new GLib.Internal.ErrorOwnedHandle(IntPtr.Zero);
 
     // Signal
-    private Signal<ListItemFactory> _signal;
+    //private Signal<ListItemFactory> _signal;
 
     // Callback
     private Gio.Internal.AsyncReadyCallback _saveCallback { get; set; }
@@ -127,9 +116,6 @@ internal sealed class MainWindow : Window
         SetDefaultSize(500, 300); // Sets the default size of the Window
         Title = ConfigUtils.PROGRAM_NAME; // Sets the title to the name of the program, which is "VG Music Studio"
         _app = app;
-
-        // Configures SetVolumeBar method with the MixerVolumeChanged Event action
-        Mixer.VolumeChanged += SetVolumeBar;
 
         // LibAdwaita Header Bar
         _headerBar = Adw.HeaderBar.New();
@@ -269,12 +255,14 @@ internal sealed class MainWindow : Window
         //_sequenceNumberSpinButton.Visible = false;
         _sequenceNumberSpinButton.OnValueChanged += SequenceNumberSpinButton_ValueChanged;
 
-        // Timer
-        _timer = new Timer();
-        _timer.Elapsed += Timer_Tick;
+        // // Timer
+        _timer = GLib.Timer.New();
+        // _timer = new Timer();
+        // _timer.Elapsed += Timer_Tick;
 
         // Volume Bar
         _volumeBar = Scale.New(Orientation.Horizontal, Gtk.Adjustment.New(0, 0, 100, 1, 10, 0));
+        _volumeBar.OnValueChanged += VolumeBar_ValueChanged;
         _volumeBar.Sensitive = false;
         _volumeBar.ShowFillLevel = true;
         _volumeBar.DrawValue = false;
@@ -285,6 +273,7 @@ internal sealed class MainWindow : Window
         _positionGestureClick = GestureClick.New();
         _positionBar.AddController(_positionGestureClick);
         _positionBar.Sensitive = false;
+        _positionBar.Focusable = true;
         _positionBar.ShowFillLevel = true;
         _positionBar.DrawValue = false;
         _positionBar.WidthRequest = 250;
@@ -339,11 +328,11 @@ internal sealed class MainWindow : Window
             _configSpinButtonBox.Append(_sequenceNumberSpinButton);
         }
 
-        // _volumeBar.MarginStart = 20;
-        // _volumeBar.MarginEnd = 20;
+        _volumeBar.MarginStart = 20;
+        _volumeBar.MarginEnd = 20;
         _configScaleBox.Append(_volumeBar);
-        // _positionBar.MarginStart = 20;
-        // _positionBar.MarginEnd = 20;
+        _positionBar.MarginStart = 20;
+        _positionBar.MarginEnd = 20;
         _configScaleBox.Append(_positionBar);
 
         _mainBox.Append(_headerBar);
@@ -383,7 +372,8 @@ internal sealed class MainWindow : Window
     private bool _positionBarFree = true;
     private void PositionBar_MouseButtonRelease(object sender, EventArgs args)
     {
-        Engine.Instance!.Player.SetSongPosition((long)_positionBar.ValuePos); // Sets the value based on the position when mouse button is released
+        if (!_positionBarFree)
+            Engine.Instance!.Player.SetSongPosition((long)_positionBar.Adjustment!.Value); // Sets the value based on the position when mouse button is released
         _positionBarFree = true; // Sets _positionBarFree to true when mouse button is released
         LetUIKnowPlayerIsPlaying(); // This method will run the void that tells the UI that the player is playing a track
     }
@@ -393,14 +383,16 @@ internal sealed class MainWindow : Window
 
         return false;
     }
-    private void PositionBar_MoveSlider(object sender, EventArgs args) =>
-        _positionBarFree = true;
+    private void PositionBar_MoveSlider(object sender, EventArgs args)
+    {
+        UpdatePositionIndicators(Engine.Instance!.Player.ElapsedTicks);
+        _positionBarFree = false;
+    }
     private void PositionBar_ValueChanged(object sender, EventArgs args)
     {
         if (Engine.Instance is not null)
-            _positionBar.SetValue(Engine.Instance!.Player.ElapsedTicks); // Sets the value based on the position when mouse button is released
-        _positionBarFree = true; // Sets _positionBarFree to true when mouse button is released
-        LetUIKnowPlayerIsPlaying(); // This method will run the void that tells the UI that the player is playing a track
+            UpdatePositionIndicators(Engine.Instance!.Player.ElapsedTicks); // Sets the value based on the position when mouse button is released
+
     }
     private void PositionBar_MouseButtonPress(object sender, EventArgs args)
     {
@@ -418,13 +410,15 @@ internal sealed class MainWindow : Window
         //_sequencesListView.Margin = 0;
         //_songInfo.Reset();
         bool success;
+        if (Engine.Instance == null)
+        {
+            return; // Prevents referencing a null Engine.Instance when the engine is being disposed, especially while main window is being closed
+        }
+        Player player = Engine.Instance!.Player;
+		Config cfg = Engine.Instance.Config;
         try
         {
-            if (Engine.Instance == null)
-            {
-                return; // Prevents referencing a null Engine.Instance when the engine is being disposed, especially while main window is being closed
-            }
-            Engine.Instance!.Player.LoadSong(index);
+            player.LoadSong(index);
             success = Engine.Instance.Player.LoadedSong is not null; // TODO: Make sure loadedsong is null when there are no tracks (for each engine, only mp2k guarantees it rn)
         }
         catch (Exception ex)
@@ -434,25 +428,22 @@ internal sealed class MainWindow : Window
         }
 
         //_trackViewer?.UpdateTracks();
+        ILoadedSong? loadedSong = player.LoadedSong; // LoadedSong is still null when there are no tracks
         if (success)
         {
-            Config config = Engine.Instance.Config;
-            List<Config.Song> songs = config.Playlists[0].Songs; // Complete "Music" playlist is present in all configs at index 0
+            List<Config.Song> songs = cfg.Playlists[0].Songs; // Complete "Music" playlist is present in all configs at index 0
             int songIndex = songs.FindIndex(s => s.Index == index);
             if (songIndex != -1)
             {
                 this.Title = $"{ConfigUtils.PROGRAM_NAME} - {songs[songIndex].Name}"; // TODO: Make this a func
                 //_sequencesColumnView.SortColumnId = songs.IndexOf(song) + 1; // + 1 because the "Music" playlist is first in the combobox
             }
-            //_positionBar.Adjustment!.Upper = double.MaxValue;
-            _duration = (int)(Engine.Instance!.Player.LoadedSong!.MaxTicks + 0.5);
-            _positionBar.SetRange(0, _duration);
-            //_positionAdjustment.LargeChange = (long)(_positionAdjustment.Upper / 10) >> 64;
-            //_positionAdjustment.SmallChange = (long)(_positionAdjustment.LargeChange / 4) >> 64;
-            _positionBar.Show();
+            _positionBar.Adjustment!.Upper = loadedSong!.MaxTicks;
+            _positionBar.SetRange(0, loadedSong.MaxTicks);
             //_songInfo.SetNumTracks(Engine.Instance.Player.LoadedSong.Events.Length);
             if (_autoplay)
             {
+                Show();
                 Play();
             }
         }
@@ -467,13 +458,14 @@ internal sealed class MainWindow : Window
         _autoplay = true;
         //_sequencesGestureClick.OnEnd += SequencesListView_SelectionGet;
         //_signal.Connect(_sequencesListFactory, SequencesListView_SelectionGet, true, null);
+        Show();
     }
     //private void SequencesListView_SelectionGet(object sender, EventArgs e)
     //{
     //	var item = _soundSequenceList.SelectedItem;
     //	if (item is Config.Song song)
     //	{
-    //		SetAndLoadSequence(song.Index);
+    //		SetAndLoadSong(song.Index);
     //	}
     //	else if (item is Config.Playlist playlist)
     //	{
@@ -489,12 +481,12 @@ internal sealed class MainWindow : Window
     //		}
     //	}
     //}
-    public void SetAndLoadSequence(int index)
+    public void SetAndLoadSong(int index)
     {
         _curSong = index;
         if (_sequenceNumberSpinButton.Value == index)
         {
-            SequenceNumberSpinButton_ValueChanged(null, null);
+            SequenceNumberSpinButton_ValueChanged(this, EventArgs.Empty);
         }
         else
         {
@@ -514,7 +506,7 @@ internal sealed class MainWindow : Window
     //	}
     //	long nextSequence = _remainingSequences[0];
     //	_remainingSequences.RemoveAt(0);
-    //	SetAndLoadSequence(nextSequence);
+    //	SetAndLoadSong(nextSequence);
     //}
     private void ResetPlaylistStuff(bool spinButtonAndListBoxEnabled)
     {
@@ -1140,7 +1132,7 @@ internal sealed class MainWindow : Window
     {
         Stop();
 
-        Player player = Engine.Instance.Player;
+        Player player = Engine.Instance!.Player;
         bool oldFade = player.ShouldFadeOut;
         long oldLoops = player.NumLoops;
         player.ShouldFadeOut = true;
@@ -1181,10 +1173,10 @@ internal sealed class MainWindow : Window
     public void LetUIKnowPlayerIsPlaying()
     {
         // Prevents method from being used if timer is already active
-        if (_timer.Enabled)
-        {
-            return;
-        }
+        // if (_timer.Enabled)
+        // {
+        //     return;
+        // }
 
         // Ensures a GlobalConfig Instance is created if one doesn't exist
         if (GlobalConfig.Instance == null)
@@ -1195,7 +1187,14 @@ internal sealed class MainWindow : Window
         // Configures the buttons when player is playing a sequenced track
         _buttonPause.Sensitive = _buttonStop.Sensitive = true; // Setting the 'Sensitive' property to 'true' enables the buttons, allowing you to click on them
         _buttonPause.Label = Strings.PlayerPause;
-        _timer.Interval = (int)(1_000.0 / GlobalConfig.Instance!.RefreshRate);
+        var context = GLib.MainContext.GetThreadDefault();
+        var source = GLib.Functions.TimeoutSourceNew((uint)(1_000.0 / GlobalConfig.Instance!.RefreshRate));
+        source.SetCallback(CheckPlayback);
+        var microsec = (ulong)source.Attach(context);
+        _timer.Elapsed(ref microsec);
+        //GLib.Functions.TimeoutAdd(0, (uint)(1_000.0 / GlobalConfig.Instance!.RefreshRate), new GLib.SourceFunc(CheckPlayback));
+        //GLib.Functions.TestTimerStart();
+        // _timer.Interval = (int)(1_000.0 / GlobalConfig.Instance!.RefreshRate);
         _timer.Start();
         Show();
     }
@@ -1250,7 +1249,7 @@ internal sealed class MainWindow : Window
         }
         else
         {
-            SetAndLoadSequence((int)_sequenceNumberSpinButton.Value - 1);
+            SetAndLoadSong((int)_sequenceNumberSpinButton.Value - 1);
         }
     }
     private void PlayNextSong(object? sender, EventArgs? e)
@@ -1261,7 +1260,7 @@ internal sealed class MainWindow : Window
         }
         else
         {
-            SetAndLoadSequence((int)_sequenceNumberSpinButton.Value + 1);
+            SetAndLoadSong((int)_sequenceNumberSpinButton.Value + 1);
         }
     }
 
@@ -1279,8 +1278,9 @@ internal sealed class MainWindow : Window
         // [Debug methods specific to this GUI will go in here]
 #endif
         _autoplay = false;
-        SetAndLoadSequence(Engine.Instance.Config.Playlists[0].Songs.Count == 0 ? 0 : Engine.Instance.Config.Playlists[0].Songs[0].Index);
+        SetAndLoadSong(Engine.Instance.Config.Playlists[0].Songs.Count == 0 ? 0 : Engine.Instance.Config.Playlists[0].Songs[0].Index);
         _sequenceNumberSpinButton.Sensitive = _buttonPlay.Sensitive = _volumeBar.Sensitive = true;
+        _volumeBar.SetValue(100);
         Show();
     }
     private void DisposeEngine()
@@ -1307,6 +1307,19 @@ internal sealed class MainWindow : Window
         _sequenceNumberSpinButton.OnValueChanged += SequenceNumberSpinButton_ValueChanged;
     }
 
+    private bool CheckPlayback()
+    {
+        if (Engine.Instance is not null)
+        {
+            if (_positionBarFree)
+            {
+                UpdatePositionIndicators(Engine.Instance!.Player.ElapsedTicks);
+                return true;
+            }
+        }
+        return false;
+    }
+
     private void Timer_Tick(object? sender, EventArgs e)
     {
         if (_songEnded)
@@ -1323,8 +1336,11 @@ internal sealed class MainWindow : Window
         }
         else
         {
-            Player player = Engine.Instance!.Player;
-            UpdatePositionIndicators(player.ElapsedTicks);
+            if (Engine.Instance is not null)
+            {
+                Player player = Engine.Instance!.Player;
+                UpdatePositionIndicators(player.ElapsedTicks);
+            }
         }
     }
     private void SongEnded()
@@ -1339,7 +1355,7 @@ internal sealed class MainWindow : Window
     {
         if (_positionBarFree)
         {
-            _positionBar.Adjustment!.Value = ticks;
+            _positionBar.Adjustment!.SetValue(ticks);
         }
     }
 }

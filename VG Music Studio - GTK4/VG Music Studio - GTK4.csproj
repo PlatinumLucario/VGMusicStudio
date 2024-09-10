@@ -12,6 +12,13 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<None Remove="**\*.xml" />
+		<EmbeddedResource Include="**\*.xml">
+			<LogicalName>%(Filename)%(Extension)</LogicalName>
+		</EmbeddedResource>
+	</ItemGroup>
+
+	<ItemGroup>
 		<ProjectReference Include="..\VG Music Studio - Core\VG Music Studio - Core.csproj" />
 	</ItemGroup>
 

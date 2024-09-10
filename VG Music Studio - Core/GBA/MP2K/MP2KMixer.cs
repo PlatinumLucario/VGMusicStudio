@@ -60,7 +60,7 @@ public sealed class MP2KMixer : Mixer
         };
         _buffer.CreateIeeeFloatWave((uint)SampleRate, 2);
 
-        Init(_buffer);
+        Init(_buffer, _audio);
     }
 
     internal MP2KPCM8Channel? AllocPCM8Channel(MP2KTrack owner, ADSR env, NoteInfo note, byte vol, sbyte pan, int instPan, int pitch, bool bFixed, bool bCompressed, int sampleOffset)
@@ -259,7 +259,6 @@ public sealed class MP2KMixer : Mixer
         if (output)
         {
             _buffer.AddSamples(_audio.ByteBuffer, 0, _audio.ByteBufferCount);
-            Instance!.Buffer = new Span<float>(_audio.Float32Buffer!).ToArray();
         }
         if (recording)
         {
