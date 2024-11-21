@@ -38,7 +38,9 @@ public abstract class Player : IDisposable
 
 	private readonly TimeBarrier _time;
 	private Thread? _thread;
-	public bool IsStopped = true;
+	private static LowLatencyRingbuffer Ringbuffer { get; set; } = new LowLatencyRingbuffer();
+	public bool IsStreamStopped = true;
+	public bool IsPauseToggled = false;
 
 	protected Player(double ticksPerSecond)
 	{
@@ -52,7 +54,66 @@ public abstract class Player : IDisposable
 	protected abstract void OnStopped();
 
 	protected abstract bool Tick(bool playing, bool recording);
-	
+
+	internal static StreamCallbackResult PlayCallbackLLE(
+		nint input, nint output,
+		uint frameCount,
+		ref StreamCallbackTimeInfo timeInfo,
+		StreamCallbackFlags statusFlags,
+		nint userData
+	)
+	{
+		// Marshal.AllocHGlobal() or any related functions cannot and must not be used
+		// in this callback, otherwise it will cause an OutOfMemoryException.
+		//
+		// The memory is already allocated by the output and userData params by
+		// the native PortAudio library itself.
+
+		var player = Engine.Instance!.Player;
+
+		Mixer.Audio d = Mixer.Instance!.Stream!.GetUserData<Mixer.Audio>(userData);
+
+		if (!Mixer.Instance.Stream.UDHandle.IsAllocated)
+		{
+			return StreamCallbackResult.Abort;
+		}
+
+
+		Span<LowLatencyRingbuffer.Sample> buffer;
+		unsafe
+		{
+			// Apply buffer value
+			buffer = new((float*)output, (int)frameCount);
+			Ringbuffer.Take(buffer);
+			for (int i = 0, b = 0; i < buffer.Length; i++, b += 2)
+			{
+				buffer[i].left = d.Float32Buffer![b];
+				buffer[i].right = d.Float32Buffer![b + 1];
+			}
+		}
+
+		// If we're reading data, play it back
+		if (player.State == PlayerState.Playing)
+		{
+			for (int i = 0; i < buffer.Length; i++)
+			{
+				buffer[i].left *= Mixer.Instance.Volume;
+				buffer[i].right *= Mixer.Instance.Volume;
+			}
+		}
+
+		if (player.State is PlayerState.Playing or PlayerState.Paused)
+		{
+			// Continue if the song isn't finished
+			return StreamCallbackResult.Continue;
+		}
+		else
+		{
+			// Complete the callback when song is finished
+			return StreamCallbackResult.Complete;
+		}
+	}
+
 	internal static StreamCallbackResult PlayCallback(
 		nint input, nint output,
 		uint frameCount,
@@ -66,21 +127,21 @@ public abstract class Player : IDisposable
 		//
 		// The memory is already allocated by the output and userData params by
 		// the native PortAudio library itself.
-		
+
 		var player = Engine.Instance!.Player;
-		
+
 		Mixer.Audio d = Mixer.Instance!.Stream!.GetUserData<Mixer.Audio>(userData);
 
 		if (!Mixer.Instance.Stream.UDHandle.IsAllocated)
 		{
 			return StreamCallbackResult.Abort;
 		}
-		
+
 		var frameSize = (int)Mixer.Instance.FinalFrameSize;
 		float[] frameBuffer = new float[frameSize];
 		for (int i = 0; i < frameSize; i++)
 			frameBuffer[i] = d.Float32Buffer![i];
-		
+
 		float[] newBuffer = new float[frameSize];
 		for (int i = 0; i < frameSize; i++)
 		{
@@ -150,6 +211,24 @@ public abstract class Player : IDisposable
 		throw new InvalidDataException("No loop point found");
 	}
 
+	private void StartStream()
+	{
+		if (IsStreamStopped)
+		{
+			IsStreamStopped = false;
+			CreateThread();
+			Mixer.Instance!.Stream!.Start();
+		}
+	}
+	private void StopStream()
+	{
+		if (!IsStreamStopped)
+		{
+			IsStreamStopped = true;
+			//_time.Stop();
+			Mixer.Instance!.Stream!.Stop();
+		}
+	}
 	public void Play()
 	{
 		if (LoadedSong is null)
@@ -160,17 +239,15 @@ public abstract class Player : IDisposable
 
 		if (State is not PlayerState.ShutDown)
 		{
-			Stop();
+			if (State is not PlayerState.Stopped)
+			{
+				Stop();
+			}
 			InitEmulation();
 			State = PlayerState.Playing;
 			if (Engine.Instance!.UseNewMixer)
 			{
-				if (IsStopped)
-				{
-					IsStopped = false;
-					CreateThread();
-					Mixer.Instance!.Stream!.Start();
-				}
+				StartStream();
 			}
 			else
 			{
@@ -206,13 +283,9 @@ public abstract class Player : IDisposable
 			OnStopped();
 			if (Engine.Instance!.UseNewMixer)
 			{
-				if (!IsStopped)
-				{
-					IsStopped = true;
-					//_time.Stop();
-					Mixer.Instance!.Stream!.Stop();
-				}
+				StopStream();
 			}
+			ElapsedTicks = 0L;
 		}
 	}
 	public void Record(string fileName)
@@ -233,10 +306,26 @@ public abstract class Player : IDisposable
 			SongEnded?.Invoke();
 			return;
 		}
+		//InitEmulation();
+		ElapsedTicks = ticks;
+		SetCurTick(ticks);
+	}
+	public void SetSongPositionAndPlay(long ticks)
+	{
+		if (LoadedSong is null)
+		{
+			SongEnded?.Invoke();
+			return;
+		}
 
 		if (State is not PlayerState.Playing and not PlayerState.Paused and not PlayerState.Stopped)
 		{
 			return;
+		}
+		
+		if (State is PlayerState.Stopped)
+		{
+			Play();
 		}
 
 		if (State is PlayerState.Playing)
@@ -245,7 +334,10 @@ public abstract class Player : IDisposable
 		}
 		InitEmulation();
 		SetCurTick(ticks);
-		TogglePlaying();
+		if (State is PlayerState.Paused && !IsPauseToggled || State is PlayerState.Stopped)
+		{
+			TogglePlaying();
+		}
 	}
 
 	private void TimerLoop()
@@ -274,7 +366,6 @@ public abstract class Player : IDisposable
 		{
 			// TODO: lock state
 			time.Stop(); // TODO: Don't need timer if recording
-			State = PlayerState.Stopped;
 			SongEnded?.Invoke();
 			return allDone;
 		}

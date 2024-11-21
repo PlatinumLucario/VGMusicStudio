@@ -123,7 +123,7 @@ public abstract class Mixer : IDisposable
 
     public void CreateWaveWriter(string fileName)
     {
-        _waveWriter = new Wave(fileName);
+        //_waveWriter = new Wave(fileName);
     }
     public void CloseWaveWriter()
     {

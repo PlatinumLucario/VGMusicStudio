@@ -46,7 +46,6 @@ internal sealed class MainWindow : Window
     private readonly SpinButton _sequenceNumberSpinButton;
 
     // Timer
-    private GLib.Source _source;
     private readonly GLib.Timer _timer;
 
     // Popover Menu Bar
@@ -81,8 +80,9 @@ internal sealed class MainWindow : Window
     // One Scale controling volume and one Scale for the sequenced track
     private Scale _volumeBar, _positionBar;
 
-    // Mouse Click Gesture
+    // Mouse Click and Drag Gestures
     private GestureClick _positionGestureClick;
+    private GestureDrag _positionGestureDrag;
 
     // Adjustments are for indicating the numbers and the position of the scale
     private readonly Adjustment _sequenceNumberAdjustment;
@@ -257,8 +257,6 @@ internal sealed class MainWindow : Window
 
         // // Timer
         _timer = GLib.Timer.New();
-        // _timer = new Timer();
-        // _timer.Elapsed += Timer_Tick;
 
         // Volume Bar
         _volumeBar = Scale.New(Orientation.Horizontal, Gtk.Adjustment.New(0, 0, 100, 1, 10, 0));
@@ -271,7 +269,9 @@ internal sealed class MainWindow : Window
         // Position Bar
         _positionBar = Scale.New(Orientation.Horizontal, Gtk.Adjustment.New(0, 0, 100, 1, 10, 0)); // The Upper value property must contain a value of 1 or higher for the widget to show upon startup
         _positionGestureClick = GestureClick.New();
+        _positionGestureDrag = GestureDrag.New();
         _positionBar.AddController(_positionGestureClick);
+        _positionBar.AddController(_positionGestureDrag);
         _positionBar.Sensitive = false;
         _positionBar.Focusable = true;
         _positionBar.ShowFillLevel = true;
@@ -286,8 +286,10 @@ internal sealed class MainWindow : Window
         _positionGestureClick.OnPressed += PositionBar_MouseButtonPress;
         _positionGestureClick.OnReleased += PositionBar_MouseButtonRelease;
         _positionGestureClick.OnUnpairedRelease += PositionBar_MouseButtonRelease;
-        _positionGestureClick.OnEnd += PositionBar_MouseButtonRelease;
-        _positionGestureClick.OnBegin += PositionBar_MouseButtonPress;
+        _positionGestureClick.OnBegin += PositionBar_MouseButtonOnBegin;
+        _positionGestureClick.OnEnd += PositionBar_MouseButtonOnEnd;
+        // _positionGestureDrag.OnDragBegin += PositionBar_MouseButtonOnBegin;
+        // _positionGestureDrag.OnDragEnd += PositionBar_MouseButtonOnEnd;
 
         // Sound Sequence List
         //_soundSequenceList = new SoundSequenceList { Sensitive = false };
@@ -345,8 +347,6 @@ internal sealed class MainWindow : Window
 
         Instance = this;
 
-        Show();
-
         // Ensures the entire application gets closed when the main window is closed
         OnCloseRequest += (sender, args) =>
         {
@@ -370,21 +370,76 @@ internal sealed class MainWindow : Window
     }
 
     private bool _positionBarFree = true;
+    private bool _positionBarDebug = false;
+    private void PositionBar_MouseButtonPress(object sender, EventArgs args)
+    {
+        if (_positionBarDebug)
+        {
+            Debug.WriteLine(sender.ToString() + " | " + args.ToString() + " | _positionBarFree: " + _positionBarFree.ToString());
+        }
+        _positionBarFree = false;
+    }
     private void PositionBar_MouseButtonRelease(object sender, EventArgs args)
     {
+        // if (args == EventArgs.Empty)
+        // {
+        //     return;
+        // }
+        
+        if (_positionBarDebug)
+        {
+            Debug.WriteLine(sender.ToString() + " | " + args.ToString() + " | _positionBarFree: " + _positionBarFree.ToString());
+        }
+
         if (!_positionBarFree)
-            Engine.Instance!.Player.SetSongPosition((long)_positionBar.Adjustment!.Value); // Sets the value based on the position when mouse button is released
-        _positionBarFree = true; // Sets _positionBarFree to true when mouse button is released
-        LetUIKnowPlayerIsPlaying(); // This method will run the void that tells the UI that the player is playing a track
+        {
+            Engine.Instance!.Player.SetSongPositionAndPlay((long)_positionBar.Adjustment!.Value); // Sets the value based on the position when mouse button is released
+            _positionBarFree = true; // Sets _positionBarFree to true when mouse button is released
+            if (Engine.Instance!.Player.State is PlayerState.Playing)
+            {
+                LetUIKnowPlayerIsPlaying(); // This method will run the void that tells the UI that the player is playing a track
+            }
+            else
+            {
+                return;
+            }
+        }
+        else
+        {
+            return;
+        }
+
+    }
+    private void PositionBar_MouseButtonOnBegin(object sender, EventArgs args)
+    {
+        if (_positionBarDebug)
+        {
+            Debug.WriteLine(sender.ToString() + " | " + args.ToString() + " | _positionBarFree: " + _positionBarFree.ToString());
+        }
+        _positionBarFree = false;
+    }
+    private void PositionBar_MouseButtonOnEnd(object sender, EventArgs args)
+    {
+        if (_positionBarDebug)
+        {
+            Debug.WriteLine(sender.ToString() + " | " + args.ToString() + " | _positionBarFree: " + _positionBarFree.ToString());
+        }
+        _positionBarFree = true;
     }
     private bool PositionBar_ChangeValue(object sender, EventArgs args)
     {
-        _positionBarFree = false;
-
-        return false;
+        if (_positionBarDebug)
+        {
+            Debug.WriteLine(sender.ToString() + " | " + args.ToString() + " | _positionBarFree: " + _positionBarFree.ToString());
+        }
+        return _positionBarFree = false;
     }
     private void PositionBar_MoveSlider(object sender, EventArgs args)
     {
+        if (_positionBarDebug)
+        {
+            Debug.WriteLine(sender.ToString() + " | " + args.ToString() + " | _positionBarFree: " + _positionBarFree.ToString());
+        }
         UpdatePositionIndicators(Engine.Instance!.Player.ElapsedTicks);
         _positionBarFree = false;
     }
@@ -393,10 +448,6 @@ internal sealed class MainWindow : Window
         if (Engine.Instance is not null)
             UpdatePositionIndicators(Engine.Instance!.Player.ElapsedTicks); // Sets the value based on the position when mouse button is released
 
-    }
-    private void PositionBar_MouseButtonPress(object sender, EventArgs args)
-    {
-        _positionBarFree = false;
     }
 
     private void SequenceNumberSpinButton_ValueChanged(object sender, EventArgs e)
@@ -415,7 +466,7 @@ internal sealed class MainWindow : Window
             return; // Prevents referencing a null Engine.Instance when the engine is being disposed, especially while main window is being closed
         }
         Player player = Engine.Instance!.Player;
-		Config cfg = Engine.Instance.Config;
+        Config cfg = Engine.Instance.Config;
         try
         {
             player.LoadSong(index);
@@ -443,7 +494,6 @@ internal sealed class MainWindow : Window
             //_songInfo.SetNumTracks(Engine.Instance.Player.LoadedSong.Events.Length);
             if (_autoplay)
             {
-                Show();
                 Play();
             }
         }
@@ -458,7 +508,6 @@ internal sealed class MainWindow : Window
         _autoplay = true;
         //_sequencesGestureClick.OnEnd += SequencesListView_SelectionGet;
         //_signal.Connect(_sequencesListFactory, SequencesListView_SelectionGet, true, null);
-        Show();
     }
     //private void SequencesListView_SelectionGet(object sender, EventArgs e)
     //{
@@ -1173,10 +1222,10 @@ internal sealed class MainWindow : Window
     public void LetUIKnowPlayerIsPlaying()
     {
         // Prevents method from being used if timer is already active
-        // if (_timer.Enabled)
-        // {
-        //     return;
-        // }
+        if (_timer.IsActive())
+        {
+            return;
+        }
 
         // Ensures a GlobalConfig Instance is created if one doesn't exist
         if (GlobalConfig.Instance == null)
@@ -1187,21 +1236,25 @@ internal sealed class MainWindow : Window
         // Configures the buttons when player is playing a sequenced track
         _buttonPause.Sensitive = _buttonStop.Sensitive = true; // Setting the 'Sensitive' property to 'true' enables the buttons, allowing you to click on them
         _buttonPause.Label = Strings.PlayerPause;
-        var context = GLib.MainContext.GetThreadDefault();
-        var source = GLib.Functions.TimeoutSourceNew((uint)(1_000.0 / GlobalConfig.Instance!.RefreshRate));
-        source.SetCallback(CheckPlayback);
-        var microsec = (ulong)source.Attach(context);
-        _timer.Elapsed(ref microsec);
-        //GLib.Functions.TimeoutAdd(0, (uint)(1_000.0 / GlobalConfig.Instance!.RefreshRate), new GLib.SourceFunc(CheckPlayback));
-        //GLib.Functions.TestTimerStart();
-        // _timer.Interval = (int)(1_000.0 / GlobalConfig.Instance!.RefreshRate);
-        _timer.Start();
-        Show();
+
+        ConfigureTimer();
+    }
+    
+    // Configures the timer, which triggers the CheckPlayback method at every interval depending on the GlobalConfig RefreshRate
+    private void ConfigureTimer()
+    {
+        var context = GLib.MainContext.GetThreadDefault(); // Grabs the default GLib MainContext thread
+        var source = GLib.Functions.TimeoutSourceNew((uint)(1_000.0 / GlobalConfig.Instance!.RefreshRate)); // Creates and configures the timeout interval
+        source.SetCallback(CheckPlayback); // Sets the callback for the timer interval to be used on
+        var microsec = (ulong)source.Attach(context); // Configures the microseconds based on attaching the GLib MainContext thread
+        _timer.Elapsed(ref microsec); // Adds the pointer to the configured microseconds source
+        _timer.Start(); // Starts the timer
     }
 
     private void Play()
     {
-        Engine.Instance!.Player.Play();
+        Engine.Instance!.Player.IsPauseToggled = false;
+        Engine.Instance.Player.Play();
         LetUIKnowPlayerIsPlaying();
     }
     private void Pause()
@@ -1210,11 +1263,13 @@ internal sealed class MainWindow : Window
         if (Engine.Instance.Player.State == PlayerState.Paused)
         {
             _buttonPause.Label = Strings.PlayerUnpause;
+            Engine.Instance.Player.IsPauseToggled = true;
             _timer.Stop();
         }
         else
         {
             _buttonPause.Label = Strings.PlayerPause;
+            Engine.Instance.Player.IsPauseToggled = false;
             _timer.Start();
         }
     }
@@ -1229,7 +1284,6 @@ internal sealed class MainWindow : Window
         _buttonPause.Label = Strings.PlayerPause;
         _timer.Stop();
         UpdatePositionIndicators(0L);
-        Show();
     }
     private void TogglePlayback()
     {
@@ -1281,7 +1335,6 @@ internal sealed class MainWindow : Window
         SetAndLoadSong(Engine.Instance.Config.Playlists[0].Songs.Count == 0 ? 0 : Engine.Instance.Config.Playlists[0].Songs[0].Index);
         _sequenceNumberSpinButton.Sensitive = _buttonPlay.Sensitive = _volumeBar.Sensitive = true;
         _volumeBar.SetValue(100);
-        Show();
     }
     private void DisposeEngine()
     {
@@ -1309,15 +1362,26 @@ internal sealed class MainWindow : Window
 
     private bool CheckPlayback()
     {
+        if (_songEnded)
+        {
+            _songEnded = false;
+            if (_playlist is not null)
+            {
+                _playlist.AdvanceThenSetAndLoadNextSong(this, _curSong);
+            }
+            else
+            {
+                Stop();
+            }
+        }
         if (Engine.Instance is not null)
         {
             if (_positionBarFree)
             {
                 UpdatePositionIndicators(Engine.Instance!.Player.ElapsedTicks);
-                return true;
             }
         }
-        return false;
+        return true;
     }
 
     private void Timer_Tick(object? sender, EventArgs e)
@@ -1349,8 +1413,7 @@ internal sealed class MainWindow : Window
         _stopUI = true;
     }
 
-    // This updates _positionBar and _positionAdjustment to the value specified
-    // Note: Gtk.Scale is dependent on Gtk.Adjustment, which is why _positionAdjustment is used instead
+    // This updates _positionBar to the value specified
     private void UpdatePositionIndicators(long ticks)
     {
         if (_positionBarFree)

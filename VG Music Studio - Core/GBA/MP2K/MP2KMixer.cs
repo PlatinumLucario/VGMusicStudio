@@ -262,7 +262,7 @@ public sealed class MP2KMixer : Mixer
         }
         if (recording)
         {
-            _waveWriter!.Write(_audio.ByteBuffer, 0, _audio.ByteBufferCount);
+            //_waveWriter!.Write(_audio.ByteBuffer, 0, _audio.ByteBufferCount);
         }
     }
 }

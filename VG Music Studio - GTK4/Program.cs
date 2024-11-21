@@ -6,9 +6,14 @@ namespace Kermalis.VGMusicStudio.GTK4
 {
 	internal class Program
 	{
-		private static readonly Adw.Application _app = Application.New("org.Kermalis.VGMusicStudio.GTK4", Gio.ApplicationFlags.FlagsNone);
+		private static readonly Application _app = Application.New("org.Kermalis.VGMusicStudio.GTK4", Gio.ApplicationFlags.FlagsNone);
 		private static readonly OSPlatform Linux = OSPlatform.Linux;
 		private static readonly OSPlatform FreeBSD = OSPlatform.FreeBSD;
+
+		static void OnActivate(Gio.Application sender, EventArgs e)
+		{
+
+		}
 
 		[STAThread]
 		public static void Main(string[] args)
@@ -25,11 +30,6 @@ namespace Kermalis.VGMusicStudio.GTK4
 
 			_app.OnActivate += OnActivate;
 
-			void OnActivate(Gio.Application sender, EventArgs e)
-			{
-
-			}
-
 			var argv = new string[args.Length + 1];
 			argv[0] = "Kermalis.VGMusicStudio.GTK4";
 			args.CopyTo(argv, 1);
@@ -42,7 +42,7 @@ namespace Kermalis.VGMusicStudio.GTK4
 			// Add Main Window
 			var win = new MainWindow(_app);
 			_app.AddWindow(win);
-			win.Show();
+			win.Present();
 			_app.Run(args.Length, args);
 		}
 	}

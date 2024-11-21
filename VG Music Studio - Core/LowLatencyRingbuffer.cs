@@ -12,12 +12,11 @@ internal class LowLatencyRingbuffer
 		internal float left;
 		internal float right;
 	}
-	
+
 	private System.Threading.Mutex? mtx = new();
-	private int? mtxOwner;
 	private readonly object? cv = new();
 	private List<Sample>? buffer;
-	
+
 	// Free variables
 	private int freePos = 0;
 	private int freeCount = 0;
@@ -28,25 +27,56 @@ internal class LowLatencyRingbuffer
 
 	// Atomic variable for System.Threading.Interlocked
 	private int lastTake = 0;
-	
+
 	// Last put value
 	private int lastPut = 0;
 
 	// Number of buffers (beginning from 1)
 	private int numBuffers = 1;
-	
+
+	// Made by cwills on StackOverflow, found here:
+	// https://stackoverflow.com/questions/8546/is-there-a-try-to-lock-skip-if-timed-out-operation-in-c/23728163#23728163
+	internal class TryLock : IDisposable
+	{
+		private object? locked;
+
+		internal bool OwnsLock { get; private set; }
+
+		internal TryLock(object obj)
+		{
+			if (Monitor.TryEnter(obj))
+			{
+				OwnsLock = true;
+				locked = obj;
+			}
+		}
+
+		public void Dispose()
+		{
+			if (OwnsLock)
+			{
+				Monitor.Exit(locked!);
+				locked = null;
+				OwnsLock = false;
+			}
+		}
+	}
+
 	public LowLatencyRingbuffer()
 	{
 		Reset();
 	}
-	
+
 	public void Reset()
 	{
 		lock (mtx!)
 		{
 			dataCount = 0;
 			dataPos = 0;
-			freeCount = buffer!.Count;
+			if (buffer is not null)
+			{
+				freeCount = buffer.Count;
+			}
 			freePos = 0;
 		}
 	}
@@ -73,23 +103,7 @@ internal class LowLatencyRingbuffer
 
 			if (buffer!.Count < requiredBufferSize)
 			{
-				List<Sample> backupBuffer = new(new Sample[dataCount]);
-				int beforeWraparoundSize = Math.Min(dataCount, buffer.Count - dataPos);
-				Span<Sample> beforeWraparound = new Span<Sample>(new Sample[dataCount], 0 + dataPos, beforeWraparoundSize);
-				int afterWraparoundSize = dataCount - beforeWraparoundSize;
-				Span<Sample> afterWraparound = new Span<Sample>(new Sample[dataCount], 0, afterWraparoundSize);
-				Array.Copy(buffer.ToArray(), 0 + dataPos, backupBuffer.ToArray(), 0, beforeWraparoundSize);
-				Array.Copy(buffer.ToArray(), 0, backupBuffer.ToArray(), 0 + beforeWraparoundSize, afterWraparoundSize);
-				Debug.Assert(beforeWraparoundSize + afterWraparoundSize == dataCount);
-				Debug.Assert(dataCount <= requiredBufferSize);
-
-				buffer.EnsureCapacity(requiredBufferSize);
-				Array.Copy(backupBuffer.ToArray(), 0, buffer.ToArray(), 0, dataCount);
-                Array.Fill(buffer.ToArray(), new Sample{left = 0.0f, right = 0.0f}, 0 + dataCount, buffer.Count - 1);
-
-				dataPos = 0;
-				freeCount = buffer.Count - dataCount;
-				freePos = dataCount;
+				IncreaseBufferSize(requiredBufferSize);
 			}
 
 			while (dataCount > bufferedNumBuffers * bufferedLastTake)
@@ -109,13 +123,12 @@ internal class LowLatencyRingbuffer
 	{
 		lastTake = outBuffer.Length;
 
-		lock (mtx!)
+		using (var tl = new TryLock(mtx!))
 		{
-			mtxOwner = Thread.CurrentThread.ManagedThreadId;
-
-			if (mtxOwner == Thread.CurrentThread.ManagedThreadId || outBuffer.Length > dataCount)
+			if (!tl.OwnsLock || outBuffer.Length > dataCount)
 			{
-				Array.Fill(outBuffer.ToArray(), new Sample{left = 0.0f, right = 0.0f}, 0, outBuffer.Length - 1);
+				outBuffer.Fill(new Sample{left = 0.0f, right = 0.0f});
+				//Array.Fill(outBuffer.ToArray(), new Sample { left = 0.0f, right = 0.0f }, 0, outBuffer.Length);
 				return;
 			}
 
@@ -125,7 +138,7 @@ internal class LowLatencyRingbuffer
 				outBuffer = outBuffer.Slice(elementsTaken);
 			}
 
-			Monitor.Exit(cv!);
+			Monitor.Pulse(cv!);
 		}
 	}
 
@@ -181,5 +194,27 @@ internal class LowLatencyRingbuffer
 		Debug.Assert(dataCount >= takeCount);
 		dataCount -= takeCount;
 		return takeCount;
+	}
+
+	private void IncreaseBufferSize(int requiredBufferSize)
+	{
+		List<Sample> backupBuffer = new(new Sample[dataCount]);
+		int beforeWraparoundSize = Math.Min(dataCount, buffer.Count - dataPos);
+		Span<Sample> beforeWraparound = new Span<Sample>(new Sample[dataCount], 0 + dataPos, beforeWraparoundSize);
+		int afterWraparoundSize = dataCount - beforeWraparoundSize;
+		Span<Sample> afterWraparound = new Span<Sample>(new Sample[dataCount], 0, afterWraparoundSize);
+		Array.Copy(buffer.ToArray(), 0 + dataPos, backupBuffer.ToArray(), 0, beforeWraparoundSize);
+		Array.Copy(buffer.ToArray(), 0, backupBuffer.ToArray(), 0 + beforeWraparoundSize, afterWraparoundSize);
+		Debug.Assert(beforeWraparoundSize + afterWraparoundSize == dataCount);
+		Debug.Assert(dataCount <= requiredBufferSize);
+
+		buffer.EnsureCapacity(requiredBufferSize);
+		//buffer.CopyTo([.. backupBuffer]);
+		Array.Copy(backupBuffer.ToArray(), 0, buffer.ToArray(), 0, dataCount);
+		Array.Fill(buffer.ToArray(), new Sample { left = 0.0f, right = 0.0f }, 0 + dataCount, buffer.Count);
+
+		dataPos = 0;
+		freeCount = buffer.Count - dataCount;
+		freePos = dataCount;
 	}
 }
