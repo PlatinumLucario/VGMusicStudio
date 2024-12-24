@@ -1,3 +1,9 @@
+// Based on ipatix's implementation from agbplay_v2 branch.
+// Original sources:
+//    https://github.com/ipatix/agbplay/blob/agbplay_v2/src/agbplay/LowLatencyRingbuffer.cpp
+//    https://github.com/ipatix/agbplay/blob/agbplay_v2/src/agbplay/LowLatencyRingbuffer.hpp
+//
+
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;

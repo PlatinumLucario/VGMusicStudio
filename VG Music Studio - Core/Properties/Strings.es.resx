@@ -198,6 +198,9 @@
   <data name="PlayerStop" xml:space="preserve">
     <value>Detener</value>
   </data>
+  <data name="PlayerRecord" xml:space="preserve">
+    <value>Grabar Canción</value>
+  </data>
   <data name="PlayerTempo" xml:space="preserve">
     <value>Tempo</value>
   </data>
@@ -207,8 +210,11 @@
   <data name="PlayerUnpause" xml:space="preserve">
     <value>Resumir</value>
   </data>
+  <data name="InternalSongName" xml:space="preserve">
+    <value>Nombre Interno de la Canción</value>
+  </data>
   <data name="PlaylistMusic" xml:space="preserve">
-    <value>Música</value>
+    <value>Todas las Canciones</value>
   </data>
   <data name="PlayPlaylistBody" xml:space="preserve">
     <value>¿Quisiera reproducir la siguiente Lista de Reproducción?</value>

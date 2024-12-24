@@ -601,6 +601,15 @@ namespace Kermalis.VGMusicStudio.Core.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Record Song.
+        /// </summary>
+        public static string PlayerRecord {
+            get {
+                return ResourceManager.GetString("PlayerRecord", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Tempo.
         /// </summary>
         public static string PlayerTempo {
@@ -628,7 +637,16 @@ namespace Kermalis.VGMusicStudio.Core.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Music.
+        ///   Looks up a localized string similar to Internal Song Name.
+        /// </summary>
+        public static string InternalSongName {
+            get {
+                return ResourceManager.GetString("InternalSongName", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to All Songs.
         /// </summary>
         public static string PlaylistMusic {
             get {

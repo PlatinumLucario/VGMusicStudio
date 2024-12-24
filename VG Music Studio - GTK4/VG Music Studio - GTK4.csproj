@@ -4,6 +4,8 @@
 		<OutputType>Exe</OutputType>
 		<TargetFramework>net8.0</TargetFramework>
 		<Nullable>enable</Nullable>
+		<OutputPath>..\Build\GTK4</OutputPath>
+		<ApplicationIcon>..\Icons\Icon.ico</ApplicationIcon>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 	</PropertyGroup>
 
@@ -28,5 +30,9 @@
 			<TargetPath>%(Filename)%(Extension)</TargetPath>
 		</ContentWithTargetPath>
 	</ItemGroup>
+
+	<Target Name="PreBuild" BeforeTargets="PreBuildEvent">
+		<Exec Command="glib-compile-resources --sourcedir ./Properties ./Properties/org.Kermalis.VGMusicStudio.GTK4.gresource.xml --target=$(OutDir)/org.Kermalis.VGMusicStudio.GTK4.gresource" />
+	</Target>
 
 </Project>

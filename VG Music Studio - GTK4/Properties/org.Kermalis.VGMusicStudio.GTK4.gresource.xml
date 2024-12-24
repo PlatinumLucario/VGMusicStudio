@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gresources>
+  <gresource prefix="/org/Kermalis/VGMusicStudio/GTK4/icons/scalable/playlist">
+    <file preprocess="xml-stripblanks">vgms-song-symbolic.svg</file>
+    <file preprocess="xml-stripblanks">vgms-playlist-symbolic.svg</file>
+  </gresource>
+</gresources>

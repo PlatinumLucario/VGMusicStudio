@@ -7,6 +7,8 @@ namespace Kermalis.VGMusicStudio.Core;
 
 public abstract class Config : IDisposable
 {
+	public int[]? SongTableOffset { get; internal set; }
+
 	public readonly struct Song
 	{
 		public readonly int Index;
@@ -40,6 +42,23 @@ public abstract class Config : IDisposable
 			return Name;
 		}
 	}
+	public sealed class InternalSongName
+	{
+		public string Name;
+		public List<Song> Songs;
+
+		public InternalSongName(string name, List<Song> songs)
+		{
+			Name = name;
+			Songs = songs;
+		}
+
+		public override string ToString()
+		{
+			int num = Songs.Count;
+			return string.Format("{0} - ({1:N0} {2})", num, LanguageUtils.HandlePlural(num, Strings.Song_s_));
+		}
+	}
 	public sealed class Playlist
 	{
 		public string Name;
@@ -58,10 +77,12 @@ public abstract class Config : IDisposable
 		}
 	}
 
+	public readonly List<InternalSongName> InternalSongNames;
 	public readonly List<Playlist> Playlists;
 
 	protected Config()
 	{
+		InternalSongNames = new List<InternalSongName>();
 		Playlists = new List<Playlist>();
 	}
 

@@ -55,7 +55,7 @@ public abstract class Player : IDisposable
 
 	protected abstract bool Tick(bool playing, bool recording);
 
-	internal static StreamCallbackResult PlayCallbackLLE(
+	internal static StreamCallbackResult PlayCallbackLL(
 		nint input, nint output,
 		uint frameCount,
 		ref StreamCallbackTimeInfo timeInfo,
@@ -85,7 +85,7 @@ public abstract class Player : IDisposable
 			// Apply buffer value
 			buffer = new((float*)output, (int)frameCount);
 			Ringbuffer.Take(buffer);
-			for (int i = 0, b = 0; i < buffer.Length; i++, b += 2)
+			for (int i = 0, b = 0; i < frameCount; i++, b += 2)
 			{
 				buffer[i].left = d.Float32Buffer![b];
 				buffer[i].right = d.Float32Buffer![b + 1];
@@ -95,10 +95,18 @@ public abstract class Player : IDisposable
 		// If we're reading data, play it back
 		if (player.State == PlayerState.Playing)
 		{
-			for (int i = 0; i < buffer.Length; i++)
+			for (int i = 0; i < frameCount; i++)
 			{
 				buffer[i].left *= Mixer.Instance.Volume;
 				buffer[i].right *= Mixer.Instance.Volume;
+			}
+		}
+		else
+		{
+			for (int i = 0; i < frameCount; i++)
+			{
+				buffer[i].left = 0;
+				buffer[i].right = 0;
 			}
 		}
 
@@ -300,17 +308,6 @@ public abstract class Player : IDisposable
 		Mixer.CloseWaveWriter();
 	}
 	public void SetSongPosition(long ticks)
-	{
-		if (LoadedSong is null)
-		{
-			SongEnded?.Invoke();
-			return;
-		}
-		//InitEmulation();
-		ElapsedTicks = ticks;
-		SetCurTick(ticks);
-	}
-	public void SetSongPositionAndPlay(long ticks)
 	{
 		if (LoadedSong is null)
 		{

@@ -71,8 +71,8 @@ public abstract class Mixer : IDisposable
             OParams,
             WaveData!.SampleRate,
             FramesPerBuffer,
-            StreamFlags.ClipOff,
-            Player.PlayCallback,
+            StreamFlags.NoFlag,
+            Player.PlayCallbackLL,
             audioData
         );
 

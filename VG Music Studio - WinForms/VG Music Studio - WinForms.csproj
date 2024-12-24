@@ -8,7 +8,7 @@
 		<Nullable>enable</Nullable>
 		<UseWindowsForms>true</UseWindowsForms>
 		<UseWPF>true</UseWPF> <!--Needed for the taskbar-->
-		<OutputPath>..\Build</OutputPath>
+		<OutputPath>..\Build\WinForms</OutputPath>
 
 		<Authors>Kermalis</Authors>
 		<Copyright>Kermalis</Copyright>
@@ -16,7 +16,7 @@
 		<Title>VG Music Studio</Title>
 		<AssemblyName>VG Music Studio</AssemblyName>
 		<Version>0.3.0</Version>
-		<ApplicationIcon>Properties\Icon.ico</ApplicationIcon>
+		<ApplicationIcon>..\Icons\Icon.ico</ApplicationIcon>
 		<ProduceReferenceAssembly>False</ProduceReferenceAssembly>
 	</PropertyGroup>
 

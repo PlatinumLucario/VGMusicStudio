@@ -116,6 +116,22 @@ public sealed class MP2KConfig : Config
 					{
 						hasPokemonCompression = node;
 					}
+					if (gameToLoad.Children.TryGetValue(nameof(InternalSongNames), out node))
+					{
+						var internalNames = (YamlMappingNode)node;
+						var songs = new List<Song>();
+						foreach (KeyValuePair<YamlNode, YamlNode> song in internalNames)
+						{
+							string name = song.Key.ToString();
+							int songIndex = (int)ConfigUtils.ParseValue(string.Format(Strings.ConfigKeySubkey, nameof(InternalSongNames)), song.Key.ToString(), 0, int.MaxValue);
+							if (songs.Any(s => s.Index == songIndex))
+							{
+								throw new Exception(string.Format(Strings.ErrorAlphaDreamMP2KParseGameCode, gcv, CONFIG_FILE, Environment.NewLine + string.Format(Strings.ErrorAlphaDreamMP2KSongRepeated, name, songIndex)));
+							}
+							songs.Add(new Song(songIndex, song.Value.ToString()));
+							InternalSongNames.Add(new InternalSongName(name, songs));
+						}
+					}
 					if (gameToLoad.Children.TryGetValue(nameof(Playlists), out node))
 					{
 						var playlists = (YamlMappingNode)node;
@@ -173,6 +189,7 @@ public sealed class MP2KConfig : Config
 					SongTableSizes[i] = ConfigUtils.ParseValue(nameof(SongTableSizes), sizes[i], 1, maxOffset);
 					SongTableOffsets[i] = (int)ConfigUtils.ParseValue(nameof(SongTableOffsets), songTables[i], 0, maxOffset);
 				}
+				SongTableOffset = SongTableOffsets;
 
 				if (sampleRateNode is null)
 				{

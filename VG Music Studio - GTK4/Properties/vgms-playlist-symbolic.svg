@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+<svg height="16" viewBox="0 0 16 16" width="16" xmlns="http://www.w3.org/2000/svg" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns:svg="http://www.w3.org/2000/svg" sodipodi:docname="playlist-symbolic.svg" inkscape:version="1.4 (e7c3feb100, 2024-10-09)">
+    <sodipodi:namedview pagecolor="#ffffff" bordercolor="#000000" borderopacity="0.25" inkscape:showpageshadow="2" inkscape:pageopacity="0.0" inkscape:pagecheckerboard="0" inkscape:deskcolor="#d1d1d1" inkscape:document-units="px" inkscape:zoom="35.620504" inkscape:cx="6.8499873" inkscape:cy="8.7028527" inkscape:window-width="1247" inkscape:window-height="755" inkscape:window-x="532" inkscape:window-y="162" inkscape:window-maximized="0" inkscape:current-layer="svg1"/>
+    <g stroke="#2e3335" stroke-linecap="round">
+        <g fill="none">
+            <path d="m 3.3813964 1.579921 l 9.8439656 0.01363 s 1.738361 0.052133 1.751982 1.9408047 c 0.01394 1.9302754 0.01244 9.1208763 0.01244 9.1208763 s 0.0303 1.783453 -1.965463 1.783453 c -1.790264 0 -9.7350092 -0.0054 -9.7350092 -0.0054 s -2.2484579 0.03662 -2.2388266 -2.203367 c 0.010207 -2.3716076 0.00246 -8.6847637 0.00246 -8.6847637 s 0.1329334 -1.9858936 2.3283235 -1.9652232 z" stroke-linejoin="round" sodipodi:nodetypes="ccscscsccc"/>
+            <path d="m 7.5588912 4.2424777 l 4.7679348 -0.0106238" sodipodi:nodetypes="cc"/>
+            <path d="m 7.55561 6.6495169 l 4.767935 -0.010627" sodipodi:nodetypes="cc" inkscape:label="path3"/>
+            <path d="m 3.8236505 9.3167275 l 8.4670135 0.00585" sodipodi:nodetypes="cc" inkscape:label="path4"/>
+            <path d="m 3.8280933 11.706394 l 8.4670127 0.0058" sodipodi:nodetypes="cc" inkscape:label="path5"/>
+        </g>
+        <path d="m 3.7585088 4.287589 l 1.6933562 1.1343826 l -1.6933562 1.1837058 z" stroke-linejoin="round" stroke-width="1.2" sodipodi:nodetypes="cccc" inkscape:label="path6"/>
+    </g>
+</svg>

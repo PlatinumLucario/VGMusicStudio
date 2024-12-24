@@ -115,7 +115,7 @@ public static class ConfigUtils
 
 	public static void TryCreateMasterPlaylist(List<Config.Playlist> playlists)
 	{
-		if (playlists.Exists(p => p.Name == "Music"))
+		if (playlists.Exists(p => p.Name == "All Songs"))
 		{
 			return;
 		}
@@ -132,7 +132,7 @@ public static class ConfigUtils
 			}
 		}
 		songs.Sort((s1, s2) => s1.Index.CompareTo(s2.Index));
-		playlists.Insert(0, new Config.Playlist(Strings.PlaylistMusic, songs));
+		playlists.Insert(playlists.Count, new Config.Playlist(Strings.PlaylistMusic, songs));
 	}
 
 	public static string CombineWithBaseDirectory(string path)

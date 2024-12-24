@@ -162,6 +162,9 @@
   <data name="PlayerStop" xml:space="preserve">
     <value>Stop</value>
   </data>
+  <data name="PlayerRecord" xml:space="preserve">
+    <value>Enregistrer une Chanson</value>
+  </data>
   <data name="PlayerTempo" xml:space="preserve">
     <value>Tempo</value>
   </data>
@@ -213,8 +216,11 @@
   <data name="MenuPlaylist" xml:space="preserve">
     <value>Playlist</value>
   </data>
+  <data name="InternalSongName" xml:space="preserve">
+    <value>Nom de la Chanson Interne</value>
+  </data>
   <data name="PlaylistMusic" xml:space="preserve">
-    <value>Musique</value>
+    <value>Toutes les Chansons</value>
   </data>
   <data name="TrackViewerArguments" xml:space="preserve">
     <value>Arguments</value>

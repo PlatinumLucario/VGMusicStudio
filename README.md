@@ -5,7 +5,7 @@
 [![Releases](https://img.shields.io/github/downloads/Kermalis/VGMusicStudio/total.svg)](https://github.com/Kermalis/VGMusicStudio/releases/latest)
 [![License](https://img.shields.io/badge/License-LGPLv3-blue.svg)](LICENSE.md)
 
-VG Music Studio is a music player and visualizer for the most common GBA music format (MP2K), AlphaDream's GBA music format, the most common NDS music format (SDAT), and a more rare NDS/WII music format (DSE) [found in PMD2 among others].
+VG Music Studio is a cross-platform music player and visualizer for the most common GBA music format (MP2K), AlphaDream's GBA music format, the most common NDS music format (SDAT), and a more rare NDS/WII music format (DSE) [found in PMD2 among others].
 
 [![VG Music Studio Preview](https://i.imgur.com/hWJGG83.png)](https://www.youtube.com/watch?v=s1BZ7cRbtBU "VG Music Studio Preview")
 
@@ -168,20 +168,14 @@ First, update the current packages with ``sudo xbps-install -Su`` to their lates
 ``sudo xbps-install gtksourceview5``
 
 ### FreeBSD
-It may be possible to build VG Music Studio on FreeBSD (and FreeBSD based operating systems), however this section will need to be updated with better accuracy on how to build on this platform.
-
-If your operating system is FreeBSD, or is based on FreeBSD, the [portmaster](https://cgit.freebsd.org/ports/tree/ports-mgmt/portmaster/) utility will need to be installed before installing ``gtk40``, ``libadwaita`` and ``gtksourceview5``. A guide on how to do so can be found [here](https://docs.freebsd.org/en/books/handbook/ports/).
-
-Once installed and configured, run the following commands to install these ports:
-``portmaster -PP gtk40``
-``portmaster -PP libadwaita``
-``portmaster -PP gtksourceview5``
+Currently, .NET has not been ported to FreeBSD or similar operating systems. As a result, it cannot run natively under FreeBSD and may require a Linux to FreeBSD compatibility layer to run it.
 
 ----
 ## Special Thanks To:
 ### General
 * Stich991 - Italian translation
 * tuku473 - Design suggestions, colors, Spanish translation
+* J. Ritchie Carroll (Grid Protection Alliance) - Int24 and UInt24 classes and functions
 
 ### AlphaDream Engine
 * irdkwia - Finding games that used the engine
@@ -193,7 +187,7 @@ Once installed and configured, run the following commands to install these ports
 
 ### MP2K Engine
 * Bregalad - Extensive documentation
-* Ipatix - Engine research, help, [(and his MP2K music player)](https://github.com/ipatix/agbplay) from which some of my code is based on
+* Ipatix - Engine research, help, [(his MP2K music player)](https://github.com/ipatix/agbplay) from which some of my code is based on, and the [LowLatencyRingbuffer](https://github.com/ipatix/agbplay/blob/agbplay_v2/src/agbplay/LowLatencyRingbuffer.cpp) which helps PortAudio to process audio with low latency
 * mimi - Told me about a hidden feature of the engine
 * SomeShrug - Engine research and helped me understand more about the engine parameters
 
@@ -202,12 +196,20 @@ Once installed and configured, run the following commands to install these ports
 
 ----
 ## VG Music Studio Uses:
-* [DLS2](https://github.com/Kermalis/DLS2)
+### Core
 * [EndianBinaryIO](https://github.com/Kermalis/EndianBinaryIO)
+* [KMIDI](https://github.com/Kermalis/KMIDI)
+* [DLS2](https://github.com/Kermalis/DLS2)
+* [SoundFont2](https://github.com/Kermalis/SoundFont2)
+* [PortAudio bindings](https://github.com/PlatinumLucario/VGMusicStudio/tree/new-gui-experimental/VG%20Music%20Studio%20-%20Core/PortAudio) [from Benjamin Summerton's Bassoon Project](https://gitlab.com/define-private-public/Bassoon)
+* [YamlDotNet](https://github.com/aaubry/YamlDotNet/wiki)
+### New GUI:
+* [GTK4](https://gtk.org)
+* [Adwaita](https://gitlab.gnome.org/GNOME/libadwaita)
+* [Gir.Core](https://github.com/gircore/gir.core)
+
+### Old Legacy GUI (Windows only)
 * [NAudio](https://github.com/naudio/NAudio)
 * [ObjectListView](http://objectlistview.sourceforge.net)
-* [My fork of Sanford.Multimedia.Midi](https://github.com/Kermalis/Sanford.Multimedia.Midi)
-* [SoundFont2](https://github.com/Kermalis/SoundFont2)
-* [YamlDotNet](https://github.com/aaubry/YamlDotNet/wiki)
 
 [Discord]: https://discord.gg/mBQXCTs
