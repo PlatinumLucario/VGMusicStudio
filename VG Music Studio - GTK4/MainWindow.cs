@@ -77,7 +77,7 @@ internal sealed class MainWindow : Window
         _exportDLSAction, _exportSF2Action, _exportMIDIAction, _exportWAVAction, _endPlaylistAction;
 
     // Boxes
-    private Box _mainBox, _configButtonBox, _configPlayerButtonBox, _configSpinButtonBox, _configBarBox;
+    private Box _mainBox, _configButtonBox, _configPlayerButtonBox, _configSpinButtonBox, _configBarBox, _pianoBox;
 
     // One Scale controling volume and one Scale for the sequenced track
     private Scale _volumeBar, _positionBar;
@@ -92,14 +92,17 @@ internal sealed class MainWindow : Window
     // Playlist
     private PlaylistConfig _configPlaylistBox;
 
-    // Sound Sequence List
-    private SoundSequenceList _soundSequenceList;
+    // Sequenced Audio Piano
+    private SequencedAudio_Piano _piano;
+
+    // Sequenced Audio List
+    private SequencedAudio_List _sequencedAudioList;
+
+    // Sequenced Audio Track Info
+    private SequencedAudio_TrackInfo _sequencedAudioTrackInfo;
 
     // Error Handle
     private GLib.Internal.ErrorOwnedHandle ErrorHandle = new GLib.Internal.ErrorOwnedHandle(IntPtr.Zero);
-
-    // Signal
-    //private Signal<ListItemFactory> _signal;
 
     // Callback
     private Gio.Internal.AsyncReadyCallback _saveCallback { get; set; }
@@ -112,7 +115,7 @@ internal sealed class MainWindow : Window
     public MainWindow(Application app)
     {
         // Main Window
-        SetDefaultSize(700, 500); // Sets the default size of the Window
+        SetDefaultSize(100, 100); // Sets the default size of the Window
         Title = GetProgramName(); // Sets the title to the name of the program, which is "VG Music Studio"
         _app = app;
 
@@ -298,8 +301,17 @@ internal sealed class MainWindow : Window
         _configPlaylistBox.ButtonPrevPlistSong.OnClicked += (o, e) => PlayPreviousSong();
         _configPlaylistBox.ButtonNextPlistSong.OnClicked += PlayNextSong;
 
-        // Sound Sequence List
-        _soundSequenceList = new();
+        // Sequenced Audio Piano
+        _piano = new();
+        _pianoBox = Box.New(Orientation.Vertical, 0);
+        _pianoBox.SetVexpand(false);
+        _pianoBox.Append(_piano);
+
+        // Sequenced Audio List
+        _sequencedAudioList = new();
+
+        // Sequenced Audio Track Info
+        _sequencedAudioTrackInfo = new();
 
         // Main display
         _mainBox = Box.New(Orientation.Vertical, 4);
@@ -344,7 +356,8 @@ internal sealed class MainWindow : Window
         _mainBox.Append(_configButtonBox);
         _mainBox.Append(_configBarBox);
         _mainBox.Append(_configPlaylistBox);
-        _mainBox.Append(_soundSequenceList);
+        _mainBox.Append(_pianoBox);
+        _mainBox.Append(_sequencedAudioList);
 
         SetContent(_mainBox);
 
@@ -459,7 +472,7 @@ internal sealed class MainWindow : Window
         //_signal.Connect(_sequencesListFactory, SequencesListView_SelectionGet, false, null);
 
         int index = (int)_sequenceNumberAdjustment.Value;
-        _soundSequenceList.SelectRow(index);
+        _sequencedAudioList.SelectRow(index);
         Stop();
         Title = GetProgramName();
         //_sequencesListView.Margin = 0;
@@ -491,6 +504,7 @@ internal sealed class MainWindow : Window
             if (songIndex != -1)
             {
                 SetSongToProgramTitle(songs, songIndex); // Done! It's now a func
+                PlaylistSongStringChanged(index);
                 CheckPlaylistItem();
             }
             _positionBar.Adjustment!.Upper = loadedSong!.MaxTicks;
@@ -510,7 +524,11 @@ internal sealed class MainWindow : Window
         _exportDLSAction.Enabled = _exportSF2Action.Enabled = success && AlphaDreamEngine.AlphaDreamInstance is not null;
 
         if (!_playlistChanged)
-            _autoplay = true;
+        {
+            if (!_sequencedAudioList.HasSelectedRow)
+                _autoplay = true;
+            _sequencedAudioList.HasSelectedRow = false;
+        }
         //_sequencesGestureClick.OnEnd += SequencesListView_SelectionGet;
         //_signal.Connect(_sequencesListFactory, SequencesListView_SelectionGet, true, null);
     }
@@ -523,13 +541,18 @@ internal sealed class MainWindow : Window
 
     internal static void ChangeIndex(int index)
     {
-        Instance!._autoplay = false;  // Set to false, so anyone selecting from the sequences list doesn't have the song automatically play
-        Instance!.SetAndLoadSong(index);  // This will set and load the song for all widgets
+        // First, check if the index is identical to current song index
+        // to prevent it from unexpectedly stopping
+        if (index != Instance!._curSong)
+        {
+            Instance!._autoplay = false;  // Set to false, so anyone selecting from the sequences list doesn't have the song automatically play
+            Instance!.SetAndLoadSong(index);  // This will set and load the song for all widgets
+        }
     }
 
     //private void SequencesListView_SelectionGet(object sender, EventArgs e)
     //{
-    //	var item = _soundSequenceList.SelectedItem;
+    //	var item = _sequencedAudioList.SelectedItem;
     //	if (item is Config.Song song)
     //	{
     //		SetAndLoadSong(song.Index);
@@ -603,7 +626,7 @@ internal sealed class MainWindow : Window
         _curSong = index;
         if (_sequenceNumberSpinButton.Value == index)
         {
-            _soundSequenceList.SelectRow(index);
+            _sequencedAudioList.SelectRow(index);
             SequenceNumberSpinButton_ValueChanged(this, EventArgs.Empty);
             PlaylistSongStringChanged(index);
         }
@@ -635,7 +658,7 @@ internal sealed class MainWindow : Window
         }
         _curSong = -1;
         _endPlaylistAction.Enabled = false;
-        _sequenceNumberSpinButton.Sensitive = /* _soundSequenceListBox.Sensitive = */ spinButtonAndListBoxEnabled;
+        _sequenceNumberSpinButton.Sensitive = /* _sequencedAudioListBox.Sensitive = */ spinButtonAndListBoxEnabled;
     }
     private void EndCurrentPlaylist(object sender, EventArgs e)
     {
@@ -1318,7 +1341,7 @@ internal sealed class MainWindow : Window
     {
         var context = GLib.MainContext.GetThreadDefault(); // Grabs the default GLib MainContext thread
         var source = GLib.Functions.TimeoutSourceNew((uint)(1_000.0 / GlobalConfig.Instance!.RefreshRate)); // Creates and configures the timeout interval
-        source.SetCallback(CheckPlayback); // Sets the callback for the timer interval to be used on
+        source.SetCallback(TimerCallback); // Sets the callback for the timer interval to be used on
         var microsec = (ulong)source.Attach(context); // Configures the microseconds based on attaching the GLib MainContext thread
         _timer.Elapsed(ref microsec); // Adds the pointer to the configured microseconds source
         _timer.Start(); // Starts the timer
@@ -1416,10 +1439,10 @@ internal sealed class MainWindow : Window
     private void FinishLoading(long numSongs)
     {
         Engine.Instance!.Player.SongEnded += SongEnded;
-        _soundSequenceList.Show();
+        _sequencedAudioList.Show();
         var config = Engine.Instance.Config;
-        _soundSequenceList.AddEntries(numSongs, config.InternalSongNames, config.Playlists, config.SongTableOffset!);
-        _soundSequenceList.Init();
+        _sequencedAudioList.AddEntries(numSongs, config.InternalSongNames, config.Playlists, config.SongTableOffset!);
+        _sequencedAudioList.Init();
         if (config.Playlists is not null)
         {
             _configPlaylistBox.AddEntries(config.Playlists);
@@ -1428,9 +1451,9 @@ internal sealed class MainWindow : Window
         }
         //foreach (Config.Playlist playlist in Engine.Instance.Config.Playlists)
         //{
-        //	_soundSequenceListBox.Insert(Label.New(playlist.Name), playlist.Songs.Count);
-        //	_soundSequenceList.Add(new SoundSequenceListItem(playlist));
-        //	_soundSequenceList.AddRange(playlist.Songs.Select(s => new SoundSequenceListItem(s)).ToArray());
+        //	_sequencedAudioListBox.Insert(Label.New(playlist.Name), playlist.Songs.Count);
+        //	_sequencedAudioList.Add(new SoundSequenceListItem(playlist));
+        //	_sequencedAudioList.AddRange(playlist.Songs.Select(s => new SoundSequenceListItem(s)).ToArray());
         //}
         _sequenceNumberAdjustment.Upper = numSongs;
 #if DEBUG
@@ -1465,7 +1488,7 @@ internal sealed class MainWindow : Window
         _sequenceNumberSpinButton.OnValueChanged += SequenceNumberSpinButton_ValueChanged;
     }
 
-    private bool CheckPlayback()
+    private bool TimerCallback()
     {
         if (_songEnded)
         {
@@ -1483,35 +1506,16 @@ internal sealed class MainWindow : Window
         {
             if (_positionBarFree)
             {
-                UpdatePositionIndicators(Engine.Instance!.Player.ElapsedTicks);
+                Player player = Engine.Instance!.Player;
+                SongState info = _sequencedAudioTrackInfo.Info;
+                player.UpdateSongState(info);
+                _piano.UpdateKeys(info.Tracks, _sequencedAudioTrackInfo.NumTracks);
+                UpdatePositionIndicators(player.ElapsedTicks);
             }
         }
         return true;
     }
 
-    private void Timer_Tick(object? sender, EventArgs e)
-    {
-        if (_songEnded)
-        {
-            _songEnded = false;
-            if (_playlist is not null)
-            {
-                _playlist.AdvanceThenSetAndLoadNextSong(this, _curSong);
-            }
-            else
-            {
-                Stop();
-            }
-        }
-        else
-        {
-            if (Engine.Instance is not null)
-            {
-                Player player = Engine.Instance!.Player;
-                UpdatePositionIndicators(player.ElapsedTicks);
-            }
-        }
-    }
     private void SongEnded()
     {
         _songEnded = true;

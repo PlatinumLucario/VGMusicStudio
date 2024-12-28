@@ -5,9 +5,9 @@ using Gtk;
 using Kermalis.VGMusicStudio.Core;
 using static Gtk.SignalListItemFactory;
 
-namespace Kermalis.VGMusicStudio.GTK4.Util;
+namespace Kermalis.VGMusicStudio.GTK4;
 
-internal class SoundSequenceList : Viewport
+internal class SequencedAudio_List : Viewport
 {
 	public GObject.Value? Id { get; set; }
 	public GObject.Value? InternalName { get; set; }
@@ -15,6 +15,7 @@ internal class SoundSequenceList : Viewport
 	public GObject.Value? Offset { get; set; }
 
 	private bool IsSongTable = false;
+	public bool HasSelectedRow = false;
 
 	private Gio.ListStore Model = Gio.ListStore.New(GetGType());
 	private SelectionModel? SelectionModel { get; set; }
@@ -22,9 +23,9 @@ internal class SoundSequenceList : Viewport
 	private ColumnViewSorter? ColumnSorter { get; set; }
 	internal ColumnView? ColumnView { get; set; }
 
-	public SoundSequenceList[]? SoundData { get; set; }
+	public SequencedAudio_List[]? SoundData { get; set; }
 
-	public SoundSequenceList(int id, string name, string plistname, string offset)
+	public SequencedAudio_List(int id, string name, string plistname, string offset)
 		: base()
 	{
 		Id = new GObject.Value(id);
@@ -38,7 +39,7 @@ internal class SoundSequenceList : Viewport
 
 	public void AddEntries(long numSongs, List<Config.InternalSongName> internalSongNames, List<Config.Playlist> playlists, int[] songTableOffsets)
 	{
-		SoundData = new SoundSequenceList[numSongs];
+		SoundData = new SequencedAudio_List[numSongs];
 		var sNames = new string[numSongs];
 		for (int i = 0; i < sNames.Length; i++)
 		{
@@ -93,7 +94,7 @@ internal class SoundSequenceList : Viewport
 		}
 		for (int i = 0; i < SoundData!.Length; i++)
 		{
-			SoundData[i] = new SoundSequenceList(i, sNames[i], plistNames[i], offset[i]);
+			SoundData[i] = new SequencedAudio_List(i, sNames[i], plistNames[i], offset[i]);
 		}
 
 		foreach (var data in SoundData!)
@@ -102,10 +103,10 @@ internal class SoundSequenceList : Viewport
 		}
 	}
 
-	internal SoundSequenceList()
+	internal SequencedAudio_List()
 	{
 		var scrolledWindow = ScrolledWindow.New();
-		scrolledWindow.SetSizeRequest(200, 100);
+		scrolledWindow.SetSizeRequest(700, 200);
 		scrolledWindow.SetHexpand(true);
 
 		SelectionModel = SingleSelection.New(Model);
@@ -201,8 +202,7 @@ internal class SoundSequenceList : Viewport
 
 	internal void SelectRow(int index)
 	{
-		if (SelectionModel is not null)
-			SelectionModel.SelectItem((uint)index, true);
+		SelectionModel?.SelectItem((uint)index, true);
 		// var selectedItem = "";
 		// for (uint i = 0; i < Model.NItems; i++)
 		// {
@@ -222,7 +222,7 @@ internal class SoundSequenceList : Viewport
 		listItem.Child = label;
 	}
 
-	private void OnBindText(BindSignalArgs args, Func<SoundSequenceList, string> getText)
+	private void OnBindText(BindSignalArgs args, Func<SequencedAudio_List, string> getText)
 	{
 		if (args.Object is not ListItem listItem)
 		{
@@ -230,7 +230,7 @@ internal class SoundSequenceList : Viewport
 		}
 
 		if (listItem.Child is not Label label) return;
-		if (listItem.Item is not SoundSequenceList userData) return;
+		if (listItem.Item is not SequencedAudio_List userData) return;
 
 		label.SetText(getText(userData));
 
@@ -239,7 +239,10 @@ internal class SoundSequenceList : Viewport
 		if (cell.Selected == true)
 		{
 			if (userData.Id is not null)
+			{
+				HasSelectedRow = true;
 				MainWindow.ChangeIndex(userData.Id.GetInt());
+			}
 		}
 	}
 }

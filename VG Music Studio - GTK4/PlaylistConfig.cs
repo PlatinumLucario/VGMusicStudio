@@ -4,7 +4,7 @@ using Gtk;
 using Kermalis.VGMusicStudio.Core;
 using Kermalis.VGMusicStudio.Core.Properties;
 
-namespace Kermalis.VGMusicStudio.GTK4.Util;
+namespace Kermalis.VGMusicStudio.GTK4;
 
 internal class PlaylistConfig : Box
 {

@@ -43,7 +43,7 @@ public sealed class MP2KMixer : Mixer
         {
             _pcm8Channels[i] = new MP2KPCM8Channel(this);
         }
-        _psgChannels = new MP2KPSGChannel[4] { _sq1 = new MP2KSquareChannel(this), _sq2 = new MP2KSquareChannel(this), _pcm4 = new MP2KPCM4Channel(this), _noise = new MP2KNoiseChannel(this), };
+        _psgChannels = [_sq1 = new MP2KSquareChannel(this), _sq2 = new MP2KSquareChannel(this), _pcm4 = new MP2KPCM4Channel(this), _noise = new MP2KNoiseChannel(this)];
 
         int amt = SamplesPerBuffer * 2;
         Instance = this;
