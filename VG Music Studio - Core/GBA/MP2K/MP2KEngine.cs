@@ -10,10 +10,12 @@ public sealed class MP2KEngine : Engine
     public override MP2KMixer Mixer { get; }
     public override MP2KMixer_NAudio Mixer_NAudio { get; }
     public override MP2KPlayer Player { get; }
-    public override bool UseNewMixer { get => true; }
+    public override bool UseNewMixer { get; }
 
-    public MP2KEngine(byte[] rom)
+    public MP2KEngine(byte[] rom) => new MP2KEngine(rom, true);
+    public MP2KEngine(byte[] rom, bool useNewMixer)
     {
+        UseNewMixer = useNewMixer;
         if (rom.Length > GBAUtils.CARTRIDGE_CAPACITY)
         {
             throw new InvalidDataException($"The ROM is too large. Maximum size is 0x{GBAUtils.CARTRIDGE_CAPACITY:X7} bytes.");

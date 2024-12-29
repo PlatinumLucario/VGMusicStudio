@@ -183,12 +183,12 @@ internal sealed class MainForm : ThemedForm
 		ILoadedSong? loadedSong = player.LoadedSong; // LoadedSong is still null when there are no tracks
 		if (loadedSong is not null)
 		{
-			List<Config.Song> songs = cfg.Playlists[0].Songs; // Complete "Music" playlist is present in all configs at index 0
+			List<Config.Song> songs = cfg.Playlists[^1].Songs; // Complete "All Songs" playlist is present in all configs at the last index
 			int songIndex = songs.FindIndex(s => s.Index == index);
 			if (songIndex != -1)
 			{
 				Text = $"{ConfigUtils.PROGRAM_NAME} ― {songs[songIndex].Name}"; // TODO: Make this a func
-				_songsComboBox.SelectedIndex = songIndex + 1; // + 1 because the "Music" playlist is first in the combobox
+				_songsComboBox.SelectedIndex = _songsComboBox.Items.Count - cfg.Playlists[^1].Songs.Count + songIndex; // _songsComboBox.Items.Count - cfg.Playlists[^1].Songs.Count, because the "All Songs" playlist is the last playlist in the combobox
 			}
 			_positionBar.Maximum = loadedSong.MaxTicks;
 			_positionBar.LargeChange = _positionBar.Maximum / 10;
@@ -222,24 +222,24 @@ internal sealed class MainForm : ThemedForm
 		switch (item.Item)
 		{
 			case Config.Song song:
-			{
-				SetAndLoadSong(song.Index);
-				break;
-			}
-			case Config.Playlist playlist:
-			{
-				if (playlist.Songs.Count > 0
-					&& FlexibleMessageBox.Show(string.Format(Strings.PlayPlaylistBody, Environment.NewLine + playlist), Strings.MenuPlaylist, MessageBoxButtons.YesNo) == DialogResult.Yes)
 				{
-					ResetPlaylistStuff(false);
-					Engine.Instance!.Player.ShouldFadeOut = true;
-					Engine.Instance.Player.NumLoops = GlobalConfig.Instance.PlaylistSongLoops;
-					_endPlaylistItem.Enabled = true;
-					_playlist = new PlayingPlaylist(playlist);
-					_playlist.SetAndLoadNextSong();
+					SetAndLoadSong(song.Index);
+					break;
 				}
-				break;
-			}
+			case Config.Playlist playlist:
+				{
+					if (playlist.Songs.Count > 0
+						&& FlexibleMessageBox.Show(string.Format(Strings.PlayPlaylistBody, Environment.NewLine + playlist), Strings.MenuPlaylist, MessageBoxButtons.YesNo) == DialogResult.Yes)
+					{
+						ResetPlaylistStuff(false);
+						Engine.Instance!.Player.ShouldFadeOut = true;
+						Engine.Instance.Player.NumLoops = GlobalConfig.Instance.PlaylistSongLoops;
+						_endPlaylistItem.Enabled = true;
+						_playlist = new PlayingPlaylist(playlist);
+						_playlist.SetAndLoadNextSong();
+					}
+					break;
+				}
 		}
 	}
 	private void ResetPlaylistStuff(bool numericalAndComboboxEnabled)
@@ -517,8 +517,9 @@ internal sealed class MainForm : ThemedForm
 		//VGMSDebug.EventScan(Engine.Instance.Config.Playlists[0].Songs, numericalVisible);
 #endif
 		_autoplay = false;
-		SetAndLoadSong(Engine.Instance.Config.Playlists[0].Songs.Count == 0 ? 0 : Engine.Instance.Config.Playlists[0].Songs[0].Index);
+		SetAndLoadSong(Engine.Instance.Config.Playlists[^1].Songs.Count == 0 ? 0 : Engine.Instance.Config.Playlists[^1].Songs[0].Index);
 		_songsComboBox.Enabled = _songNumerical.Enabled = _playButton.Enabled = _volumeBar.Enabled = true;
+		_volumeBar.Value = _volumeBar.Maximum;
 		UpdateTaskbarButtons();
 	}
 	private void DisposeEngine()
@@ -737,7 +738,7 @@ internal sealed class MainForm : ThemedForm
 	}
 	private void Mixer_VolumeChanged(float volume)
 	{
-		//_volumeBar.ValueChanged -= VolumeBar_ValueChanged;
+		_volumeBar.ValueChanged -= VolumeBar_ValueChanged;
 		_volumeBar.Value = (int)(volume * _volumeBar.Maximum);
 		_volumeBar.ValueChanged += VolumeBar_ValueChanged;
 	}
