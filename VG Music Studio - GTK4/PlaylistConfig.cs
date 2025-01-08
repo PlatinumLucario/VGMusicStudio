@@ -151,5 +151,6 @@ internal class PlaylistConfig : Box
         {
             PlaylistStrings.Append(plist.Name);
         }
+        PlaylistDropDown.Selected = PlaylistStrings.NItems - 1; // So that "All Songs" main playlist is selected
     }
 }

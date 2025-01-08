@@ -65,7 +65,9 @@ internal class SequencedAudio_Piano : DrawingArea
             for (int l = 0; l < 7; l++, i++) // With each key group consisting of 7 keys (except for the last one, which is 5 keys)
             {
                 if (i >= 75) break; // So that if it's more or equal to 75, we'll break out of the loop
-                DrawPianoKeyWhite(cr, k++, kGrp, i * 8, isDarker);
+                DrawPianoKeyWhite(cr, k, kGrp, i * 8, isDarker); // This will draw a white piano key
+                if ((k % 12) != 4 && (k % 12) != 11) k += 2; // So that way, every key that's not a 4th or 11th key within 12 keys, the key index (k) increments by 2
+                else k += 1; // Otherwise if it's a 4th or 11th key in a remainder of 12, it'll increment by 1
             }
             if (!isDarker) isDarker = true; // Then we change it to true, once the lighter key group is drawn
             else isDarker = false; // Otherwise if the darker key group is drawn, we set this to false
@@ -73,11 +75,14 @@ internal class SequencedAudio_Piano : DrawingArea
 
         // 53 keys total, 21 gaps (adding up to 74). 11 sets of black keys in twos, 10 sets of black keys in threes, and 1 single black key at the end
         kGrp = 2; // The first key group only has two keys, so the index is set to 2
+        k = 1; // For the black keys, it needs to start at 1, since the first black key is piano key number 2
         for (int i = 0; i < 74; i++) // We include the gaps in there, so it's 74 total
         {
             for (int ki = 0; ki < kGrp; i++, ki++) // So that when each key has been made in the group, it will exit the loop and then repeat
             {
-                DrawPianoKeyBlack(cr, k++, i * 8);
+                DrawPianoKeyBlack(cr, k, i * 8); // This will draw a black piano key
+                if ((k % 12) != 3 && (k % 12) != 10) k += 2; // If it's not a 3rd or 10th key within a set of 12 keys, the key index (k) will increment by 2
+                else k += 3; // Otherwise if it's a 3rd or 10th key in a remainder of 12, the key index increments by 3
             }
             if (kGrp is 2 && i is not 72) kGrp++; // That way, if the key group is two and the index is not 72, kGrp will increment to 3
             else if (i is 72) kGrp = 1; // If the index is 72, the key group will be reduced to 1
@@ -97,11 +102,11 @@ internal class SequencedAudio_Piano : DrawingArea
         cr.SetSourceRgba(Color.R, Color.G, Color.B, Color.A); // Then apply the color values
         cr.Rectangle(pos * width, 0, 7 * width, height); // Create the key as a rectangle, positioned right after each one
         cr.Fill(); // Fill in the rectangle with the applied color values
-        if (keyIndex % 7 == 0) DrawText(cr, keyGroup, pos, width, height);
+        if (keyIndex % 12 == 0) DrawText(cr, keyIndex, keyGroup, pos, width, height);
         cr.Restore(); // This will restore the context, to prepare for the next drawing
     }
 
-    private void DrawText(Context cr, int keyGroup, double pos, float areaWidth, float areaHeight)
+    private void DrawText(Context cr, int keyIndex, int keyGroup, double pos, float areaWidth, float areaHeight)
     {
         float smallAdj = -0.5f; // Small workaround to ensure the text remains in center of key
         if (keyGroup > 0) smallAdj = 0.5f; // If key group is more than 0, make it 0.5f
@@ -109,7 +114,7 @@ internal class SequencedAudio_Piano : DrawingArea
         cr.SelectFontFace("Sans", FontSlant.Normal, FontWeight.Normal); // We're using Sans as the font, with no slant or weight
         cr.SetFontSize(areaWidth * areaHeight / 16); // Setting it to be large enough to fit in the keys
         cr.MoveTo((pos * areaWidth) + areaWidth + smallAdj, areaHeight - 5); // Move the font to the bottom of the keys
-        cr.ShowText($"C{keyGroup - 1}"); // Set the text so it shows as one less than the keygroup number
+        cr.ShowText(ConfigUtils.GetKeyName(keyIndex)); // Set the text so it shows as the actual piano key note
     }
 
     private void DrawPianoKeyBlack(Context cr, int keyIndex, double pos)
@@ -155,7 +160,8 @@ internal class SequencedAudio_Piano : DrawingArea
         {
             if (Colors[ti].R is not 0f &&
                 Colors[ti].G is not 0f &&
-                Colors[ti].B is not 0f)
+                Colors[ti].B is not 0f &&
+                Colors[ti].A is not 0f)
             {
                 for (int i = 0; i < Tracks![ti].Keys.Length; i++)
                 {

@@ -146,6 +146,7 @@ public static class ConfigUtils
 	}
 	public static string GetKeyName(int midiNote)
 	{
+		if (GlobalConfig.Instance is null) return ""; // Nullability check
 		if (!_keyCache.TryGetValue(midiNote, out string? str))
 		{
 			// {C} + {5} = "C5"

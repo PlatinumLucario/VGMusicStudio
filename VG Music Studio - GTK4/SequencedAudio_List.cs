@@ -9,16 +9,16 @@ namespace Kermalis.VGMusicStudio.GTK4;
 
 internal class SequencedAudio_List : Viewport
 {
-	public GObject.Value? Id { get; set; }
-	public GObject.Value? InternalName { get; set; }
-	public GObject.Value? PlaylistName { get; set; }
-	public GObject.Value? Offset { get; set; }
+	private GObject.Value? Id { get; set; }
+	private GObject.Value? InternalName { get; set; }
+	private GObject.Value? PlaylistName { get; set; }
+	private GObject.Value? Offset { get; set; }
 
 	private bool IsSongTable = false;
 	public bool HasSelectedRow = false;
 
 	private Gio.ListStore Model = Gio.ListStore.New(GetGType());
-	private SelectionModel? SelectionModel { get; set; }
+	private SingleSelection? SelectionModel { get; set; }
 	private SortListModel? SortModel { get; set; }
 	private ColumnViewSorter? ColumnSorter { get; set; }
 	internal ColumnView? ColumnView { get; set; }
@@ -78,10 +78,7 @@ internal class SequencedAudio_List : Viewport
 			IsSongTable = true;
 			for (int i = 0, s = 0; i < SoundData.Length; i++)
 			{
-				_ = new byte[4];
-				Span<byte> b = BitConverter.GetBytes(songTableOffsets[s] + (i * 8));
-				b.Reverse();
-				offset[i] = "0x" + Convert.ToHexString(b);
+				offset[i] = string.Format("0x{0:X}", songTableOffsets[s] + (i * 8));
 				if (s < songTableOffsets.Length - 1)
 				{
 					s++;

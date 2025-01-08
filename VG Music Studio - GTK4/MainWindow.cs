@@ -357,6 +357,7 @@ internal sealed class MainWindow : Window
         _mainBox.Append(_configBarBox);
         _mainBox.Append(_configPlaylistBox);
         _mainBox.Append(_pianoBox);
+        _mainBox.Append(_sequencedAudioTrackInfo);
         _mainBox.Append(_sequencedAudioList);
 
         SetContent(_mainBox);
@@ -629,6 +630,7 @@ internal sealed class MainWindow : Window
             _sequencedAudioList.SelectRow(index);
             SequenceNumberSpinButton_ValueChanged(this, EventArgs.Empty);
             PlaylistSongStringChanged(index);
+            _sequencedAudioTrackInfo.AddTrackInfo();
         }
         else
         {
@@ -1011,6 +1013,8 @@ internal sealed class MainWindow : Window
         _exportDLSAction.Enabled = false;
         _exportMIDIAction.Enabled = true;
         _exportSF2Action.Enabled = false;
+        // _sequencedAudioTrackInfo.Init();
+        _sequencedAudioTrackInfo.Show();
     }
     private void ExportDLS(Gio.SimpleAction sender, EventArgs e)
     {
@@ -1328,6 +1332,7 @@ internal sealed class MainWindow : Window
         {
             GlobalConfig.Init(); // A new instance needs to be initialized before it can do anything
         }
+        // _sequencedAudioTrackInfo.AddEntries();
 
         // Configures the buttons when player is playing a sequenced track
         _buttonPause.Sensitive = _buttonStop.Sensitive = true; // Setting the 'Sensitive' property to 'true' enables the buttons, allowing you to click on them
@@ -1352,6 +1357,7 @@ internal sealed class MainWindow : Window
         Engine.Instance!.Player.IsPauseToggled = false;
         Engine.Instance.Player.Play();
         LetUIKnowPlayerIsPlaying();
+        // _sequencedAudioTrackInfo.AddEntries();
     }
     private void Pause()
     {
@@ -1507,9 +1513,9 @@ internal sealed class MainWindow : Window
             if (_positionBarFree)
             {
                 Player player = Engine.Instance!.Player;
-                SongState info = _sequencedAudioTrackInfo.Info;
+                SongState info = _sequencedAudioTrackInfo.Info!;
                 player.UpdateSongState(info);
-                _piano.UpdateKeys(info.Tracks, _sequencedAudioTrackInfo.NumTracks);
+                _piano.UpdateKeys(info.Tracks, _sequencedAudioTrackInfo.NumTracks!);
                 UpdatePositionIndicators(player.ElapsedTicks);
             }
         }
