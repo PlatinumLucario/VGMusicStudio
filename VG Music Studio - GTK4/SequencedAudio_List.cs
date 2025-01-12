@@ -15,9 +15,10 @@ internal class SequencedAudio_List : Viewport
 	private GObject.Value? Offset { get; set; }
 
 	private bool IsSongTable = false;
+	internal bool IsInitialized = false;
 	public bool HasSelectedRow = false;
 
-	private Gio.ListStore Model = Gio.ListStore.New(GetGType());
+	private readonly Gio.ListStore Model = Gio.ListStore.New(GetGType());
 	private SingleSelection? SelectionModel { get; set; }
 	private SortListModel? SortModel { get; set; }
 	private ColumnViewSorter? ColumnSorter { get; set; }
@@ -39,6 +40,9 @@ internal class SequencedAudio_List : Viewport
 
 	public void AddEntries(long numSongs, List<Config.InternalSongName> internalSongNames, List<Config.Playlist> playlists, int[] songTableOffsets)
 	{
+		if (Model.GetNItems() is not 0)
+			Model.RemoveAll();
+
 		SoundData = new SequencedAudio_List[numSongs];
 		var sNames = new string[numSongs];
 		for (int i = 0; i < sNames.Length; i++)
@@ -125,11 +129,12 @@ internal class SequencedAudio_List : Viewport
 
 		SetVexpand(true);
 		SetHexpand(true);
-		Hide();
 	}
 
 	internal void Init()
 	{
+		IsInitialized = false;
+
 		// ID Column
 		var listItemFactory = SignalListItemFactory.New();
 		listItemFactory.OnSetup += (_, args) => OnSetupLabel(args, Align.Center);
@@ -195,10 +200,13 @@ internal class SequencedAudio_List : Viewport
 				ColumnView.RemoveColumn(offsetColumn);
 			}
 		}
+
+		IsInitialized = true;
 	}
 
 	internal void SelectRow(int index)
 	{
+		HasSelectedRow = true;
 		SelectionModel?.SelectItem((uint)index, true);
 		// var selectedItem = "";
 		// for (uint i = 0; i < Model.NItems; i++)
@@ -237,8 +245,8 @@ internal class SequencedAudio_List : Viewport
 		{
 			if (userData.Id is not null)
 			{
-				HasSelectedRow = true;
-				MainWindow.ChangeIndex(userData.Id.GetInt());
+				if (IsInitialized)
+					MainWindow.ChangeIndex(userData.Id.GetInt());
 			}
 		}
 	}

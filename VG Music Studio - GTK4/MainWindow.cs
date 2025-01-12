@@ -25,9 +25,6 @@ namespace Kermalis.VGMusicStudio.GTK4;
 
 internal sealed class MainWindow : Window
 {
-    private int _duration = 0;
-    private int _position = 0;
-
     private PlayingPlaylist? _playlist;
     private int _curSong = -1;
 
@@ -35,10 +32,15 @@ internal sealed class MainWindow : Window
     private bool _stopUI = false;
     private bool _playlistChanged = false;
     private bool _autoplay = false;
+    private ManuallyChanged _manuallyChanged = 0;
 
     public static MainWindow? Instance { get; private set; }
 
     #region Widgets
+
+    // The Windows
+    private WidgetWindow _playlistWindow, _seqAudioPianoWindow, _sequencedAudioTrackInfoWindow, _sequencedAudioListWindow;
+    private TrackViewer _trackViewer;
 
     // Buttons
     private Button _buttonPlay, _buttonStop, _buttonRecord;
@@ -63,21 +65,39 @@ internal sealed class MainWindow : Window
     //private readonly Gio.MenuModel _mainMenu;
 
     // Menus
-    private readonly Gio.Menu _mainMenu, _fileMenu, _dataMenu, _playlistMenu;
+    private readonly Gio.Menu _mainMenu, _fileMenu, _dataMenu, _playlistMenu,
+        _widgetMenu, _playlistWidgetMenu, _seqAudioPianoWidgetMenu, _seqAudioTrackInfoWidgetMenu, _seqAudioListWidgetMenu;
 
     // Menu Labels
-    private readonly Label _fileLabel, _dataLabel, _playlistLabel;
+    private readonly Label _fileLabel, _dataLabel, _playlistLabel, _widgetLabel;
 
     // Menu Items
-    private readonly Gio.MenuItem _fileItem, _openDSEItem, _openAlphaDreamItem, _openMP2KItem, _openSDATItem,
-        _dataItem, _exportDLSItem, _exportSF2Item, _exportMIDIItem, _exportWAVItem, _playlistItem, _endPlaylistItem;
+    private readonly Gio.MenuItem
+        _fileItem,
+        _openDSEItem, _openAlphaDreamItem, _openMP2KItem, _openSDATItem,
+        _dataItem,
+        _trackViewerItem, _exportDLSItem, _exportSF2Item, _exportMIDIItem, _exportWAVItem,
+        _playlistItem,
+        _endPlaylistItem,
+        _widgetItem,
+        _playlistWidgetTiledItem, _playlistWidgetWindowedItem, _playlistWidgetHideItem,
+        _seqAudioPianoWidgetTiledItem, _seqAudioPianoWidgetWindowedItem, _seqAudioPianoWidgetHideItem,
+        _seqAudioTrackInfoWidgetTiledItem, _seqAudioTrackInfoWidgetWindowedItem, _seqAudioTrackInfoWidgetHideItem,
+        _seqAudioListWidgetTiledItem, _seqAudioListWidgetWindowedItem, _seqAudioListWidgetHideItem;
 
     // Menu Actions
-    private Gio.SimpleAction _openDSEAction, _openAlphaDreamAction, _openMP2KAction, _openSDATAction,
-        _exportDLSAction, _exportSF2Action, _exportMIDIAction, _exportWAVAction, _endPlaylistAction;
+    private Gio.SimpleAction
+        _openDSEAction, _openAlphaDreamAction, _openMP2KAction, _openSDATAction,
+        _trackViewerAction, _exportDLSAction, _exportSF2Action, _exportMIDIAction, _exportWAVAction,
+        _endPlaylistAction,
+        _playlistWidgetTiledAction, _playlistWidgetWindowedAction, _playlistWidgetHideAction,
+        _seqAudioPianoWidgetTiledAction, _seqAudioPianoWidgetWindowedAction, _seqAudioPianoWidgetHideAction,
+        _seqAudioTrackInfoWidgetTiledAction, _seqAudioTrackInfoWidgetWindowedAction, _seqAudioTrackInfoWidgetHideAction,
+        _seqAudioListWidgetTiledAction, _seqAudioListWidgetWindowedAction, _seqAudioListWidgetHideAction;
 
     // Boxes
-    private Box _mainBox, _configButtonBox, _configPlayerButtonBox, _configSpinButtonBox, _configBarBox, _pianoBox;
+    private Box _mainBox, _configButtonBox, _configPlayerButtonBox, _configSpinButtonBox, _configBarBox,
+        _playlistBox, _pianoBox, _sequencedAudioTrackInfoBox, _sequencedAudioListBox;
 
     // One Scale controling volume and one Scale for the sequenced track
     private Scale _volumeBar, _positionBar;
@@ -86,11 +106,8 @@ internal sealed class MainWindow : Window
     private GestureClick _positionGestureClick;
     private GestureDrag _positionGestureDrag;
 
-    // Adjustments are for indicating the numbers and the position of the scale
-    private readonly Adjustment _sequenceNumberAdjustment;
-
     // Playlist
-    private PlaylistConfig _configPlaylistBox;
+    private PlaylistConfig _configPlaylist;
 
     // Sequenced Audio Piano
     private SequencedAudio_Piano _piano;
@@ -111,6 +128,15 @@ internal sealed class MainWindow : Window
     private Gio.Internal.AsyncReadyCallback _exceptionCallback { get; set; }
 
     #endregion
+
+    private enum ManuallyChanged
+    {
+        None = 0,
+        Initialized = 1,
+        SpinButton = 2,
+        PlaylistDropDown = 3,
+        List = 4
+    }
 
     public MainWindow(Application app)
     {
@@ -185,6 +211,13 @@ internal sealed class MainWindow : Window
         _popoverMenuBar.AddMnemonicLabel(_dataLabel);
         _dataItem.SetSubmenu(_dataMenu);
 
+        _trackViewerItem = Gio.MenuItem.New(Strings.TrackViewerTitle, "app.trackViewer");
+        _trackViewerAction = Gio.SimpleAction.New("trackViewer", null);
+        _app.AddAction(_trackViewerAction);
+        _trackViewerAction.OnActivate += OpenTrackViewer;
+        _dataMenu.AppendItem(_trackViewerItem);
+        _trackViewerItem.Unref();
+
         _exportDLSItem = Gio.MenuItem.New(Strings.MenuSaveDLS, "app.exportDLS");
         _exportDLSAction = Gio.SimpleAction.New("exportDLS", null);
         _app.AddAction(_exportDLSAction);
@@ -241,6 +274,128 @@ internal sealed class MainWindow : Window
         _mainMenu.AppendItem(_playlistItem);
         _playlistItem.Unref();
 
+        // Widget Menu
+        _widgetMenu = Gio.Menu.New();
+
+        _widgetLabel = Label.NewWithMnemonic("Widgets");
+        _widgetLabel.GetMnemonicKeyval();
+        _widgetLabel.SetUseUnderline(true);
+        _widgetItem = Gio.MenuItem.New(_widgetLabel.GetLabel(), null);
+        _popoverMenuBar.AddMnemonicLabel(_widgetLabel);
+        _widgetItem.SetSubmenu(_widgetMenu);
+
+        _playlistWidgetMenu = Gio.Menu.New();
+
+        _playlistWidgetTiledItem = Gio.MenuItem.New("Tiled", "app.playlistWidgetTiled");
+        _playlistWidgetTiledAction = Gio.SimpleAction.NewStateful("playlistWidgetTiled", null, GLib.Variant.NewBoolean(false));
+        _app.AddAction(_playlistWidgetTiledAction);
+        _playlistWidgetTiledAction.Enabled = false;
+        _playlistWidgetTiledAction.OnActivate += Playlist_GetTiled;
+        _playlistWidgetMenu.AppendItem(_playlistWidgetTiledItem);
+        _playlistWidgetTiledItem.Unref();
+
+        _playlistWidgetWindowedItem = Gio.MenuItem.New("Windowed", "app.playlistWidgetWindowed");
+        _playlistWidgetWindowedAction = Gio.SimpleAction.NewStateful("playlistWidgetWindowed", null, GLib.Variant.NewBoolean(false));
+        _app.AddAction(_playlistWidgetWindowedAction);
+        _playlistWidgetWindowedAction.Enabled = false;
+        _playlistWidgetWindowedAction.OnActivate += Playlist_GetWindowed;
+        _playlistWidgetMenu.AppendItem(_playlistWidgetWindowedItem);
+        _playlistWidgetWindowedItem.Unref();
+
+        _playlistWidgetHideItem = Gio.MenuItem.New("Hide", "app.playlistWidgetHide");
+        _playlistWidgetHideAction = Gio.SimpleAction.NewStateful("playlistWidgetHide", null, GLib.Variant.NewBoolean(true));
+        _app.AddAction(_playlistWidgetHideAction);
+        _playlistWidgetHideAction.Enabled = false;
+        _playlistWidgetHideAction.OnActivate += Playlist_Hide;
+        _playlistWidgetMenu.AppendItem(_playlistWidgetHideItem);
+        _playlistWidgetHideItem.Unref();
+
+        _widgetMenu.AppendSubmenu("Playlist", _playlistWidgetMenu);
+
+        _seqAudioPianoWidgetMenu = Gio.Menu.New();
+
+        _seqAudioPianoWidgetTiledItem = Gio.MenuItem.New("Tiled", "app.seqAudioPianoWidgetTiled");
+        _seqAudioPianoWidgetTiledAction = Gio.SimpleAction.NewStateful("seqAudioPianoWidgetTiled", null, GLib.Variant.NewBoolean(false));
+        _app.AddAction(_seqAudioPianoWidgetTiledAction);
+        _seqAudioPianoWidgetTiledAction.Enabled = false;
+        _seqAudioPianoWidgetTiledAction.OnActivate += SeqAudioPiano_GetTiled;
+        _seqAudioPianoWidgetMenu.AppendItem(_seqAudioPianoWidgetTiledItem);
+        _seqAudioPianoWidgetTiledItem.Unref();
+
+        _seqAudioPianoWidgetWindowedItem = Gio.MenuItem.New("Windowed", "app.seqAudioPianoWidgetWindowed");
+        _seqAudioPianoWidgetWindowedAction = Gio.SimpleAction.NewStateful("seqAudioPianoWidgetWindowed", null, GLib.Variant.NewBoolean(false));
+        _app.AddAction(_seqAudioPianoWidgetWindowedAction);
+        _seqAudioPianoWidgetWindowedAction.Enabled = false;
+        _seqAudioPianoWidgetWindowedAction.OnActivate += SeqAudioPiano_GetWindowed;
+        _seqAudioPianoWidgetMenu.AppendItem(_seqAudioPianoWidgetWindowedItem);
+        _seqAudioPianoWidgetWindowedItem.Unref();
+
+        _seqAudioPianoWidgetHideItem = Gio.MenuItem.New("Hide", "app.seqAudioPianoWidgetHide");
+        _seqAudioPianoWidgetHideAction = Gio.SimpleAction.NewStateful("seqAudioPianoWidgetHide", null, GLib.Variant.NewBoolean(true));
+        _app.AddAction(_seqAudioPianoWidgetHideAction);
+        _seqAudioPianoWidgetHideAction.Enabled = false;
+        _seqAudioPianoWidgetHideAction.OnActivate += SeqAudioPiano_Hide;
+        _seqAudioPianoWidgetMenu.AppendItem(_seqAudioPianoWidgetHideItem);
+        _seqAudioPianoWidgetHideItem.Unref();
+
+        _widgetMenu.AppendSubmenu("Piano", _seqAudioPianoWidgetMenu);
+
+        _seqAudioTrackInfoWidgetMenu = Gio.Menu.New();
+
+        _seqAudioTrackInfoWidgetTiledItem = Gio.MenuItem.New("Tiled", "app.seqAudioTrackInfoWidgetTiled");
+        _seqAudioTrackInfoWidgetTiledAction = Gio.SimpleAction.NewStateful("seqAudioTrackInfoWidgetTiled", null, GLib.Variant.NewBoolean(false));
+        _app.AddAction(_seqAudioTrackInfoWidgetTiledAction);
+        _seqAudioTrackInfoWidgetTiledAction.Enabled = false;
+        _seqAudioTrackInfoWidgetTiledAction.OnActivate += SeqAudioTrackInfo_GetTiled;
+        _seqAudioTrackInfoWidgetMenu.AppendItem(_seqAudioTrackInfoWidgetTiledItem);
+        _seqAudioTrackInfoWidgetTiledItem.Unref();
+
+        _seqAudioTrackInfoWidgetWindowedItem = Gio.MenuItem.New("Windowed", "app.seqAudioTrackInfoWidgetWindowed");
+        _seqAudioTrackInfoWidgetWindowedAction = Gio.SimpleAction.NewStateful("seqAudioTrackInfoWidgetWindowed", null, GLib.Variant.NewBoolean(false));
+        _app.AddAction(_seqAudioTrackInfoWidgetWindowedAction);
+        _seqAudioTrackInfoWidgetWindowedAction.Enabled = false;
+        _seqAudioTrackInfoWidgetWindowedAction.OnActivate += SeqAudioTrackInfo_GetWindowed;
+        _seqAudioTrackInfoWidgetMenu.AppendItem(_seqAudioTrackInfoWidgetWindowedItem);
+        _seqAudioTrackInfoWidgetWindowedItem.Unref();
+
+        _seqAudioTrackInfoWidgetHideItem = Gio.MenuItem.New("Hide", "app.seqAudioTrackInfoWidgetHide");
+        _seqAudioTrackInfoWidgetHideAction = Gio.SimpleAction.NewStateful("seqAudioTrackInfoWidgetHide", null, GLib.Variant.NewBoolean(true));
+        _app.AddAction(_seqAudioTrackInfoWidgetHideAction);
+        _seqAudioTrackInfoWidgetHideAction.Enabled = false;
+        _seqAudioTrackInfoWidgetHideAction.OnActivate += SeqAudioTrackInfo_Hide;
+        _seqAudioTrackInfoWidgetMenu.AppendItem(_seqAudioTrackInfoWidgetHideItem);
+        _seqAudioTrackInfoWidgetHideItem.Unref();
+
+        _widgetMenu.AppendSubmenu("Sequenced Audio Track Info", _seqAudioTrackInfoWidgetMenu);
+
+        _seqAudioListWidgetMenu = Gio.Menu.New();
+
+        _seqAudioListWidgetTiledItem = Gio.MenuItem.New("Tiled", "app.seqAudioListWidgetTiled");
+        _seqAudioListWidgetTiledAction = Gio.SimpleAction.NewStateful("seqAudioListWidgetTiled", null, GLib.Variant.NewBoolean(true));
+        _app.AddAction(_seqAudioListWidgetTiledAction);
+        _seqAudioListWidgetTiledAction.OnActivate += SeqAudioList_GetTiled;
+        _seqAudioListWidgetMenu.AppendItem(_seqAudioListWidgetTiledItem);
+        _seqAudioListWidgetTiledItem.Unref();
+
+        _seqAudioListWidgetWindowedItem = Gio.MenuItem.New("Windowed", "app.seqAudioListWidgetWindowed");
+        _seqAudioListWidgetWindowedAction = Gio.SimpleAction.NewStateful("seqAudioListWidgetWindowed", null, GLib.Variant.NewBoolean(false));
+        _app.AddAction(_seqAudioListWidgetWindowedAction);
+        _seqAudioListWidgetWindowedAction.OnActivate += SeqAudioList_GetWindowed;
+        _seqAudioListWidgetMenu.AppendItem(_seqAudioListWidgetWindowedItem);
+        _seqAudioListWidgetWindowedItem.Unref();
+
+        _seqAudioListWidgetHideItem = Gio.MenuItem.New("Hide", "app.seqAudioListWidgetHide");
+        _seqAudioListWidgetHideAction = Gio.SimpleAction.NewStateful("seqAudioListWidgetHide", null, GLib.Variant.NewBoolean(false));
+        _app.AddAction(_seqAudioListWidgetHideAction);
+        _seqAudioListWidgetHideAction.OnActivate += SeqAudioList_Hide;
+        _seqAudioListWidgetMenu.AppendItem(_seqAudioListWidgetHideItem);
+        _seqAudioListWidgetHideItem.Unref();
+
+        _widgetMenu.AppendSubmenu("Sequenced Audio List", _seqAudioListWidgetMenu);
+
+        _mainMenu.AppendItem(_widgetItem);
+        _widgetItem.Unref();
+
         // Buttons
         _buttonPlay = new Button() { Sensitive = false, TooltipText = Strings.PlayerPlay, IconName = "media-playback-start-symbolic" };
         _buttonPlay.OnClicked += (o, e) => Play();
@@ -253,12 +408,11 @@ internal sealed class MainWindow : Window
         _buttonRecord.OnClicked += ExportWAV;
 
         // Spin Button
-        _sequenceNumberAdjustment = Adjustment.New(0, 0, -1, 1, 1, 1);
-        _sequenceNumberSpinButton = SpinButton.New(_sequenceNumberAdjustment, 1, 0);
+        _sequenceNumberSpinButton = SpinButton.New(Adjustment.New(0, 0, -1, 1, 1, 1), 1, 0);
         _sequenceNumberSpinButton.Sensitive = false;
         _sequenceNumberSpinButton.Value = 0;
-        //_sequenceNumberSpinButton.Visible = false;
         _sequenceNumberSpinButton.OnValueChanged += SequenceNumberSpinButton_ValueChanged;
+        _sequenceNumberSpinButton.OnChangeValue += SequenceNumberSpinButton_ChangeValue;
 
         // // Timer
         _timer = GLib.Timer.New();
@@ -297,21 +451,27 @@ internal sealed class MainWindow : Window
         // _positionGestureDrag.OnDragEnd += PositionBar_MouseButtonOnEnd;
 
         // Playlist
-        _configPlaylistBox = new PlaylistConfig();
-        _configPlaylistBox.ButtonPrevPlistSong.OnClicked += (o, e) => PlayPreviousSong();
-        _configPlaylistBox.ButtonNextPlistSong.OnClicked += PlayNextSong;
+        _configPlaylist = new PlaylistConfig();
+        _configPlaylist.ButtonPrevPlistSong.OnClicked += (o, e) => PlayPreviousSong();
+        _configPlaylist.ButtonNextPlistSong.OnClicked += PlayNextSong;
+        _playlistBox = Box.New(Orientation.Vertical, 0);
+        _playlistBox.SetVexpand(true);
 
         // Sequenced Audio Piano
         _piano = new();
         _pianoBox = Box.New(Orientation.Vertical, 0);
         _pianoBox.SetVexpand(false);
-        _pianoBox.Append(_piano);
-
-        // Sequenced Audio List
-        _sequencedAudioList = new();
 
         // Sequenced Audio Track Info
         _sequencedAudioTrackInfo = new();
+        _sequencedAudioTrackInfoBox = Box.New(Orientation.Vertical, 0);
+        _sequencedAudioTrackInfoBox.SetVexpand(true);
+
+        // Sequenced Audio List
+        _sequencedAudioList = new();
+        _sequencedAudioListBox = Box.New(Orientation.Vertical, 0);
+        _sequencedAudioListBox.SetVexpand(true);
+        _sequencedAudioListBox.Append(_sequencedAudioList);
 
         // Main display
         _mainBox = Box.New(Orientation.Vertical, 4);
@@ -355,10 +515,10 @@ internal sealed class MainWindow : Window
         _mainBox.Append(_popoverMenuBar);
         _mainBox.Append(_configButtonBox);
         _mainBox.Append(_configBarBox);
-        _mainBox.Append(_configPlaylistBox);
+        _mainBox.Append(_playlistBox);
         _mainBox.Append(_pianoBox);
-        _mainBox.Append(_sequencedAudioTrackInfo);
-        _mainBox.Append(_sequencedAudioList);
+        _mainBox.Append(_sequencedAudioTrackInfoBox);
+        _mainBox.Append(_sequencedAudioListBox);
 
         SetContent(_mainBox);
 
@@ -368,10 +528,369 @@ internal sealed class MainWindow : Window
         OnCloseRequest += (sender, args) =>
         {
             DisposeEngine(); // Engine must be disposed first, otherwise the window will softlock when closing
-            _app.Quit();
-            return true;
+            Dispose();
+            return false;
         };
     }
+
+#region Widget Display Toggle Methods
+    private void Playlist_GetTiled(object sender, EventArgs args)
+    {
+        if (_playlistWidgetTiledAction.GetState()!.GetBoolean() == true)
+            return;
+
+        if (_playlistWindow is not null)
+        {
+            if (_playlistWindow.WidgetBox.GetFirstChild() is not null)
+            {
+                _playlistWindow.WidgetBox.Remove(_configPlaylist);
+            }
+            _playlistWindow.OnCloseRequest -= PlaylistWindow_CloseRequest;
+            _playlistWindow.Dispose();
+            _playlistWindow.Close();
+            if (_playlistWindow is not null)
+            {
+                _playlistWindow = null!;
+            }
+        }
+
+        _playlistBox.Append(_configPlaylist);
+
+        _playlistWidgetTiledAction.SetState(GLib.Variant.NewBoolean(true));
+        _playlistWidgetWindowedAction.SetState(GLib.Variant.NewBoolean(false));
+        _playlistWidgetHideAction.SetState(GLib.Variant.NewBoolean(false));
+    }
+
+    private void Playlist_GetWindowed(object sender, EventArgs args)
+    {
+        if (_playlistWidgetWindowedAction.GetState()!.GetBoolean() == true)
+            return;
+
+        if (_playlistBox.GetFirstChild() is not null)
+        {
+            _playlistBox.Remove(_configPlaylist);
+        }
+        _playlistWindow ??= new WidgetWindow(_configPlaylist);
+        _playlistWindow.OnCloseRequest += PlaylistWindow_CloseRequest;
+        _playlistWindow.Present();
+
+        _playlistWidgetTiledAction.SetState(GLib.Variant.NewBoolean(false));
+        _playlistWidgetWindowedAction.SetState(GLib.Variant.NewBoolean(true));
+        _playlistWidgetHideAction.SetState(GLib.Variant.NewBoolean(false));
+    }
+
+    private void Playlist_Hide(object sender, EventArgs args)
+    {
+        if (_playlistWidgetHideAction.GetState()!.GetBoolean() == true)
+            return;
+
+        if (_playlistWindow is not null)
+        {
+            if (_playlistWindow.WidgetBox.GetFirstChild() is not null)
+            {
+                _playlistWindow.WidgetBox.Remove(_configPlaylist);
+            }
+            _playlistWindow.OnCloseRequest -= PlaylistWindow_CloseRequest;
+            _playlistWindow.Dispose();
+            _playlistWindow.Close();
+            if (_playlistWindow is not null)
+            {
+                _playlistWindow = null!;
+            }
+        }
+        if (_playlistBox.GetFirstChild() is not null)
+        {
+            _playlistBox.Remove(_configPlaylist);
+        }
+
+        _playlistWidgetTiledAction.SetState(GLib.Variant.NewBoolean(false));
+        _playlistWidgetWindowedAction.SetState(GLib.Variant.NewBoolean(false));
+        _playlistWidgetHideAction.SetState(GLib.Variant.NewBoolean(true));
+    }
+
+    private void SeqAudioPiano_GetTiled(object sender, EventArgs args)
+    {
+        if (_seqAudioPianoWidgetTiledAction.GetState()!.GetBoolean() == true)
+            return;
+
+        if (_seqAudioPianoWindow is not null)
+        {
+            if (_seqAudioPianoWindow.WidgetBox.GetFirstChild() is not null)
+            {
+                _seqAudioPianoWindow.WidgetBox.Remove(_piano);
+            }
+            _seqAudioPianoWindow.OnCloseRequest -= SeqAudioPianoWindow_CloseRequest;
+            _seqAudioPianoWindow.Dispose();
+            _seqAudioPianoWindow.Close();
+            if (_seqAudioPianoWindow is not null)
+            {
+                _seqAudioPianoWindow = null!;
+            }
+        }
+
+        _pianoBox.Append(_piano);
+
+        _seqAudioPianoWidgetTiledAction.SetState(GLib.Variant.NewBoolean(true));
+        _seqAudioPianoWidgetWindowedAction.SetState(GLib.Variant.NewBoolean(false));
+        _seqAudioPianoWidgetHideAction.SetState(GLib.Variant.NewBoolean(false));
+    }
+
+    private void SeqAudioPiano_GetWindowed(object sender, EventArgs args)
+    {
+        if (_seqAudioPianoWidgetWindowedAction.GetState()!.GetBoolean() == true)
+            return;
+
+        if (_pianoBox.GetFirstChild() is not null)
+        {
+            _pianoBox.Remove(_piano);
+        }
+        _seqAudioPianoWindow ??= new WidgetWindow(_piano);
+        _seqAudioPianoWindow.OnCloseRequest += SeqAudioPianoWindow_CloseRequest;
+        _seqAudioPianoWindow.Present();
+
+        _seqAudioPianoWidgetTiledAction.SetState(GLib.Variant.NewBoolean(false));
+        _seqAudioPianoWidgetWindowedAction.SetState(GLib.Variant.NewBoolean(true));
+        _seqAudioPianoWidgetHideAction.SetState(GLib.Variant.NewBoolean(false));
+    }
+
+    private void SeqAudioPiano_Hide(object sender, EventArgs args)
+    {
+        if (_seqAudioPianoWidgetHideAction.GetState()!.GetBoolean() == true)
+            return;
+
+        if (_seqAudioPianoWindow is not null)
+        {
+            if (_seqAudioPianoWindow.WidgetBox.GetFirstChild() is not null)
+            {
+                _seqAudioPianoWindow.WidgetBox.Remove(_piano);
+            }
+            _seqAudioPianoWindow.OnCloseRequest -= SeqAudioPianoWindow_CloseRequest;
+            _seqAudioPianoWindow.Dispose();
+            _seqAudioPianoWindow.Close();
+            if (_seqAudioPianoWindow is not null)
+            {
+                _seqAudioPianoWindow = null!;
+            }
+        }
+        if (_pianoBox.GetFirstChild() is not null)
+        {
+            _pianoBox.Remove(_piano);
+        }
+
+        _seqAudioPianoWidgetTiledAction.SetState(GLib.Variant.NewBoolean(false));
+        _seqAudioPianoWidgetWindowedAction.SetState(GLib.Variant.NewBoolean(false));
+        _seqAudioPianoWidgetHideAction.SetState(GLib.Variant.NewBoolean(true));
+    }
+
+    private void SeqAudioTrackInfo_GetTiled(object sender, EventArgs args)
+    {
+        if (_seqAudioTrackInfoWidgetTiledAction.GetState()!.GetBoolean() == true)
+            return;
+
+        if (_sequencedAudioTrackInfoWindow is not null)
+        {
+            if (_sequencedAudioTrackInfoWindow.WidgetBox.GetFirstChild() is not null)
+            {
+                _sequencedAudioTrackInfoWindow.WidgetBox.Remove(_sequencedAudioTrackInfo);
+            }
+            _sequencedAudioTrackInfoWindow.OnCloseRequest -= SeqAudioTrackInfoWindow_CloseRequest;
+            _sequencedAudioTrackInfoWindow.Dispose();
+            _sequencedAudioTrackInfoWindow.Close();
+            if (_sequencedAudioTrackInfoWindow is not null)
+            {
+                _sequencedAudioTrackInfoWindow = null!;
+            }
+        }
+
+        _sequencedAudioTrackInfoBox.Append(_sequencedAudioTrackInfo);
+
+        _seqAudioTrackInfoWidgetTiledAction.SetState(GLib.Variant.NewBoolean(true));
+        _seqAudioTrackInfoWidgetWindowedAction.SetState(GLib.Variant.NewBoolean(false));
+        _seqAudioTrackInfoWidgetHideAction.SetState(GLib.Variant.NewBoolean(false));
+    }
+
+    private void SeqAudioTrackInfo_GetWindowed(object sender, EventArgs args)
+    {
+        if (_seqAudioTrackInfoWidgetWindowedAction.GetState()!.GetBoolean() == true)
+            return;
+
+        if (_sequencedAudioTrackInfoBox.GetFirstChild() is not null)
+        {
+            _sequencedAudioTrackInfoBox.Remove(_sequencedAudioTrackInfo);
+        }
+        _sequencedAudioTrackInfoWindow ??= new WidgetWindow(_sequencedAudioTrackInfo);
+        _sequencedAudioTrackInfoWindow.OnCloseRequest += SeqAudioTrackInfoWindow_CloseRequest;
+        _sequencedAudioTrackInfoWindow.Present();
+
+        _seqAudioTrackInfoWidgetTiledAction.SetState(GLib.Variant.NewBoolean(false));
+        _seqAudioTrackInfoWidgetWindowedAction.SetState(GLib.Variant.NewBoolean(true));
+        _seqAudioTrackInfoWidgetHideAction.SetState(GLib.Variant.NewBoolean(false));
+    }
+
+    private void SeqAudioTrackInfo_Hide(object sender, EventArgs args)
+    {
+        if (_seqAudioTrackInfoWidgetHideAction.GetState()!.GetBoolean() == true)
+            return;
+
+        if (_sequencedAudioTrackInfoWindow is not null)
+        {
+            if (_sequencedAudioTrackInfoWindow.WidgetBox.GetFirstChild() is not null)
+            {
+                _sequencedAudioTrackInfoWindow.WidgetBox.Remove(_sequencedAudioTrackInfo);
+            }
+            _sequencedAudioTrackInfoWindow.OnCloseRequest -= SeqAudioTrackInfoWindow_CloseRequest;
+            _sequencedAudioTrackInfoWindow.Dispose();
+            _sequencedAudioTrackInfoWindow.Close();
+            if (_sequencedAudioTrackInfoWindow is not null)
+            {
+                _sequencedAudioTrackInfoWindow = null!;
+            }
+        }
+        if (_sequencedAudioTrackInfoBox.GetFirstChild() is not null)
+        {
+            _sequencedAudioTrackInfoBox.Remove(_sequencedAudioTrackInfo);
+        }
+
+        _seqAudioTrackInfoWidgetTiledAction.SetState(GLib.Variant.NewBoolean(false));
+        _seqAudioTrackInfoWidgetWindowedAction.SetState(GLib.Variant.NewBoolean(false));
+        _seqAudioTrackInfoWidgetHideAction.SetState(GLib.Variant.NewBoolean(true));
+    }
+
+    private void SeqAudioList_GetTiled(object sender, EventArgs args)
+    {
+        if (_seqAudioListWidgetTiledAction.GetState()!.GetBoolean() == true)
+            return;
+
+        if (_sequencedAudioListWindow is not null)
+        {
+            if (_sequencedAudioListWindow.WidgetBox.GetFirstChild() is not null)
+            {
+                _sequencedAudioListWindow.WidgetBox.Remove(_sequencedAudioList);
+            }
+            _sequencedAudioListWindow.OnCloseRequest -= SeqAudioListWindow_CloseRequest;
+            _sequencedAudioListWindow.Dispose();
+            _sequencedAudioListWindow.Close();
+            if (_sequencedAudioListWindow is not null)
+            {
+                _sequencedAudioListWindow = null!;
+            }
+        }
+
+        _sequencedAudioListBox.Append(_sequencedAudioList);
+
+        _seqAudioListWidgetTiledAction.SetState(GLib.Variant.NewBoolean(true));
+        _seqAudioListWidgetWindowedAction.SetState(GLib.Variant.NewBoolean(false));
+        _seqAudioListWidgetHideAction.SetState(GLib.Variant.NewBoolean(false));
+    }
+
+    private void SeqAudioList_GetWindowed(object sender, EventArgs args)
+    {
+        if (_seqAudioListWidgetWindowedAction.GetState()!.GetBoolean() == true)
+            return;
+
+        if (_sequencedAudioListBox.GetFirstChild() is not null)
+        {
+            _sequencedAudioListBox.Remove(_sequencedAudioList);
+        }
+        _sequencedAudioListWindow ??= new WidgetWindow(_sequencedAudioList);
+        _sequencedAudioListWindow.OnCloseRequest += SeqAudioListWindow_CloseRequest;
+        _sequencedAudioListWindow.Present();
+
+        _seqAudioListWidgetTiledAction.SetState(GLib.Variant.NewBoolean(false));
+        _seqAudioListWidgetWindowedAction.SetState(GLib.Variant.NewBoolean(true));
+        _seqAudioListWidgetHideAction.SetState(GLib.Variant.NewBoolean(false));
+    }
+
+    private void SeqAudioList_Hide(object sender, EventArgs args)
+    {
+        if (_seqAudioListWidgetHideAction.GetState()!.GetBoolean() == true)
+            return;
+
+        if (_sequencedAudioListWindow is not null)
+        {
+            if (_sequencedAudioListWindow.WidgetBox.GetFirstChild() is not null)
+            {
+                _sequencedAudioListWindow.WidgetBox.Remove(_sequencedAudioList);
+            }
+            _sequencedAudioListWindow.OnCloseRequest -= SeqAudioListWindow_CloseRequest;
+            _sequencedAudioListWindow.Dispose();
+            _sequencedAudioListWindow.Close();
+            if (_sequencedAudioListWindow is not null)
+            {
+                _sequencedAudioListWindow = null!;
+            }
+        }
+        if (_sequencedAudioListBox.GetFirstChild() is not null)
+        {
+            _sequencedAudioListBox.Remove(_sequencedAudioList);
+        }
+
+        _seqAudioListWidgetTiledAction.SetState(GLib.Variant.NewBoolean(false));
+        _seqAudioListWidgetWindowedAction.SetState(GLib.Variant.NewBoolean(false));
+        _seqAudioListWidgetHideAction.SetState(GLib.Variant.NewBoolean(true));
+    }
+
+    #region Widget Window Closure Methods
+
+    private bool PlaylistWindow_CloseRequest(Gtk.Window sender, EventArgs args)
+    {
+        Playlist_GetTiled(sender, args);
+        return false;
+    }
+
+    private bool SeqAudioPianoWindow_CloseRequest(Gtk.Window sender, EventArgs args)
+    {
+        SeqAudioPiano_GetTiled(sender, args);
+        return false;
+    }
+
+    private bool SeqAudioTrackInfoWindow_CloseRequest(Gtk.Window sender, EventArgs args)
+    {
+        SeqAudioTrackInfo_GetTiled(sender, args);
+        return false;
+    }
+
+    private bool SeqAudioListWindow_CloseRequest(Gtk.Window sender, EventArgs args)
+    {
+        SeqAudioList_GetTiled(sender, args);
+        return false;
+    }
+    #endregion
+
+#region Widget Menu Enable and Disable Methods
+    private void PlaylistWidgetAction_IsEnabled(bool enabled)
+    {
+
+        _playlistWidgetTiledAction.Enabled = enabled;
+        _playlistWidgetWindowedAction.Enabled = enabled;
+        _playlistWidgetHideAction.Enabled = enabled;
+    }
+
+    private void PianoWidgetAction_IsEnabled(bool enabled)
+    {
+
+        _seqAudioPianoWidgetTiledAction.Enabled = enabled;
+        _seqAudioPianoWidgetWindowedAction.Enabled = enabled;
+        _seqAudioPianoWidgetHideAction.Enabled = enabled;
+    }
+
+    private void SeqAudioTrackInfoWidgetAction_IsEnabled(bool enabled)
+    {
+
+        _seqAudioTrackInfoWidgetTiledAction.Enabled = enabled;
+        _seqAudioTrackInfoWidgetWindowedAction.Enabled = enabled;
+        _seqAudioTrackInfoWidgetHideAction.Enabled = enabled;
+    }
+
+    private void SeqAudioListWidgetAction_IsEnabled(bool enabled)
+    {
+
+        _seqAudioListWidgetTiledAction.Enabled = enabled;
+        _seqAudioListWidgetWindowedAction.Enabled = enabled;
+        _seqAudioListWidgetHideAction.Enabled = enabled;
+    }
+    #endregion
+    #endregion
 
     // When the value is changed on the volume scale
     private void VolumeBar_ValueChanged(object sender, EventArgs e)
@@ -388,6 +907,7 @@ internal sealed class MainWindow : Window
 
     private bool _positionBarFree = true;
     private bool _positionBarDebug = false;
+
     private void PositionBar_MouseButtonPress(object sender, EventArgs args)
     {
         if (_positionBarDebug)
@@ -464,77 +984,91 @@ internal sealed class MainWindow : Window
     {
         if (Engine.Instance is not null)
             UpdatePositionIndicators(Engine.Instance!.Player.ElapsedTicks); // Sets the value based on the position when mouse button is released
-
     }
 
     private void SequenceNumberSpinButton_ValueChanged(object sender, EventArgs e)
     {
-        //_sequencesGestureClick.OnBegin -= SequencesListView_SelectionGet;
-        //_signal.Connect(_sequencesListFactory, SequencesListView_SelectionGet, false, null);
-
-        int index = (int)_sequenceNumberAdjustment.Value;
-        _sequencedAudioList.SelectRow(index);
-        Stop();
-        Title = GetProgramName();
-        //_sequencesListView.Margin = 0;
-        //_songInfo.Reset();
-        bool success;
-        if (Engine.Instance == null)
+        if (Engine.Instance is not null)
         {
-            return; // Prevents referencing a null Engine.Instance when the engine is being disposed, especially while main window is being closed
-        }
-        Player player = Engine.Instance!.Player;
-        Config cfg = Engine.Instance.Config;
-        try
-        {
-            player.LoadSong(index);
-            success = Engine.Instance.Player.LoadedSong is not null; // TODO: Make sure loadedsong is null when there are no tracks (for each engine, only mp2k guarantees it rn)
-        }
-        catch (Exception ex)
-        {
-            FlexibleMessageBox.Show(ex, string.Format(Strings.ErrorLoadSong, Engine.Instance!.Config.GetSongName(index)));
-            success = false;
-        }
-
-        //_trackViewer?.UpdateTracks();
-        ILoadedSong? loadedSong = player.LoadedSong; // LoadedSong is still null when there are no tracks
-        if (success)
-        {
-            List<Config.Song> songs = cfg.Playlists[^1].Songs; // Complete "All Songs" playlist is present in all configs at the last index value
-            int songIndex = songs.FindIndex(s => s.Index == index);
-            if (songIndex != -1)
+            if (_manuallyChanged is ManuallyChanged.None)
             {
-                SetSongToProgramTitle(songs, songIndex); // Done! It's now a func
-                PlaylistSongStringChanged(index);
-                CheckPlaylistItem();
-            }
-            _positionBar.Adjustment!.Upper = loadedSong!.MaxTicks;
-            _positionBar.SetRange(0, loadedSong.MaxTicks);
-            //_songInfo.SetNumTracks(Engine.Instance.Player.LoadedSong.Events.Length);
-            if (_autoplay)
-            {
-                Play();
-            }
-        }
-        else
-        {
-            //_songInfo.SetNumTracks(0);
-        }
-        _positionBar.Sensitive = _exportWAVAction.Enabled = success;
-        _exportMIDIAction.Enabled = success && MP2KEngine.MP2KInstance is not null;
-        _exportDLSAction.Enabled = _exportSF2Action.Enabled = success && AlphaDreamEngine.AlphaDreamInstance is not null;
-
-        if (!_playlistChanged)
-        {
-            if (!_sequencedAudioList.HasSelectedRow)
+                _manuallyChanged = ManuallyChanged.SpinButton;
                 _autoplay = true;
-            _sequencedAudioList.HasSelectedRow = false;
+                CheckIfChangedManually((int)_sequenceNumberSpinButton.Adjustment!.Value);
+                _autoplay = false;
+                _manuallyChanged = ManuallyChanged.None;
+            }
         }
-        //_sequencesGestureClick.OnEnd += SequencesListView_SelectionGet;
-        //_signal.Connect(_sequencesListFactory, SequencesListView_SelectionGet, true, null);
     }
 
-    private static string GetProgramName() => ConfigUtils.PROGRAM_NAME;
+    private void SequenceNumberSpinButton_ChangeValue(SpinButton sender, SpinButton.ChangeValueSignalArgs args)
+    {
+        int index = (int)_sequenceNumberSpinButton.Adjustment!.Value;
+        if (_manuallyChanged is ManuallyChanged.None)
+        {
+            _manuallyChanged = ManuallyChanged.SpinButton;
+            _autoplay = true;
+            CheckIfChangedManually(index);
+            _autoplay = false;
+            _manuallyChanged = ManuallyChanged.None;
+        }
+    }
+
+    private void CheckIfChangedManually(int index)
+    {
+        switch (_manuallyChanged)
+        {
+            case ManuallyChanged.Initialized:
+                {
+                    if (Engine.Instance!.Config.Playlists is not null)
+                    {
+                        PlaylistSongStringChanged(index);
+                    }
+                    _sequencedAudioList.SelectRow(index);
+                    // _sequencedAudioList.ColumnView!.ScrollTo((uint)index, null, ListScrollFlags.None, ScrollInfo.New());
+                    _sequenceNumberSpinButton.Value = index;
+                    SetAndLoadSong(index);
+                    // _manuallyChanged = ManuallyChanged.None;
+                    break;
+                }
+            case ManuallyChanged.SpinButton:
+                {
+                    _sequencedAudioList.SelectRow(index);
+                    _sequencedAudioList.ColumnView!.ScrollTo((uint)index, null, ListScrollFlags.Select, ScrollInfo.New());
+                    if (Engine.Instance!.Config.Playlists is not null)
+                    {
+                        PlaylistSongStringChanged(index);
+                    }
+                    SetAndLoadSong(index);
+                    break;
+                }
+            case ManuallyChanged.PlaylistDropDown:
+                {
+                    _sequencedAudioList.SelectRow(index);
+                    if (!_playlistChanged)
+                        _sequencedAudioList.ColumnView!.ScrollTo((uint)index, null, ListScrollFlags.Select, ScrollInfo.New());
+                    _sequenceNumberSpinButton.Value = index;
+                    SetAndLoadSong(index);
+                    break;
+                }
+            case ManuallyChanged.List:
+                {
+                    _sequenceNumberSpinButton.Value = index;
+                    if (Engine.Instance!.Config.Playlists is not null)
+                    {
+                        PlaylistSongStringChanged(index);
+                    }
+                    SetAndLoadSong(index);
+                    break;
+                }
+            default:
+                {
+                    break;
+                }
+        }
+    }
+
+    internal static string GetProgramName() => ConfigUtils.PROGRAM_NAME;
     private void SetSongToProgramTitle(List<Config.Song> songs, int songIndex)
     {
         Title = $"{GetProgramName()} - {songs[songIndex].Name}";
@@ -546,8 +1080,16 @@ internal sealed class MainWindow : Window
         // to prevent it from unexpectedly stopping
         if (index != Instance!._curSong)
         {
-            Instance!._autoplay = false;  // Set to false, so anyone selecting from the sequences list doesn't have the song automatically play
-            Instance!.SetAndLoadSong(index);  // This will set and load the song for all widgets
+            if (!Instance._sequencedAudioList.HasSelectedRow)
+            {
+                if (Instance._manuallyChanged is ManuallyChanged.None)
+                {
+                    Instance._manuallyChanged = ManuallyChanged.List;
+                    Instance!.CheckIfChangedManually(index);  // This will check to see if it was changed manually
+                    Instance._manuallyChanged = ManuallyChanged.None;
+                }
+            }
+            Instance._sequencedAudioList.HasSelectedRow = false;
         }
     }
 
@@ -575,35 +1117,44 @@ internal sealed class MainWindow : Window
 
     private void OnPlaylistStringSelected(GObject.Object sender, NotifySignalArgs args)
     {
-        if (_configPlaylistBox.PlaylistDropDown!.SelectedItem is not null)
+        if (_configPlaylist.PlaylistDropDown!.SelectedItem is not null)
         {
             _autoplay = false;  // Must be set to false first
             CheckPlaylistItem();  // Check the playlist item, to set the dropdown to it's first song in the playlist
-            _configPlaylistBox.PlaylistStringSelect();  // Selects the playlist item
-            _playlistChanged = true;  // We set this, so that the autoplay doesn't get set to true until after the song is loaded
-            SetAndLoadSong(_configPlaylistBox.GetSongIndex(_configPlaylistBox.PlaylistDropDown.Selected));  // This will set and load the song
+            _configPlaylist.PlaylistStringSelect();  // Selects the playlist item
+            _playlistChanged = true;  // We set this, so that the autoplay doesn't get set while changing playlists
+            _manuallyChanged = ManuallyChanged.PlaylistDropDown;
+            CheckIfChangedManually(_configPlaylist.GetSongIndex(_configPlaylist.PlaylistDropDown.Selected));  // This will set and load the song
+            _manuallyChanged = ManuallyChanged.None;
             _playlistChanged = false;  // Now we can set it back to false
-            _autoplay = true;  // And set this to true, so that when a playlist song is selected, it'll autoplay
         }
     }
 
     private void OnPlaylistSongStringSelected(GObject.Object sender, NotifySignalArgs args)
     {
-        if (_configPlaylistBox.PlaylistSongDropDown.SelectedItem is not null)
+        if (_configPlaylist.PlaylistSongDropDown.SelectedItem is not null)
         {
-            if (_configPlaylistBox.PlaylistDropDown.Selected != _configPlaylistBox.SelectedPlaylist)
+            if (_configPlaylist.PlaylistDropDown.Selected != _configPlaylist.SelectedPlaylist)
                 Stop();
-            if (_configPlaylistBox.PlaylistSongDropDown.Selected != _configPlaylistBox.SelectedSong)
+            if (_configPlaylist.PlaylistSongDropDown.Selected != _configPlaylist.SelectedSong)
             {
                 CheckPlaylistItem();
-                var selectedItem = (StringObject)_configPlaylistBox.PlaylistSongDropDown.SelectedItem;
+                var selectedItem = (StringObject)_configPlaylist.PlaylistSongDropDown.SelectedItem;
                 var selectedItemName = selectedItem.String;
-                foreach (var song in _configPlaylistBox.Songs!)
+                foreach (var song in _configPlaylist.Songs!)
                 {
                     if (song.Name.Equals(selectedItemName))
                     {
-                        SetAndLoadSong(song.Index);
-                        _configPlaylistBox.SelectedSong = _configPlaylistBox.PlaylistSongDropDown.Selected;
+                        _configPlaylist.SelectedSong = _configPlaylist.PlaylistSongDropDown.Selected;
+                        if (_manuallyChanged is ManuallyChanged.None)
+                        {
+                            _manuallyChanged = ManuallyChanged.PlaylistDropDown;
+                            if (!_playlistChanged)
+                                _autoplay = true;
+                            CheckIfChangedManually(song.Index);
+                            _autoplay = false;
+                            _manuallyChanged = ManuallyChanged.None;
+                        }
                     }
                 }
             }
@@ -611,13 +1162,13 @@ internal sealed class MainWindow : Window
     }
     private void PlaylistSongStringChanged(int index)
     {
-        if (_configPlaylistBox.PlaylistSongDropDown.SelectedItem is not null)
+        if (_configPlaylist.PlaylistSongDropDown.SelectedItem is not null)
         {
-            foreach (var song in _configPlaylistBox.Songs!)
+            foreach (var song in _configPlaylist.Songs!)
             {
                 if (song.Index.Equals(index))
                 {
-                    _configPlaylistBox.PlaylistSongDropDown.SetSelected(_configPlaylistBox.GetPlaylistSongIndex(index));
+                    _configPlaylist.PlaylistSongDropDown.SetSelected(_configPlaylist.GetPlaylistSongIndex(index));
                 }
             }
         }
@@ -625,17 +1176,69 @@ internal sealed class MainWindow : Window
     public void SetAndLoadSong(int index)
     {
         _curSong = index;
-        if (_sequenceNumberSpinButton.Value == index)
+
+        Stop();
+        Title = GetProgramName();
+        //_sequencesListView.Margin = 0;
+        //_sequencedAudioTrackInfo.Reset();
+        bool success;
+        if (Engine.Instance == null)
         {
-            _sequencedAudioList.SelectRow(index);
-            SequenceNumberSpinButton_ValueChanged(this, EventArgs.Empty);
-            PlaylistSongStringChanged(index);
+            return; // Prevents referencing a null Engine.Instance when the engine is being disposed, especially while main window is being closed
+        }
+        Player player = Engine.Instance!.Player;
+        Config cfg = Engine.Instance.Config;
+        try
+        {
+            player.LoadSong(index);
+            success = Engine.Instance.Player.LoadedSong is not null; // TODO: Make sure loadedsong is null when there are no tracks (for each engine, only mp2k guarantees it rn)
+        }
+        catch (Exception ex)
+        {
+            FlexibleMessageBox.Show(ex, string.Format(Strings.ErrorLoadSong, Engine.Instance!.Config.GetSongName(index)));
+            success = false;
+        }
+
+        //_trackViewer?.UpdateTracks();
+        ILoadedSong? loadedSong = player.LoadedSong; // LoadedSong is still null when there are no tracks
+        if (success)
+        {
+            if (Engine.Instance.Config.Playlists is not null)
+            {
+                List<Config.Song> songs = cfg.Playlists![^1].Songs; // Complete "All Songs" playlist is present in all configs at the last index value
+                int songIndex = songs.FindIndex(s => s.Index == index);
+                if (songIndex != -1)
+                {
+                    SetSongToProgramTitle(songs, songIndex); // Done! It's now a func
+                    PlaylistSongStringChanged(index);
+                    CheckPlaylistItem();
+                }
+            }
+            else
+            {
+                List<Config.Song> songs = cfg.InternalSongNames![0].Songs;
+                int songIndex = songs.FindIndex(s => s.Index == index);
+                if (songIndex != -1)
+                {
+                    SetSongToProgramTitle(songs, songIndex);
+                }
+            }
+            _positionBar.Adjustment!.Upper = loadedSong!.MaxTicks;
+            _positionBar.SetRange(0, loadedSong.MaxTicks);
+            _sequencedAudioTrackInfo.SetNumTracks(loadedSong.Events.Length);
             _sequencedAudioTrackInfo.AddTrackInfo();
+            if (_autoplay)
+            {
+                Play();
+            }
         }
         else
         {
-            _sequenceNumberSpinButton.Value = index;
+            _sequencedAudioTrackInfo.SetNumTracks(0);
         }
+        _positionBar.Sensitive = _exportWAVAction.Enabled = success;
+        _exportMIDIAction.Enabled = success && MP2KEngine.MP2KInstance is not null;
+        _exportDLSAction.Enabled = _exportSF2Action.Enabled = success && AlphaDreamEngine.AlphaDreamInstance is not null;
     }
 
     //private void SetAndLoadNextPlaylistSong()
@@ -1006,15 +1609,18 @@ internal sealed class MainWindow : Window
         _sequenceNumberSpinButton.Visible = true;
         _sequenceNumberSpinButton.Show();
         _buttonRecord.Sensitive =
-            _configPlaylistBox.PlaylistDropDown!.Sensitive =
-            _configPlaylistBox.ButtonPrevPlistSong.Sensitive =
-            _configPlaylistBox.PlaylistSongDropDown!.Sensitive =
-            _configPlaylistBox.ButtonNextPlistSong.Sensitive = true;
+            _configPlaylist.PlaylistDropDown!.Sensitive =
+            _configPlaylist.ButtonPrevPlistSong.Sensitive =
+            _configPlaylist.PlaylistSongDropDown!.Sensitive =
+            _configPlaylist.ButtonNextPlistSong.Sensitive = true;
         _exportDLSAction.Enabled = false;
         _exportMIDIAction.Enabled = true;
         _exportSF2Action.Enabled = false;
+        PlaylistWidgetAction_IsEnabled(true);
+        PianoWidgetAction_IsEnabled(true);
+        SeqAudioTrackInfoWidgetAction_IsEnabled(true);
+        SeqAudioListWidgetAction_IsEnabled(true);
         // _sequencedAudioTrackInfo.Init();
-        _sequencedAudioTrackInfo.Show();
     }
     private void ExportDLS(Gio.SimpleAction sender, EventArgs e)
     {
@@ -1357,7 +1963,6 @@ internal sealed class MainWindow : Window
         Engine.Instance!.Player.IsPauseToggled = false;
         Engine.Instance.Player.Play();
         LetUIKnowPlayerIsPlaying();
-        // _sequencedAudioTrackInfo.AddEntries();
     }
     private void Pause()
     {
@@ -1408,8 +2013,12 @@ internal sealed class MainWindow : Window
         }
         else
         {
-            _configPlaylistBox.PlaylistSongDropDown.Selected -= 1;
-            SetAndLoadSong(_configPlaylistBox.Songs![(int)_configPlaylistBox.PlaylistSongDropDown.Selected].Index);
+            _configPlaylist.PlaylistSongDropDown.Selected -= 1;
+            _manuallyChanged = ManuallyChanged.PlaylistDropDown;
+            _autoplay = true;
+            CheckIfChangedManually(_configPlaylist.Songs![(int)_configPlaylist.PlaylistSongDropDown.Selected].Index);
+            _autoplay = false;
+            _manuallyChanged = ManuallyChanged.None;
             CheckPlaylistItem();
         }
     }
@@ -1421,8 +2030,12 @@ internal sealed class MainWindow : Window
         }
         else
         {
-            _configPlaylistBox.PlaylistSongDropDown.Selected += 1;
-            SetAndLoadSong(_configPlaylistBox.Songs![(int)_configPlaylistBox.PlaylistSongDropDown.Selected].Index);
+            _configPlaylist.PlaylistSongDropDown.Selected += 1;
+            _manuallyChanged = ManuallyChanged.PlaylistDropDown;
+            _autoplay = true;
+            CheckIfChangedManually(_configPlaylist.Songs![(int)_configPlaylist.PlaylistSongDropDown.Selected].Index);
+            _autoplay = false;
+            _manuallyChanged = ManuallyChanged.None;
             CheckPlaylistItem();
         }
     }
@@ -1430,16 +2043,16 @@ internal sealed class MainWindow : Window
     private void CheckPlaylistItem()
     {
         // For the Previous Song button
-        if (_configPlaylistBox.PlaylistSongDropDown.Selected is 0)
-            _configPlaylistBox.ButtonPrevPlistSong.Sensitive = false;
+        if (_configPlaylist.PlaylistSongDropDown.Selected is 0)
+            _configPlaylist.ButtonPrevPlistSong.Sensitive = false;
         else
-            _configPlaylistBox.ButtonPrevPlistSong.Sensitive = true;
+            _configPlaylist.ButtonPrevPlistSong.Sensitive = true;
 
         // For the Next Song button
-        if (_configPlaylistBox.PlaylistSongDropDown.Selected == _configPlaylistBox.GetNumSongs() - 1)
-            _configPlaylistBox.ButtonNextPlistSong.Sensitive = false;
+        if (_configPlaylist.PlaylistSongDropDown.Selected == _configPlaylist.GetNumSongs() - 1)
+            _configPlaylist.ButtonNextPlistSong.Sensitive = false;
         else
-            _configPlaylistBox.ButtonNextPlistSong.Sensitive = true;
+            _configPlaylist.ButtonNextPlistSong.Sensitive = true;
     }
 
     private void FinishLoading(long numSongs)
@@ -1451,9 +2064,9 @@ internal sealed class MainWindow : Window
         _sequencedAudioList.Init();
         if (config.Playlists is not null)
         {
-            _configPlaylistBox.AddEntries(config.Playlists);
-            _configPlaylistBox.PlaylistDropDown.OnNotify += OnPlaylistStringSelected;
-            _configPlaylistBox.PlaylistSongDropDown.OnNotify += OnPlaylistSongStringSelected;
+            _configPlaylist.AddEntries(config.Playlists);
+            _configPlaylist.PlaylistDropDown.OnNotify += OnPlaylistStringSelected;
+            _configPlaylist.PlaylistSongDropDown.OnNotify += OnPlaylistSongStringSelected;
         }
         //foreach (Config.Playlist playlist in Engine.Instance.Config.Playlists)
         //{
@@ -1461,12 +2074,14 @@ internal sealed class MainWindow : Window
         //	_sequencedAudioList.Add(new SoundSequenceListItem(playlist));
         //	_sequencedAudioList.AddRange(playlist.Songs.Select(s => new SoundSequenceListItem(s)).ToArray());
         //}
-        _sequenceNumberAdjustment.Upper = numSongs;
+        _sequenceNumberSpinButton.Adjustment!.Upper = numSongs;
 #if DEBUG
         // [Debug methods specific to this GUI will go in here]
 #endif
         _autoplay = false;
-        SetAndLoadSong(Engine.Instance.Config.Playlists[0].Songs.Count == 0 ? 0 : Engine.Instance.Config.Playlists[0].Songs[0].Index);
+        _manuallyChanged = ManuallyChanged.Initialized;
+        CheckIfChangedManually(Engine.Instance.Config.Playlists[^1].Songs.Count == 0 ? 0 : Engine.Instance.Config.Playlists[^1].Songs[0].Index);
+        _manuallyChanged = ManuallyChanged.None;
         _sequenceNumberSpinButton.Sensitive = _buttonPlay.Sensitive = _volumeBar.Sensitive = true;
         _volumeBar.SetValue(100);
     }
@@ -1480,18 +2095,18 @@ internal sealed class MainWindow : Window
 
         //_trackViewer?.UpdateTracks();
         Name = GetProgramName();
-        //_songInfo.SetNumTracks(0);
-        //_songInfo.ResetMutes();
+        _sequencedAudioTrackInfo.SetNumTracks(0);
+        _sequencedAudioTrackInfo.ResetMutes();
         ResetPlaylistStuff(false);
         UpdatePositionIndicators(0L);
         //_signal.Connect(_sequencesListFactory, SequencesListView_SelectionGet, false, null);
-        _sequenceNumberAdjustment.OnValueChanged -= SequenceNumberSpinButton_ValueChanged;
+        // _sequenceNumberSpinButton.OnValueChanged -= SequenceNumberSpinButton_ValueChanged;
         _sequenceNumberSpinButton.Visible = false;
-        _sequenceNumberSpinButton.Value = _sequenceNumberAdjustment.Upper = 0;
+        _sequenceNumberSpinButton.Value = _sequenceNumberSpinButton.Adjustment!.Upper = 0;
         //_sequencesListView.Selection.SelectFunction = null;
         //_sequencesColumnView.Unref();
         //_signal.Connect(_sequencesListFactory, SequencesListView_SelectionGet, true, null);
-        _sequenceNumberSpinButton.OnValueChanged += SequenceNumberSpinButton_ValueChanged;
+        // _sequenceNumberSpinButton.OnValueChanged += SequenceNumberSpinButton_ValueChanged;
     }
 
     private bool TimerCallback()
@@ -1535,5 +2150,25 @@ internal sealed class MainWindow : Window
         {
             _positionBar.Adjustment!.SetValue(ticks);
         }
+    }
+
+    private void OpenTrackViewer(Gio.SimpleAction sender, Gio.SimpleAction.ActivateSignalArgs args)
+    {
+        if (_trackViewer is not null)
+        {
+            _trackViewer.FocusVisible = true;
+        }
+
+        _trackViewer = new TrackViewer();
+        _trackViewer.Present();
+
+        _trackViewer.OnCloseRequest += TrackViewer_WindowClosed;
+    }
+
+    private bool TrackViewer_WindowClosed(Gtk.Window sender, EventArgs args)
+    {
+        _trackViewer.Dispose();
+        _trackViewer = null!;
+        return false;
     }
 }

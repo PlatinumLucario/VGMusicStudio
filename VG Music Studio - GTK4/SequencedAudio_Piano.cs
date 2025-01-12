@@ -2,8 +2,6 @@ using Gtk;
 using Cairo;
 using Kermalis.VGMusicStudio.Core;
 using Kermalis.VGMusicStudio.Core.Util;
-using Kermalis.VGMusicStudio.GTK4.Util;
-using System;
 
 namespace Kermalis.VGMusicStudio.GTK4;
 
@@ -11,12 +9,14 @@ internal class SequencedAudio_Piano : DrawingArea
 {
     private SongState.Track[]? Tracks;
     private bool[]? EnabledTracks;
-    private TrackColor Color;
-    private readonly TrackColor[] Colors;
+    private readonly HSLColor[] Colors;
+    private double R;
+    private double G;
+    private double B;
 
     internal SequencedAudio_Piano()
     {
-        Colors = new TrackColor[SongState.MAX_TRACKS];
+        Colors = new HSLColor[SongState.MAX_TRACKS];
         HeightRequest = 60;
         WidthRequest = 600;
         SetHexpand(true);
@@ -89,22 +89,6 @@ internal class SequencedAudio_Piano : DrawingArea
             else kGrp--; // Otherwise if it's neither of the above, the key group will be decremented to 2
         }
     }
-    private void DrawPianoKeyWhite(Context cr, int keyIndex, int keyGroup, double pos, bool isDarker)
-    {
-        Color = new(); // Creates a new instance for coloring the white keys
-        Color.A = 1; // Alpha channel must always be set to 1.0 (maximum value)
-        var width = GetWidth() / 599f; // Piano key width
-        var height = (float)GetHeight();
-        if (isDarker) Color.R = Color.G = Color.B = 1f / 2f; // If it's the darker key group, make sure all RGB channels are half each
-        else Color.R = Color.G = Color.B = 1; // Otherwise, set them to 1.0 (maximum value)
-        cr.Save(); // Save the context before we start drawing
-        CheckPianoTrack(keyIndex); // Check to see if the piano key is being pressed, and set it to that highlighted color
-        cr.SetSourceRgba(Color.R, Color.G, Color.B, Color.A); // Then apply the color values
-        cr.Rectangle(pos * width, 0, 7 * width, height); // Create the key as a rectangle, positioned right after each one
-        cr.Fill(); // Fill in the rectangle with the applied color values
-        if (keyIndex % 12 == 0) DrawText(cr, keyIndex, keyGroup, pos, width, height);
-        cr.Restore(); // This will restore the context, to prepare for the next drawing
-    }
 
     private void DrawText(Context cr, int keyIndex, int keyGroup, double pos, float areaWidth, float areaHeight)
     {
@@ -116,19 +100,32 @@ internal class SequencedAudio_Piano : DrawingArea
         cr.MoveTo((pos * areaWidth) + areaWidth + smallAdj, areaHeight - 5); // Move the font to the bottom of the keys
         cr.ShowText(ConfigUtils.GetKeyName(keyIndex)); // Set the text so it shows as the actual piano key note
     }
+    private void DrawPianoKeyWhite(Context cr, int keyIndex, int keyGroup, double pos, bool isDarker)
+    {
+        var width = GetWidth() / 599f; // Piano key width
+        var height = (float)GetHeight();
+        if (isDarker) R = G = B = 1f / 2f; // If it's the darker key group, make sure all RGB channels are half each
+        else R = G = B = 1; // Otherwise, set them to 1.0 (maximum value)
+        cr.Save(); // Save the context before we start drawing
+        CheckPianoTrack(keyIndex); // Check to see if the piano key is being pressed, and set it to that highlighted color
+        cr.SetSourceRgb(R, G, B); // Then apply the color values
+        cr.Rectangle(pos * width, 0, 7 * width, height); // Create the key as a rectangle, positioned right after each one
+        cr.Fill(); // Fill in the rectangle with the applied color values
+        if (keyIndex % 12 == 0) DrawText(cr, keyIndex, keyGroup, pos, width, height);
+        cr.Restore(); // This will restore the context, to prepare for the next drawing
+    }
 
     private void DrawPianoKeyBlack(Context cr, int keyIndex, double pos)
     {
-        Color = new(); // Creates a new color instance for coloring the black keys
-        Color.A = 1; // Alpha channel must always be set to 1.0 (maximum value)
-        Color.R = Color.G = Color.B = 0; // All black keys are set to 0.0 (minimum value)
+        R = G = B = 0; // All black keys are set to 0.0 (minimum value)
         cr.Save(); // Save the context before we start drawing
         CheckPianoTrack(keyIndex); // Check to see if the piano key is being pressed, and set it to that highlighted color
-        cr.SetSourceRgba(Color.R, Color.G, Color.B, Color.A); // Then apply the color values
+        cr.SetSourceRgb(R, G, B); // Then apply the color values
         cr.Rectangle((pos + 5.1) * (GetWidth() / 599f), 0, 5 * (GetWidth() / 599f), GetHeight() / 1.5); // Create the key as a smaller rectangle
         cr.Fill(); // Fill in the rectangle with the applied color values
         cr.Restore(); // This will restore the context, to prepare for the next drawing
     }
+
     private void InitPianoTracks()
     {
         for (int i = SongState.MAX_TRACKS - 1; i >= 0; i--)
@@ -147,10 +144,7 @@ internal class SequencedAudio_Piano : DrawingArea
                     break;
                 }
 
-                Colors[i].R = GlobalConfig.Instance.Colors[track.Voice].R / 255.0;
-                Colors[i].G = GlobalConfig.Instance.Colors[track.Voice].G / 255.0;
-                Colors[i].B = GlobalConfig.Instance.Colors[track.Voice].B / 255.0;
-                Colors[i].A = GlobalConfig.Instance.Colors[track.Voice].A / 255.0;
+                Colors[i] = new HSLColor(GlobalConfig.Instance.Colors[track.Voice]);
             }
         }
     }
@@ -160,19 +154,20 @@ internal class SequencedAudio_Piano : DrawingArea
         {
             if (Colors[ti].R is not 0f &&
                 Colors[ti].G is not 0f &&
-                Colors[ti].B is not 0f &&
-                Colors[ti].A is not 0f)
+                Colors[ti].B is not 0f)
             {
                 for (int i = 0; i < Tracks![ti].Keys.Length; i++)
                 {
-                    if (Tracks[ti].Keys[i] != byte.MaxValue)
+                    if (EnabledTracks![ti])
                     {
-                        if (Tracks[ti].Keys[i] == keyIndex)
+                        if (Tracks[ti].Keys[i] != byte.MaxValue)
                         {
-                            Color.R = Colors[ti].R;
-                            Color.G = Colors[ti].G;
-                            Color.B = Colors[ti].B;
-                            Color.A = Colors[ti].A;
+                            if (Tracks[ti].Keys[i] == keyIndex)
+                            {
+                                R = Colors[ti].R;
+                                G = Colors[ti].G;
+                                B = Colors[ti].B;
+                            }
                         }
                     }
                 }
