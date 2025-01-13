@@ -15,7 +15,7 @@ public sealed class AlphaDreamPlayer : Player
 	private readonly AlphaDreamMixer_NAudio _mixer_NAudio;
 	private AlphaDreamLoadedSong? _loadedSong;
 
-	internal byte Tempo;
+	public override ushort Tempo { get; set; }
 	internal int TempoStack;
 	private long _elapsedLoops;
 

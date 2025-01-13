@@ -17,7 +17,7 @@ public sealed class SDATPlayer : Player
 	private SDATLoadedSong? _loadedSong;
 
 	internal byte Volume;
-	internal ushort Tempo;
+	public override ushort Tempo { get; set; }
 	internal int TempoStack;
 	private long _elapsedLoops;
 

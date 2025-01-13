@@ -10,7 +10,7 @@ public sealed partial class MP2KPlayer : Player
 	internal readonly MP2KMixer_NAudio MMixer_NAudio;
 	private MP2KLoadedSong? _loadedSong;
 
-	internal ushort Tempo;
+	public override ushort Tempo { get; set; }
 	internal int TempoStack;
 	private long _elapsedLoops;
 

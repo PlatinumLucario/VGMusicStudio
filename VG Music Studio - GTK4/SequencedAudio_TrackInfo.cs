@@ -11,6 +11,7 @@ namespace Kermalis.VGMusicStudio.GTK4;
 internal class SequencedAudio_TrackInfo : Box
 {
     private Label? TempoLabel { get; set; }
+    private SpinButton TempoSpinButton { get; set; }
 
     private CheckButton? TrackToggleCheckButtonHeader { get; set; }
     private Label? VelocityHeader { get; set; }
@@ -44,8 +45,18 @@ internal class SequencedAudio_TrackInfo : Box
             NumTracks[i] = true;
 
         Info = new SongState();
-
-        TempoLabel = Label.New(string.Format("{0} - {1}", Strings.PlayerTempo, Info.Tempo));
+        
+        TempoLabel = Label.New(Strings.PlayerTempo);
+        TempoSpinButton = SpinButton.New(Adjustment.New(Info.Tempo, 0, ushort.MaxValue, 1, 10, 0), 0, 0);
+        TempoSpinButton.SetNumeric(true);
+        TempoSpinButton.OnValueChanged += ChangeTempo;
+        TempoSpinButton.OnChangeValue += ChangeTempo;
+        var tempoBox = New(Orientation.Horizontal, 4);
+        tempoBox.Append(TempoLabel);
+        tempoBox.Append(TempoSpinButton);
+        tempoBox.SetHalign(Align.Center);
+        tempoBox.MarginStart = 100;
+        tempoBox.MarginEnd = 100;
         var listHeader = CreateListHeader();
         var viewport = Viewport.New(Adjustment.New(0, -1, -1, 1, 1, 1), Adjustment.New(0, -1, -1, 1, 1, 1));
         var scrolledWindow = ScrolledWindow.New();
@@ -62,13 +73,21 @@ internal class SequencedAudio_TrackInfo : Box
         viewport.Child = scrolledWindow;
 
         SetOrientation(Orientation.Vertical);
-        Append(TempoLabel);
+        Append(tempoBox);
         Append(listHeader);
         Append(viewport);
         SetVexpand(true);
         SetHexpand(true);
         SetNumTracks(0);
         ConfigureTimer();
+    }
+
+    private void ChangeTempo(SpinButton sender, EventArgs args)
+    {
+        if (Engine.Instance is not null)
+        {
+            Engine.Instance.Player.Tempo = (ushort)TempoSpinButton.Value;
+        }
     }
 
     internal static void SetNumTracks(int num) => NumTracksToDraw = num;
@@ -86,7 +105,6 @@ internal class SequencedAudio_TrackInfo : Box
 
     private bool TrackTimerCallback()
     {
-        TempoLabel!.SetText(string.Format("{0} - {1}", Strings.PlayerTempo, Info!.Tempo));
         if (TrackToggleCheckButton is not null &&
             PositionLabel is not null &&
             RestLabel is not null &&
@@ -480,6 +498,8 @@ internal class SequencedAudio_TrackInfo : Box
             else
                 NumTracks[i] = false;
         }
+
+        TempoSpinButton.Value = Engine.Instance!.Player.Tempo;
 
         TrackToggleCheckButton = new CheckButton[NumTracksToDraw];
         PositionLabel = new Label[NumTracksToDraw];

@@ -12,7 +12,7 @@ public sealed class DSEPlayer : Player
 	internal readonly SWD MasterSWD;
 	private DSELoadedSong? _loadedSong;
 
-	internal byte Tempo;
+	public override ushort Tempo { get; set; }
 	internal int TempoStack;
 	private long _elapsedLoops;
 

@@ -29,6 +29,7 @@ public abstract class Player : IDisposable
 	protected abstract Mixer_NAudio Mixer_NAudio { get; }
 
 	public abstract ILoadedSong? LoadedSong { get; }
+	public abstract ushort Tempo { get; set; }
 	public bool ShouldFadeOut { get; set; }
 	public long NumLoops { get; set; }
 

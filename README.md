@@ -18,8 +18,6 @@ If you want to talk or would like a game added to our configs, join our [Discord
 * MIDI saving - UI with saving options, such as remapping
 * MIDI saving - Make errors more clear
 * Voice table viewer - Tooltips which provide a huge chunk of information
-* Detachable piano
-* Tempo numerical (it fits)
 * Help dialog that explains the commands and config for each engine
 
 ### AlphaDream Engine
