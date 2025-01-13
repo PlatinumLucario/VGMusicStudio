@@ -103,11 +103,11 @@ internal sealed class MainWindow : Window
     private Scale _volumeBar, _positionBar;
 
     // Mouse Click and Drag Gestures
-    private GestureClick _positionGestureClick;
+    private GestureClick _positionGestureClick, _sequenceNumberSpinButtonGestureClick;
     private GestureDrag _positionGestureDrag;
 
     // Playlist
-    private PlaylistConfig _configPlaylist;
+    private PlaylistSelector _playlistSelector;
 
     // Sequenced Audio Piano
     private SequencedAudio_Piano _piano;
@@ -214,6 +214,7 @@ internal sealed class MainWindow : Window
         _trackViewerItem = Gio.MenuItem.New(Strings.TrackViewerTitle, "app.trackViewer");
         _trackViewerAction = Gio.SimpleAction.New("trackViewer", null);
         _app.AddAction(_trackViewerAction);
+        _trackViewerAction.Enabled = false;
         _trackViewerAction.OnActivate += OpenTrackViewer;
         _dataMenu.AppendItem(_trackViewerItem);
         _trackViewerItem.Unref();
@@ -408,8 +409,11 @@ internal sealed class MainWindow : Window
         _buttonRecord.OnClicked += ExportWAV;
 
         // Spin Button
-        _sequenceNumberSpinButton = SpinButton.New(Adjustment.New(0, 0, -1, 1, 1, 1), 1, 0);
+        _sequenceNumberSpinButton = SpinButton.New(Adjustment.New(0, 0, -1, 1, 10, 0), 0, 0);
+        _sequenceNumberSpinButtonGestureClick = GestureClick.New();
+        _sequenceNumberSpinButton.AddController(_sequenceNumberSpinButtonGestureClick);
         _sequenceNumberSpinButton.Sensitive = false;
+        _sequenceNumberSpinButton.SetNumeric(true);
         _sequenceNumberSpinButton.Value = 0;
         _sequenceNumberSpinButton.OnValueChanged += SequenceNumberSpinButton_ValueChanged;
         _sequenceNumberSpinButton.OnChangeValue += SequenceNumberSpinButton_ChangeValue;
@@ -451,9 +455,9 @@ internal sealed class MainWindow : Window
         // _positionGestureDrag.OnDragEnd += PositionBar_MouseButtonOnEnd;
 
         // Playlist
-        _configPlaylist = new PlaylistConfig();
-        _configPlaylist.ButtonPrevPlistSong.OnClicked += (o, e) => PlayPreviousSong();
-        _configPlaylist.ButtonNextPlistSong.OnClicked += PlayNextSong;
+        _playlistSelector = new PlaylistSelector();
+        _playlistSelector.ButtonPrevPlistSong.OnClicked += (o, e) => PlayPreviousSong();
+        _playlistSelector.ButtonNextPlistSong.OnClicked += PlayNextSong;
         _playlistBox = Box.New(Orientation.Vertical, 0);
         _playlistBox.SetVexpand(true);
 
@@ -543,7 +547,7 @@ internal sealed class MainWindow : Window
         {
             if (_playlistWindow.WidgetBox.GetFirstChild() is not null)
             {
-                _playlistWindow.WidgetBox.Remove(_configPlaylist);
+                _playlistWindow.WidgetBox.Remove(_playlistSelector);
             }
             _playlistWindow.OnCloseRequest -= PlaylistWindow_CloseRequest;
             _playlistWindow.Dispose();
@@ -554,7 +558,7 @@ internal sealed class MainWindow : Window
             }
         }
 
-        _playlistBox.Append(_configPlaylist);
+        _playlistBox.Append(_playlistSelector);
 
         _playlistWidgetTiledAction.SetState(GLib.Variant.NewBoolean(true));
         _playlistWidgetWindowedAction.SetState(GLib.Variant.NewBoolean(false));
@@ -568,9 +572,9 @@ internal sealed class MainWindow : Window
 
         if (_playlistBox.GetFirstChild() is not null)
         {
-            _playlistBox.Remove(_configPlaylist);
+            _playlistBox.Remove(_playlistSelector);
         }
-        _playlistWindow ??= new WidgetWindow(_configPlaylist);
+        _playlistWindow ??= new WidgetWindow(_playlistSelector);
         _playlistWindow.OnCloseRequest += PlaylistWindow_CloseRequest;
         _playlistWindow.Present();
 
@@ -588,7 +592,7 @@ internal sealed class MainWindow : Window
         {
             if (_playlistWindow.WidgetBox.GetFirstChild() is not null)
             {
-                _playlistWindow.WidgetBox.Remove(_configPlaylist);
+                _playlistWindow.WidgetBox.Remove(_playlistSelector);
             }
             _playlistWindow.OnCloseRequest -= PlaylistWindow_CloseRequest;
             _playlistWindow.Dispose();
@@ -600,7 +604,7 @@ internal sealed class MainWindow : Window
         }
         if (_playlistBox.GetFirstChild() is not null)
         {
-            _playlistBox.Remove(_configPlaylist);
+            _playlistBox.Remove(_playlistSelector);
         }
 
         _playlistWidgetTiledAction.SetState(GLib.Variant.NewBoolean(false));
@@ -988,6 +992,7 @@ internal sealed class MainWindow : Window
 
     private void SequenceNumberSpinButton_ValueChanged(object sender, EventArgs e)
     {
+        var curEvent = _sequenceNumberSpinButtonGestureClick.GetCurrentEvent();
         if (Engine.Instance is not null)
         {
             if (_manuallyChanged is ManuallyChanged.None)
@@ -1117,14 +1122,14 @@ internal sealed class MainWindow : Window
 
     private void OnPlaylistStringSelected(GObject.Object sender, NotifySignalArgs args)
     {
-        if (_configPlaylist.PlaylistDropDown!.SelectedItem is not null)
+        if (_playlistSelector.PlaylistDropDown!.SelectedItem is not null)
         {
             _autoplay = false;  // Must be set to false first
             CheckPlaylistItem();  // Check the playlist item, to set the dropdown to it's first song in the playlist
-            _configPlaylist.PlaylistStringSelect();  // Selects the playlist item
+            _playlistSelector.PlaylistStringSelect();  // Selects the playlist item
             _playlistChanged = true;  // We set this, so that the autoplay doesn't get set while changing playlists
             _manuallyChanged = ManuallyChanged.PlaylistDropDown;
-            CheckIfChangedManually(_configPlaylist.GetSongIndex(_configPlaylist.PlaylistDropDown.Selected));  // This will set and load the song
+            CheckIfChangedManually(_playlistSelector.GetSongIndex(_playlistSelector.PlaylistDropDown.Selected));  // This will set and load the song
             _manuallyChanged = ManuallyChanged.None;
             _playlistChanged = false;  // Now we can set it back to false
         }
@@ -1132,20 +1137,20 @@ internal sealed class MainWindow : Window
 
     private void OnPlaylistSongStringSelected(GObject.Object sender, NotifySignalArgs args)
     {
-        if (_configPlaylist.PlaylistSongDropDown.SelectedItem is not null)
+        if (_playlistSelector.PlaylistSongDropDown.SelectedItem is not null)
         {
-            if (_configPlaylist.PlaylistDropDown.Selected != _configPlaylist.SelectedPlaylist)
+            if (_playlistSelector.PlaylistDropDown.Selected != _playlistSelector.SelectedPlaylist)
                 Stop();
-            if (_configPlaylist.PlaylistSongDropDown.Selected != _configPlaylist.SelectedSong)
+            if (_playlistSelector.PlaylistSongDropDown.Selected != _playlistSelector.SelectedSong)
             {
                 CheckPlaylistItem();
-                var selectedItem = (StringObject)_configPlaylist.PlaylistSongDropDown.SelectedItem;
+                var selectedItem = (StringObject)_playlistSelector.PlaylistSongDropDown.SelectedItem;
                 var selectedItemName = selectedItem.String;
-                foreach (var song in _configPlaylist.Songs!)
+                foreach (var song in _playlistSelector.Songs!)
                 {
                     if (song.Name.Equals(selectedItemName))
                     {
-                        _configPlaylist.SelectedSong = _configPlaylist.PlaylistSongDropDown.Selected;
+                        _playlistSelector.SelectedSong = _playlistSelector.PlaylistSongDropDown.Selected;
                         if (_manuallyChanged is ManuallyChanged.None)
                         {
                             _manuallyChanged = ManuallyChanged.PlaylistDropDown;
@@ -1162,13 +1167,13 @@ internal sealed class MainWindow : Window
     }
     private void PlaylistSongStringChanged(int index)
     {
-        if (_configPlaylist.PlaylistSongDropDown.SelectedItem is not null)
+        if (_playlistSelector.PlaylistSongDropDown.SelectedItem is not null)
         {
-            foreach (var song in _configPlaylist.Songs!)
+            foreach (var song in _playlistSelector.Songs!)
             {
                 if (song.Index.Equals(index))
                 {
-                    _configPlaylist.PlaylistSongDropDown.SetSelected(_configPlaylist.GetPlaylistSongIndex(index));
+                    _playlistSelector.PlaylistSongDropDown.SetSelected(_playlistSelector.GetPlaylistSongIndex(index));
                 }
             }
         }
@@ -1225,7 +1230,7 @@ internal sealed class MainWindow : Window
             }
             _positionBar.Adjustment!.Upper = loadedSong!.MaxTicks;
             _positionBar.SetRange(0, loadedSong.MaxTicks);
-            _sequencedAudioTrackInfo.SetNumTracks(loadedSong.Events.Length);
+            SequencedAudio_TrackInfo.SetNumTracks(loadedSong.Events.Length);
             _sequencedAudioTrackInfo.AddTrackInfo();
             if (_autoplay)
             {
@@ -1234,7 +1239,12 @@ internal sealed class MainWindow : Window
         }
         else
         {
-            _sequencedAudioTrackInfo.SetNumTracks(0);
+            SequencedAudio_TrackInfo.SetNumTracks(0);
+        }
+        if (_trackViewer is not null)
+        {
+            _trackViewer.ReloadDropDownEntries();
+            _trackViewer.ReloadColumnEntries();
         }
         _positionBar.Sensitive = _exportWAVAction.Enabled = success;
         _exportMIDIAction.Enabled = success && MP2KEngine.MP2KInstance is not null;
@@ -1609,10 +1619,11 @@ internal sealed class MainWindow : Window
         _sequenceNumberSpinButton.Visible = true;
         _sequenceNumberSpinButton.Show();
         _buttonRecord.Sensitive =
-            _configPlaylist.PlaylistDropDown!.Sensitive =
-            _configPlaylist.ButtonPrevPlistSong.Sensitive =
-            _configPlaylist.PlaylistSongDropDown!.Sensitive =
-            _configPlaylist.ButtonNextPlistSong.Sensitive = true;
+            _playlistSelector.PlaylistDropDown!.Sensitive =
+            _playlistSelector.ButtonPrevPlistSong.Sensitive =
+            _playlistSelector.PlaylistSongDropDown!.Sensitive =
+            _playlistSelector.ButtonNextPlistSong.Sensitive = true;
+        _trackViewerAction.Enabled = true;
         _exportDLSAction.Enabled = false;
         _exportMIDIAction.Enabled = true;
         _exportSF2Action.Enabled = false;
@@ -2013,10 +2024,10 @@ internal sealed class MainWindow : Window
         }
         else
         {
-            _configPlaylist.PlaylistSongDropDown.Selected -= 1;
+            _playlistSelector.PlaylistSongDropDown.Selected -= 1;
             _manuallyChanged = ManuallyChanged.PlaylistDropDown;
             _autoplay = true;
-            CheckIfChangedManually(_configPlaylist.Songs![(int)_configPlaylist.PlaylistSongDropDown.Selected].Index);
+            CheckIfChangedManually(_playlistSelector.Songs![(int)_playlistSelector.PlaylistSongDropDown.Selected].Index);
             _autoplay = false;
             _manuallyChanged = ManuallyChanged.None;
             CheckPlaylistItem();
@@ -2030,10 +2041,10 @@ internal sealed class MainWindow : Window
         }
         else
         {
-            _configPlaylist.PlaylistSongDropDown.Selected += 1;
+            _playlistSelector.PlaylistSongDropDown.Selected += 1;
             _manuallyChanged = ManuallyChanged.PlaylistDropDown;
             _autoplay = true;
-            CheckIfChangedManually(_configPlaylist.Songs![(int)_configPlaylist.PlaylistSongDropDown.Selected].Index);
+            CheckIfChangedManually(_playlistSelector.Songs![(int)_playlistSelector.PlaylistSongDropDown.Selected].Index);
             _autoplay = false;
             _manuallyChanged = ManuallyChanged.None;
             CheckPlaylistItem();
@@ -2043,16 +2054,16 @@ internal sealed class MainWindow : Window
     private void CheckPlaylistItem()
     {
         // For the Previous Song button
-        if (_configPlaylist.PlaylistSongDropDown.Selected is 0)
-            _configPlaylist.ButtonPrevPlistSong.Sensitive = false;
+        if (_playlistSelector.PlaylistSongDropDown.Selected is 0)
+            _playlistSelector.ButtonPrevPlistSong.Sensitive = false;
         else
-            _configPlaylist.ButtonPrevPlistSong.Sensitive = true;
+            _playlistSelector.ButtonPrevPlistSong.Sensitive = true;
 
         // For the Next Song button
-        if (_configPlaylist.PlaylistSongDropDown.Selected == _configPlaylist.GetNumSongs() - 1)
-            _configPlaylist.ButtonNextPlistSong.Sensitive = false;
+        if (_playlistSelector.PlaylistSongDropDown.Selected == PlaylistSelector.GetNumSongs() - 1)
+            _playlistSelector.ButtonNextPlistSong.Sensitive = false;
         else
-            _configPlaylist.ButtonNextPlistSong.Sensitive = true;
+            _playlistSelector.ButtonNextPlistSong.Sensitive = true;
     }
 
     private void FinishLoading(long numSongs)
@@ -2064,9 +2075,9 @@ internal sealed class MainWindow : Window
         _sequencedAudioList.Init();
         if (config.Playlists is not null)
         {
-            _configPlaylist.AddEntries(config.Playlists);
-            _configPlaylist.PlaylistDropDown.OnNotify += OnPlaylistStringSelected;
-            _configPlaylist.PlaylistSongDropDown.OnNotify += OnPlaylistSongStringSelected;
+            _playlistSelector.AddEntries(config.Playlists);
+            _playlistSelector.PlaylistDropDown.OnNotify += OnPlaylistStringSelected;
+            _playlistSelector.PlaylistSongDropDown.OnNotify += OnPlaylistSongStringSelected;
         }
         //foreach (Config.Playlist playlist in Engine.Instance.Config.Playlists)
         //{
@@ -2095,7 +2106,7 @@ internal sealed class MainWindow : Window
 
         //_trackViewer?.UpdateTracks();
         Name = GetProgramName();
-        _sequencedAudioTrackInfo.SetNumTracks(0);
+        SequencedAudio_TrackInfo.SetNumTracks(0);
         _sequencedAudioTrackInfo.ResetMutes();
         ResetPlaylistStuff(false);
         UpdatePositionIndicators(0L);
@@ -2160,6 +2171,12 @@ internal sealed class MainWindow : Window
         }
 
         _trackViewer = new TrackViewer();
+        if (Engine.Instance is not null)
+        {
+            _trackViewer.ReloadDropDownEntries();
+            _trackViewer.Init();
+            _trackViewer.ReloadColumnEntries();
+        }
         _trackViewer.Present();
 
         _trackViewer.OnCloseRequest += TrackViewer_WindowClosed;

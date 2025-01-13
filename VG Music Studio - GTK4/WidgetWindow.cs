@@ -9,6 +9,8 @@ internal class WidgetWindow : Window
     {
         New();
 
+        Title = MainWindow.GetProgramName();
+
         var header = HeaderBar.New();
         WidgetBox = Gtk.Box.New(Gtk.Orientation.Vertical, 0);
         WidgetBox.Append(widget);

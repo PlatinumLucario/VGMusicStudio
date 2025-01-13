@@ -6,7 +6,7 @@ using Kermalis.VGMusicStudio.Core.Properties;
 
 namespace Kermalis.VGMusicStudio.GTK4;
 
-internal class PlaylistConfig : Box
+internal class PlaylistSelector : Box
 {
     public DropDown PlaylistDropDown { get; set; }
     public DropDown PlaylistSongDropDown { get; set; }
@@ -14,7 +14,7 @@ internal class PlaylistConfig : Box
     public uint SelectedPlaylist, SelectedSong = 0;
     private List<Config.Playlist>? Playlists { get; set; }
     internal List<Config.Song>? Songs { get; set; }
-    private Box PlaylistBox, PlaylistSongBox, PlaylistSongBoxDropDown;
+    private readonly Box PlaylistBox, PlaylistSongBox, PlaylistSongBoxDropDown;
     // private Gio.ListStore PlistModel = Gio.ListStore.New(GetGType());
     // private StringList StringList { get; set; }
     private static StringList? PlaylistStrings { get; set; }
@@ -42,7 +42,7 @@ internal class PlaylistConfig : Box
     //     }
     // }
 
-    internal PlaylistConfig()
+    internal PlaylistSelector()
     {
         SetOrientation(Orientation.Vertical);
         Spacing = 1;
@@ -60,13 +60,17 @@ internal class PlaylistConfig : Box
         ButtonPrevPlistSong = new Button() { Sensitive = false, TooltipText = Strings.PlayerPreviousSong, IconName = "media-skip-backward-symbolic" };
         ButtonNextPlistSong = new Button() { Sensitive = false, TooltipText = Strings.PlayerNextSong, IconName = "media-skip-forward-symbolic" };
 
-        PlaylistDropDown = new DropDown();
-        PlaylistDropDown.WidthRequest = 300;
-        PlaylistDropDown.Sensitive = false;
+        PlaylistDropDown = new DropDown
+        {
+            WidthRequest = 300,
+            Sensitive = false
+        };
         PlaylistDropDown.SetModel(PlaylistStrings);
-        PlaylistSongDropDown = new DropDown();
-        PlaylistSongDropDown.WidthRequest = 300;
-        PlaylistSongDropDown.Sensitive = false;
+        PlaylistSongDropDown = new DropDown
+        {
+            WidthRequest = 300,
+            Sensitive = false
+        };
         PlaylistSongDropDown.SetModel(PlaylistSongStrings);
 
         PlaylistBox = New(Orientation.Horizontal, 1);
@@ -134,7 +138,7 @@ internal class PlaylistConfig : Box
         return newIndex;
     }
 
-    internal int GetNumSongs()
+    internal static int GetNumSongs()
     {
         return (int)PlaylistSongStrings!.NItems;
     }
