@@ -51,18 +51,20 @@ If you want to talk or would like a game added to our configs, join our [Discord
 ----
 ## Building
 ### Windows
-Even though it will build without any issues, since VG Music Studio runs on GTK4 bindings via Gir.Core, it requires some C libraries to be installed or placed within the same directory as the Windows executable (.exe).
+VG Music Studio already includes the native library Nuget package for libadwaita. So that it can build and run without any issues and without needing to install MSYS2.
 
-Otherwise it will complain upon launch with the following System.TypeInitializationException error:
-``DllNotFoundException: Unable to load DLL 'libgtk-4-1.dll' or one of its dependencies: The specified module could not be found. (0x8007007E)``
+But if for any reason you need to update the libadwaita Nuget, follow the steps below:
+1. Download and install MSYS2 from [the official website](https://www.msys2.org/), and ensure it is installed in the default directory (``C:\``). If you install it in a different location, it will need to be set via the ``Path`` environment variable.
+2. After installation, run the following commands in the MSYS2 terminal: ``pacman -Syuu`` to reload the database and update all the packages.
+** If any errors occur saying that the signatures are of `unknown trust` during the update process and can't update, run ``pacman-key --refresh-keys`` to refresh the keys
 
-To avoid this error while debugging VG Music Studio, you will need to do the following:
-1. Download and install MSYS2 from [the official website](https://www.msys2.org/), and ensure it is installed in the default directory: ``C:\``.
-2. After installation, run the following commands in the MSYS2 terminal: ``pacman -Syy`` to reload the package database, then ``pacman -Syuu`` to update all the packages.
-3. Run each of the following commands to install the required packages:
+If libawaita hasn't been installed in MSYS2:
+2.1 (Optional) Run each of the following commands to install the required packages:
 ``pacman -S mingw-w64-x86_64-gtk4``
 ``pacman -S mingw-w64-x86_64-libadwaita``
 ``pacman -S mingw-w64-x86_64-gtksourceview5``
+
+3. Now run ``Build.bat`` inside the CreateNugets folder, it should update the .csproj for the Nuget and build the Nuget.
 
 ### macOS
 #### Intel (x86-64)
@@ -115,17 +117,6 @@ First, update the current packages with ``sudo pacman -Syy && sudo pacman -Syuu`
 ``sudo pacman -S libadwaita``
 ``sudo pacman -S gtksourceview5``
 
-##### ChimeraOS (Arch based distribution)
-Note: Not to be confused with Chimera Linux, the Linux distribution made from scratch with a custom Linux kernel. This one is an Arch Linux based distribution.
-
-Arch Linux based distribution, ChimeraOS, comes pre-installed with the GNOME desktop environment. To access it, open the terminal and type ``chimera-session desktop``.
-
-But because it is missing the .NET SDK and .NET Runtime, and the root directory is read-only, you will need to run the following command: ``sudo frzr-unlock``
-
-Then install any required packages like this example: ``sudo pacman -S [package-name]``
-
-Note: Any installed packages installed in the root directory with the pacman utility will be undone when ChimeraOS is updated, due to the way [frzr](https://github.com/ChimeraOS/frzr) functions. Also, frzr may be what inspired Vanilla OS's [ABRoot](https://github.com/Vanilla-OS/ABRoot) utility.
-
 #### Fedora (or other Red Hat based distributions, such as Red Hat Enterprise Linux, AlmaLinux, Rocky Linux etc.)
 First, update the current packages with ``sudo dnf check-update && sudo dnf update`` and install any updates, then run:
 ``sudo dnf install gtk4``
@@ -146,19 +137,6 @@ First, update the current packages with ``apk -U upgrade`` to their latest versi
 
 Please note that VG Music Studio may not be able to build on other CPU architectures (such as AArch64, ppc64le, s390x etc.), since it hasn't been developed to support those architectures yet. Same thing applies for postmarketOS.
 
-#### Puppy Linux
-Puppy Linux is an independent distribution that has many variants, each with packages from other Linux distributions.
-
-It's not possible to find the gtk4, libadwaita and gtksourceview5 libraries or their dependencies in the GUI package management tool, Puppy Package Manager. Because Puppy Linux is built to be a portable and lightweight distribution and to be compatible with older hardware. And because of this, it is only possible to find gtk+2 libraries and other legacy dependencies that it relies on.
-
-So therefore, VG Music Studio isn't supported on Puppy Linux.
-
-#### Chimera Linux
-Note: Not to be confused with the Arch Linux based distribution named ChimeraOS. This one is completely different and written from scratch, and uses a modified Linux kernel.
-
-Chimera Linux already comes pre-installed with the GNOME desktop environment and uses the Alpine Package Kit. If you need to install any necessary packages, run the following command example:
-``apk add [package-name]``
-
 #### Void Linux
 First, update the current packages with ``sudo xbps-install -Su`` to their latest versions, then run:
 ``sudo xbps-install gtk4``
@@ -173,7 +151,7 @@ Currently, .NET has not been ported to FreeBSD or similar operating systems. As 
 ### General
 * Stich991 - Italian translation
 * tuku473 - Design suggestions, colors, Spanish translation
-* J. Ritchie Carroll (Grid Protection Alliance) - Int24 and UInt24 classes and functions
+* J. Ritchie Carroll (from Grid Protection Alliance) - Int24 and UInt24 classes and functions
 * Benjamin Summerton (define-private-public) - PortAudio bindings for C#
 
 ### AlphaDream Engine
@@ -202,7 +180,7 @@ Currently, .NET has not been ported to FreeBSD or similar operating systems. As 
 * [SoundFont2](https://github.com/Kermalis/SoundFont2)
 * [PortAudio bindings](https://github.com/PlatinumLucario/VGMusicStudio/tree/new-gui-experimental/VG%20Music%20Studio%20-%20Core/PortAudio) [from Benjamin Summerton's Bassoon Project](https://gitlab.com/define-private-public/Bassoon)
 * [YamlDotNet](https://github.com/aaubry/YamlDotNet/wiki)
-### New GUI:
+### New GUI (Cross platform):
 * [GTK4](https://gtk.org)
 * [Adwaita](https://gitlab.gnome.org/GNOME/libadwaita)
 * [Gir.Core](https://github.com/gircore/gir.core)
