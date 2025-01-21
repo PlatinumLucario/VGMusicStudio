@@ -1,0 +1,130 @@
+<Project Sdk='Microsoft.NET.Sdk'> 
+   <PropertyGroup> 
+     <PackageLicenseExpression>LGPL-2.1-or-later</PackageLicenseExpression> 
+     <PackageReadmeFile>README.md</PackageReadmeFile> 
+     <OutputType>Library</OutputType> 
+     <TargetFrameworks>netstandard2.0;netcoreapp3.1;net6.0;net8.0</TargetFrameworks> 
+     <NoWarn>NU5128</NoWarn> 
+     <RuntimeIdentifier>win-x64</RuntimeIdentifier> 
+     <AssemblyName>Adwaita.Native</AssemblyName> 
+     <Version>1.6.3</Version> 
+ 
+     <PackageProjectUrl>https://github.com/PlatinumLucario/VGMusicStudio/tree/new-gui-experimental/CreateNugets</PackageProjectUrl> 
+     <RepositoryUrl>https://gitlab.gnome.org/GNOME/libadwaita/</RepositoryUrl> 
+     <PackageTags>adwaita libadwaita gtk glib gio native runtime</PackageTags> 
+ 
+     <!-- Nuget Properties --> 
+     <Description> 
+     Building blocks for modern GNOME applications. 
+     Source code repository: https://gitlab.gnome.org/GNOME/libadwaita/ 
+     </Description> 
+     <IncludeBuildOutput>false</IncludeBuildOutput> 
+ 
+     <!-- Pack Option --> 
+     <Title>Adwaita win-x64 v1.6.3</Title> 
+     <PackageId>org.adwaita.native.win-x64</PackageId> 
+ 
+     <!-- Signing --> 
+     <SignAssembly>false</SignAssembly> 
+     <PublicSign>false</PublicSign> 
+     <DelaySign>false</DelaySign> 
+   </PropertyGroup> 
+ 
+   <ItemGroup> 
+     <None Include='./README.md' Pack='true' PackagePath='/'/> 
+   </ItemGroup> 
+ 
+   <ItemGroup> 
+     <!-- Native libraries can only be in native directories --> 
+     <NativeLibrary Include="C:/msys64/mingw64/bin/libappstream-5.dll" />
+     <NativeLibrary Include="C:/msys64/mingw64/bin/libfribidi-0.dll" />
+     <NativeLibrary Include="C:/msys64/mingw64/bin/libgio-2.0-0.dll" />
+     <NativeLibrary Include="C:/msys64/mingw64/bin/libgobject-2.0-0.dll" />
+     <NativeLibrary Include="C:/msys64/mingw64/bin/libgraphene-1.0-0.dll" />
+     <NativeLibrary Include="C:/msys64/mingw64/bin/libgtk-4-1.dll" />
+     <NativeLibrary Include="C:/msys64/mingw64/bin/libintl-8.dll" />
+     <NativeLibrary Include="C:/msys64/mingw64/bin/libpango-1.0-0.dll" />
+     <NativeLibrary Include="C:/msys64/mingw64/bin/libglib-2.0-0.dll" />
+     <NativeLibrary Include="C:/msys64/mingw64/bin/libffi-8.dll" />
+     <NativeLibrary Include="C:/msys64/mingw64/bin/libcurl-4.dll" />
+     <NativeLibrary Include="C:/msys64/mingw64/bin/libxml2-2.dll" />
+     <NativeLibrary Include="C:/msys64/mingw64/bin/libxmlb-2.dll" />
+     <NativeLibrary Include="C:/msys64/mingw64/bin/libiconv-2.dll" />
+     <NativeLibrary Include="C:/msys64/mingw64/bin/libyaml-0-2.dll" />
+     <NativeLibrary Include="C:/msys64/mingw64/bin/libzstd.dll" />
+     <NativeLibrary Include="C:/msys64/mingw64/bin/libharfbuzz-0.dll" />
+     <NativeLibrary Include="C:/msys64/mingw64/bin/zlib1.dll" />
+     <NativeLibrary Include="C:/msys64/mingw64/bin/libgmodule-2.0-0.dll" />
+     <NativeLibrary Include="C:/msys64/mingw64/bin/libpcre2-8-0.dll" />
+     <NativeLibrary Include="C:/msys64/mingw64/bin/libgcc_s_seh-1.dll" />
+     <NativeLibrary Include="C:/msys64/mingw64/bin/libcairo-gobject-2.dll" />
+     <NativeLibrary Include="C:/msys64/mingw64/bin/libcairo-script-interpreter-2.dll" />
+     <NativeLibrary Include="C:/msys64/mingw64/bin/libcairo-2.dll" />
+     <NativeLibrary Include="C:/msys64/mingw64/bin/libepoxy-0.dll" />
+     <NativeLibrary Include="C:/msys64/mingw64/bin/libthai-0.dll" />
+     <NativeLibrary Include="C:/msys64/mingw64/bin/libgdk_pixbuf-2.0-0.dll" />
+     <NativeLibrary Include="C:/msys64/mingw64/bin/libfontconfig-1.dll" />
+     <NativeLibrary Include="C:/msys64/mingw64/bin/libidn2-0.dll" />
+     <NativeLibrary Include="C:/msys64/mingw64/bin/libbrotlidec.dll" />
+     <NativeLibrary Include="C:/msys64/mingw64/bin/libnghttp2-14.dll" />
+     <NativeLibrary Include="C:/msys64/mingw64/bin/libpsl-5.dll" />
+     <NativeLibrary Include="C:/msys64/mingw64/bin/libssh2-1.dll" />
+     <NativeLibrary Include="C:/msys64/mingw64/bin/libcrypto-3-x64.dll" />
+     <NativeLibrary Include="C:/msys64/mingw64/bin/libnghttp3-9.dll" />
+     <NativeLibrary Include="C:/msys64/mingw64/bin/libssl-3-x64.dll" />
+     <NativeLibrary Include="C:/msys64/mingw64/bin/libharfbuzz-subset-0.dll" />
+     <NativeLibrary Include="C:/msys64/mingw64/bin/libjpeg-8.dll" />
+     <NativeLibrary Include="C:/msys64/mingw64/bin/libpangocairo-1.0-0.dll" />
+     <NativeLibrary Include="C:/msys64/mingw64/bin/liblzma-5.dll" />
+     <NativeLibrary Include="C:/msys64/mingw64/bin/libpangoft2-1.0-0.dll" />
+     <NativeLibrary Include="C:/msys64/mingw64/bin/libpangowin32-1.0-0.dll" />
+     <NativeLibrary Include="C:/msys64/mingw64/bin/libpng16-16.dll" />
+     <NativeLibrary Include="C:/msys64/mingw64/bin/libtiff-6.dll" />
+     <NativeLibrary Include="C:/msys64/mingw64/bin/vulkan-1.dll" />
+     <NativeLibrary Include="C:/msys64/mingw64/bin/libgraphite2.dll" />
+     <NativeLibrary Include="C:/msys64/mingw64/bin/libfreetype-6.dll" />
+     <NativeLibrary Include="C:/msys64/mingw64/bin/libstdc++-6.dll" />
+     <NativeLibrary Include="C:/msys64/mingw64/bin/libwinpthread-1.dll" />
+     <NativeLibrary Include="C:/msys64/mingw64/bin/liblzo2-2.dll" />
+     <NativeLibrary Include="C:/msys64/mingw64/bin/libpixman-1-0.dll" />
+     <NativeLibrary Include="C:/msys64/mingw64/bin/libexpat-1.dll" />
+     <NativeLibrary Include="C:/msys64/mingw64/bin/libdatrie-1.dll" />
+     <NativeLibrary Include="C:/msys64/mingw64/bin/libunistring-5.dll" />
+     <NativeLibrary Include="C:/msys64/mingw64/bin/libbrotlicommon.dll" />
+     <NativeLibrary Include="C:/msys64/mingw64/bin/libunistring-5.dll" />
+     <NativeLibrary Include="C:/msys64/mingw64/bin/libjbig-0.dll" />
+     <NativeLibrary Include="C:/msys64/mingw64/bin/libdeflate.dll" />
+     <NativeLibrary Include="C:/msys64/mingw64/bin/libwebp-7.dll" />
+     <NativeLibrary Include="C:/msys64/mingw64/bin/libbz2-1.dll" />
+     <NativeLibrary Include="C:/msys64/mingw64/bin/libLerc.dll" />
+     <NativeLibrary Include="C:/msys64/mingw64/bin/libsharpyuv-0.dll" />
+     <NativeLibrary Include="C:/msys64/mingw64/bin/libadwaita-1-0.dll" />
+     
+     <!-- SVG pixbuf loader -->
+     <NativeLibrary Include="C:/msys64/mingw64/bin/libcharset-1.dll" />
+     <NativeLibrary Include="C:/msys64/mingw64/bin/librsvg-2-2.dll" />
+     
+     <!-- Executable binaries -->
+     <NativeLibrary Include="C:/msys64/mingw64/bin/gdbus.exe" />
+     <NativeLibrary Include="C:/msys64/mingw64/bin/gdk-pixbuf-query-loaders.exe" />
+     <NativeLibrary Include="C:/msys64/mingw64/bin/gspawn-win64-helper.exe" />
+     <NativeLibrary Include="C:/msys64/mingw64/bin/gspawn-win64-helper-console.exe" />
+     <NativeLibrary Include="C:/msys64/mingw64/bin/gtk4-query-settings.exe" />
+     <NativeLibrary Include="C:/msys64/mingw64/bin/gtk4-update-icon-cache.exe" />
+     
+     <!-- Shared asset folders -->
+     <NativeLibrary Include="C:/msys64/mingw64/lib/gdk-pixbuff-2.0/**" LinkBase="../lib/gdk-pixbuff-2.0" />
+     <NativeLibrary Include="C:/msys64/mingw64/share/glib-2.0/schemas/**" LinkBase="../share/glib-2.0/schemas" />
+     <NativeLibrary Include="C:/msys64/mingw64/share/locale/**" LinkBase="../share/locale" />
+     <NativeLibrary Include="C:/msys64/mingw64/share/icons/Adwaita/**" LinkBase="../share/icons/Adwaita" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <Content Include='@(NativeLibrary)'>
+      <PackagePath>runtimes/win-x64/native/%(Filename)%(Extension)</PackagePath>
+      <Pack>true</Pack>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+</Project>

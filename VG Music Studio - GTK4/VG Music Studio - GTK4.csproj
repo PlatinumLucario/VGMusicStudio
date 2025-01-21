@@ -11,10 +11,14 @@
 
 	<ItemGroup>
 		<PackageReference Include="GirCore.Adw-1" Version="0.5.0" />
+		<PackageReference Include="org.adwaita.native.win-x64" Version="1.6.3" />
 	</ItemGroup>
 
 	<ItemGroup>
+		<Compile Remove="local\**" />
+		<EmbeddedResource Remove="local\**" />
 		<None Remove="**\*.xml" />
+		<None Remove="local\**" />
 		<EmbeddedResource Include="**\*.xml">
 			<LogicalName>%(Filename)%(Extension)</LogicalName>
 		</EmbeddedResource>
@@ -30,9 +34,5 @@
 			<TargetPath>%(Filename)%(Extension)</TargetPath>
 		</ContentWithTargetPath>
 	</ItemGroup>
-
-	<Target Name="PreBuild" BeforeTargets="PreBuildEvent">
-		<Exec Command="glib-compile-resources --sourcedir ./Properties ./Properties/org.Kermalis.VGMusicStudio.GTK4.gresource.xml --target=$(OutDir)/org.Kermalis.VGMusicStudio.GTK4.gresource" />
-	</Target>
 
 </Project>

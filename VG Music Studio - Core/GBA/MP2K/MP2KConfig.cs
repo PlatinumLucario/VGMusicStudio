@@ -27,7 +27,7 @@ public sealed class MP2KConfig : Config
 	internal readonly bool HasGoldenSunSynths;
 	internal readonly bool HasPokemonCompression;
 
-	internal MP2KConfig(byte[] rom)
+	internal MP2KConfig(byte[] rom, bool mainPlaylistFirst)
 	{
 		using (StreamReader fileStream = File.OpenText(ConfigUtils.CombineWithBaseDirectory(CONFIG_FILE)))
 		using (var ms = new MemoryStream(rom))
@@ -228,7 +228,8 @@ public sealed class MP2KConfig : Config
 				HasPokemonCompression = ConfigUtils.ParseBoolean(nameof(HasPokemonCompression), hasPokemonCompression.ToString());
 
 				// The complete playlist
-				ConfigUtils.TryCreateMasterPlaylist(Playlists);
+				if (mainPlaylistFirst) ConfigUtils.TryCreateMasterPlaylist.CreateFirst(Playlists);
+				else ConfigUtils.TryCreateMasterPlaylist.CreateLast(Playlists);
 			}
 			catch (BetterKeyNotFoundException ex)
 			{

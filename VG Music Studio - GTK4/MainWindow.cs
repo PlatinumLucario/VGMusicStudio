@@ -25,7 +25,7 @@ namespace Kermalis.VGMusicStudio.GTK4;
 
 internal sealed class MainWindow : Window
 {
-    private PlayingPlaylist? _playlist;
+    private readonly PlayingPlaylist? _playlist;
     private int _curSong = -1;
 
     private bool _songEnded = false;
@@ -39,12 +39,12 @@ internal sealed class MainWindow : Window
     #region Widgets
 
     // The Windows
-    private WidgetWindow _playlistWindow, _seqAudioPianoWindow, _sequencedAudioTrackInfoWindow, _sequencedAudioListWindow;
-    private TrackViewer _trackViewer;
+    private WidgetWindow? _playlistWindow, _seqAudioPianoWindow, _sequencedAudioTrackInfoWindow, _sequencedAudioListWindow;
+    private TrackViewer? _trackViewer;
 
     // Buttons
-    private Button _buttonPlay, _buttonStop, _buttonRecord;
-    private ToggleButton _buttonPause;
+    private readonly Button _buttonPlay, _buttonStop, _buttonRecord;
+    private readonly ToggleButton _buttonPause;
 
     // Spin Button for the numbered tracks
     private readonly SpinButton _sequenceNumberSpinButton;
@@ -59,7 +59,7 @@ internal sealed class MainWindow : Window
     private readonly Adw.HeaderBar _headerBar;
 
     // LibAdwaita Application
-    private readonly Adw.Application _app;
+    private readonly Application _app;
 
     // Menu Model
     //private readonly Gio.MenuModel _mainMenu;
@@ -86,7 +86,7 @@ internal sealed class MainWindow : Window
         _seqAudioListWidgetTiledItem, _seqAudioListWidgetWindowedItem, _seqAudioListWidgetHideItem;
 
     // Menu Actions
-    private Gio.SimpleAction
+    private readonly Gio.SimpleAction
         _openDSEAction, _openAlphaDreamAction, _openMP2KAction, _openSDATAction,
         _trackViewerAction, _exportDLSAction, _exportSF2Action, _exportMIDIAction, _exportWAVAction,
         _endPlaylistAction,
@@ -96,36 +96,36 @@ internal sealed class MainWindow : Window
         _seqAudioListWidgetTiledAction, _seqAudioListWidgetWindowedAction, _seqAudioListWidgetHideAction;
 
     // Boxes
-    private Box _mainBox, _configButtonBox, _configPlayerButtonBox, _configSpinButtonBox, _configBarBox,
+    private readonly Box _mainBox, _configButtonBox, _configPlayerButtonBox, _configSpinButtonBox, _configBarBox,
         _playlistBox, _pianoBox, _sequencedAudioTrackInfoBox, _sequencedAudioListBox;
 
     // One Scale controling volume and one Scale for the sequenced track
-    private Scale _volumeBar, _positionBar;
+    private readonly Scale _volumeBar, _positionBar;
 
     // Mouse Click and Drag Gestures
-    private GestureClick _positionGestureClick, _sequenceNumberSpinButtonGestureClick;
-    private GestureDrag _positionGestureDrag;
+    private readonly GestureClick _positionGestureClick, _sequenceNumberSpinButtonGestureClick;
+    private readonly GestureDrag _positionGestureDrag;
 
     // Playlist
-    private PlaylistSelector _playlistSelector;
+    private readonly PlaylistSelector _playlistSelector;
 
     // Sequenced Audio Piano
-    private SequencedAudio_Piano _piano;
+    private readonly SequencedAudio_Piano _piano;
 
     // Sequenced Audio List
-    private SequencedAudio_List _sequencedAudioList;
+    private readonly SequencedAudio_List _sequencedAudioList;
 
     // Sequenced Audio Track Info
-    private SequencedAudio_TrackInfo _sequencedAudioTrackInfo;
+    private readonly SequencedAudio_TrackInfo _sequencedAudioTrackInfo;
 
     // Error Handle
     private GLib.Internal.ErrorOwnedHandle ErrorHandle = new GLib.Internal.ErrorOwnedHandle(IntPtr.Zero);
 
     // Callback
-    private Gio.Internal.AsyncReadyCallback _saveCallback { get; set; }
-    private Gio.Internal.AsyncReadyCallback _openCallback { get; set; }
-    private Gio.Internal.AsyncReadyCallback _selectFolderCallback { get; set; }
-    private Gio.Internal.AsyncReadyCallback _exceptionCallback { get; set; }
+    private Gio.Internal.AsyncReadyCallback? SaveCallback { get; set; }
+    private Gio.Internal.AsyncReadyCallback? OpenCallback { get; set; }
+    private Gio.Internal.AsyncReadyCallback? SelectFolderCallback { get; set; }
+    private Gio.Internal.AsyncReadyCallback? ExceptionCallback { get; set; }
 
     #endregion
 
@@ -910,7 +910,7 @@ internal sealed class MainWindow : Window
     }
 
     private bool _positionBarFree = true;
-    private bool _positionBarDebug = false;
+    private readonly bool _positionBarDebug = false;
 
     private void PositionBar_MouseButtonPress(object sender, EventArgs args)
     {
@@ -1319,7 +1319,7 @@ internal sealed class MainWindow : Window
             var d = FileDialog.New();
             d.SetTitle(Strings.MenuOpenDSE);
 
-            _selectFolderCallback = (source, res, data) =>
+            SelectFolderCallback = (source, res, data) =>
             {
                 var folderHandle = Gtk.Internal.FileDialog.SelectFolderFinish(d.Handle, res, out ErrorHandle);
                 if (folderHandle != IntPtr.Zero)
@@ -1330,7 +1330,7 @@ internal sealed class MainWindow : Window
                 }
                 d.Unref();
             };
-            Gtk.Internal.FileDialog.SelectFolder(d.Handle, Handle, IntPtr.Zero, _selectFolderCallback, IntPtr.Zero); // SelectFolder, Open and Save methods are currently missing from GirCore, but are available in the Gtk.Internal namespace, so we're using this until GirCore updates with the method bindings. See here: https://github.com/gircore/gir.core/issues/900
+            Gtk.Internal.FileDialog.SelectFolder(d.Handle, Handle, IntPtr.Zero, SelectFolderCallback, IntPtr.Zero); // SelectFolder, Open and Save methods are currently missing from GirCore, but are available in the Gtk.Internal namespace, so we're using this until GirCore updates with the method bindings. See here: https://github.com/gircore/gir.core/issues/900
             //d.SelectFolder(Handle, IntPtr.Zero, _selectFolderCallback, IntPtr.Zero);
         }
     }
@@ -1401,7 +1401,7 @@ internal sealed class MainWindow : Window
             filters.Append(filterSDAT);
             filters.Append(allFiles);
             d.SetFilters(filters);
-            _openCallback = (source, res, data) =>
+            OpenCallback = (source, res, data) =>
             {
                 var fileHandle = Gtk.Internal.FileDialog.OpenFinish(d.Handle, res, out ErrorHandle);
                 if (fileHandle != IntPtr.Zero)
@@ -1412,7 +1412,7 @@ internal sealed class MainWindow : Window
                 }
                 d.Unref();
             };
-            Gtk.Internal.FileDialog.Open(d.Handle, Handle, IntPtr.Zero, _openCallback, IntPtr.Zero);
+            Gtk.Internal.FileDialog.Open(d.Handle, Handle, IntPtr.Zero, OpenCallback, IntPtr.Zero);
             //d.Open(Handle, IntPtr.Zero, _openCallback, IntPtr.Zero);
         }
     }
@@ -1485,7 +1485,7 @@ internal sealed class MainWindow : Window
             filters.Append(filterGBA);
             filters.Append(allFiles);
             d.SetFilters(filters);
-            _openCallback = (source, res, data) =>
+            OpenCallback = (source, res, data) =>
             {
                 var fileHandle = Gtk.Internal.FileDialog.OpenFinish(d.Handle, res, out ErrorHandle);
                 if (fileHandle != IntPtr.Zero)
@@ -1496,7 +1496,7 @@ internal sealed class MainWindow : Window
                 }
                 d.Unref();
             };
-            Gtk.Internal.FileDialog.Open(d.Handle, Handle, IntPtr.Zero, _openCallback, IntPtr.Zero);
+            Gtk.Internal.FileDialog.Open(d.Handle, Handle, IntPtr.Zero, OpenCallback, IntPtr.Zero);
             //d.Open(Handle, IntPtr.Zero, _openCallback, IntPtr.Zero);
         }
     }
@@ -1574,7 +1574,7 @@ internal sealed class MainWindow : Window
             filters.Append(filterGBA);
             filters.Append(allFiles);
             d.SetFilters(filters);
-            _openCallback = (source, res, data) =>
+            OpenCallback = (source, res, data) =>
             {
                 var fileHandle = Gtk.Internal.FileDialog.OpenFinish(d.Handle, res, out ErrorHandle);
                 if (fileHandle != IntPtr.Zero)
@@ -1590,7 +1590,7 @@ internal sealed class MainWindow : Window
                 }
                 d.Unref();
             };
-            Gtk.Internal.FileDialog.Open(d.Handle, Handle, IntPtr.Zero, _openCallback, IntPtr.Zero);
+            Gtk.Internal.FileDialog.Open(d.Handle, Handle, IntPtr.Zero, OpenCallback, IntPtr.Zero);
             //d.Open(Handle, IntPtr.Zero, _openCallback, IntPtr.Zero);
         }
     }
@@ -1603,7 +1603,7 @@ internal sealed class MainWindow : Window
 
         try
         {
-            _ = new MP2KEngine(File.ReadAllBytes(path));
+            _ = new MP2KEngine(File.ReadAllBytes(path), true, false);
         }
         catch (Exception ex)
         {
@@ -1673,7 +1673,7 @@ internal sealed class MainWindow : Window
             var filters = Gio.ListStore.New(FileFilter.GetGType());
             filters.Append(ff);
             d.SetFilters(filters);
-            _saveCallback = (source, res, data) =>
+            SaveCallback = (source, res, data) =>
             {
                 var fileHandle = Gtk.Internal.FileDialog.SaveFinish(d.Handle, res, out ErrorHandle);
                 if (fileHandle != IntPtr.Zero)
@@ -1684,7 +1684,7 @@ internal sealed class MainWindow : Window
                 }
                 d.Unref();
             };
-            Gtk.Internal.FileDialog.Save(d.Handle, Handle, IntPtr.Zero, _saveCallback, IntPtr.Zero);
+            Gtk.Internal.FileDialog.Save(d.Handle, Handle, IntPtr.Zero, SaveCallback, IntPtr.Zero);
             //d.Save(Handle, IntPtr.Zero, _saveCallback, IntPtr.Zero);
         }
     }
@@ -1739,7 +1739,7 @@ internal sealed class MainWindow : Window
             var filters = Gio.ListStore.New(FileFilter.GetGType());
             filters.Append(ff);
             d.SetFilters(filters);
-            _saveCallback = (source, res, data) =>
+            SaveCallback = (source, res, data) =>
             {
                 var fileHandle = Gtk.Internal.FileDialog.SaveFinish(d.Handle, res, out ErrorHandle);
                 if (fileHandle != IntPtr.Zero)
@@ -1750,7 +1750,7 @@ internal sealed class MainWindow : Window
                 }
                 d.Unref();
             };
-            Gtk.Internal.FileDialog.Save(d.Handle, Handle, IntPtr.Zero, _saveCallback, IntPtr.Zero);
+            Gtk.Internal.FileDialog.Save(d.Handle, Handle, IntPtr.Zero, SaveCallback, IntPtr.Zero);
             //d.Save(Handle, IntPtr.Zero, _saveCallback, IntPtr.Zero);
         }
     }
@@ -1813,7 +1813,7 @@ internal sealed class MainWindow : Window
             var filters = Gio.ListStore.New(FileFilter.GetGType());
             filters.Append(ff);
             d.SetFilters(filters);
-            _saveCallback = (source, res, data) =>
+            SaveCallback = (source, res, data) =>
             {
                 var fileHandle = Gtk.Internal.FileDialog.SaveFinish(d.Handle, res, out ErrorHandle);
                 if (fileHandle != IntPtr.Zero)
@@ -1824,7 +1824,7 @@ internal sealed class MainWindow : Window
                 }
                 d.Unref();
             };
-            Gtk.Internal.FileDialog.Save(d.Handle, Handle, IntPtr.Zero, _saveCallback, IntPtr.Zero);
+            Gtk.Internal.FileDialog.Save(d.Handle, Handle, IntPtr.Zero, SaveCallback, IntPtr.Zero);
             //d.Save(Handle, IntPtr.Zero, _saveCallback, IntPtr.Zero);
         }
     }
@@ -1879,7 +1879,7 @@ internal sealed class MainWindow : Window
             var filters = Gio.ListStore.New(FileFilter.GetGType());
             filters.Append(ff);
             d.SetFilters(filters);
-            _saveCallback = (source, res, data) =>
+            SaveCallback = (source, res, data) =>
             {
                 var fileHandle = Gtk.Internal.FileDialog.SaveFinish(d.Handle, res, out ErrorHandle);
                 if (fileHandle != IntPtr.Zero)
@@ -1890,7 +1890,7 @@ internal sealed class MainWindow : Window
                 }
                 d.Unref();
             };
-            Gtk.Internal.FileDialog.Save(d.Handle, Handle, IntPtr.Zero, _saveCallback, IntPtr.Zero);
+            Gtk.Internal.FileDialog.Save(d.Handle, Handle, IntPtr.Zero, SaveCallback, IntPtr.Zero);
             //d.Save(Handle, IntPtr.Zero, _saveCallback, IntPtr.Zero);
         }
     }
@@ -1928,7 +1928,7 @@ internal sealed class MainWindow : Window
         md.SetResponseAppearance("ok", ResponseAppearance.Default);
         md.SetDefaultResponse("ok");
         md.SetCloseResponse("ok");
-        _exceptionCallback = (source, res, data) =>
+        ExceptionCallback = (source, res, data) =>
         {
             md.Destroy();
         };
@@ -2142,7 +2142,14 @@ internal sealed class MainWindow : Window
                 SongState info = _sequencedAudioTrackInfo.Info!;
                 player.UpdateSongState(info);
                 _piano.UpdateKeys(info.Tracks, _sequencedAudioTrackInfo.NumTracks!);
-                UpdatePositionIndicators(player.ElapsedTicks);
+                if (player.State is PlayerState.Stopped)
+                {
+                    UpdatePositionIndicators(0L);
+                }
+                else
+                {
+                    UpdatePositionIndicators(player.ElapsedTicks);
+                }
             }
         }
         return true;
@@ -2184,7 +2191,7 @@ internal sealed class MainWindow : Window
 
     private bool TrackViewer_WindowClosed(Gtk.Window sender, EventArgs args)
     {
-        _trackViewer.Dispose();
+        _trackViewer!.Dispose();
         _trackViewer = null!;
         return false;
     }

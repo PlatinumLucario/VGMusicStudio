@@ -12,6 +12,7 @@ namespace Kermalis.VGMusicStudio.GTK4
 		private static readonly Application _app = Application.New("org.Kermalis.VGMusicStudio.GTK4", Gio.ApplicationFlags.FlagsNone);
 		private static readonly OSPlatform Linux = OSPlatform.Linux;
 		private static readonly OSPlatform FreeBSD = OSPlatform.FreeBSD;
+		private static readonly OSPlatform Windows = OSPlatform.Windows;
 
 		static void OnActivate(Gio.Application sender, EventArgs e)
 		{
@@ -21,6 +22,10 @@ namespace Kermalis.VGMusicStudio.GTK4
 		[STAThread]
 		public static void Main(string[] args)
 		{
+			//if (!RuntimeInformation.IsOSPlatform(Windows))
+			//{
+			//	Environment.SetEnvironmentVariable("Path", ".\\runtimes\\win-x64\\native", EnvironmentVariableTarget.Process);
+			//}
 			_app.Register(Gio.Cancellable.GetCurrent());
 
 			if (!RuntimeInformation.IsOSPlatform(Linux) | !RuntimeInformation.IsOSPlatform(FreeBSD))

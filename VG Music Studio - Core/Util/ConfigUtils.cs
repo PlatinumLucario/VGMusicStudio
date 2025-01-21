@@ -113,26 +113,51 @@ public static class ConfigUtils
 		return ParseEnum<TEnum>(key, yamlNode.Children.GetValue(key).ToString());
 	}
 
-	public static void TryCreateMasterPlaylist(List<Config.Playlist> playlists)
+	public static class TryCreateMasterPlaylist
 	{
-		if (playlists.Exists(p => p.Name == "All Songs"))
+		public static void CreateFirst(List<Config.Playlist> playlists)
 		{
-			return;
-		}
-
-		var songs = new List<Config.Song>();
-		foreach (Config.Playlist p in playlists)
-		{
-			foreach (Config.Song s in p.Songs)
+			if (playlists.Exists(p => p.Name == "All Songs"))
 			{
-				if (!songs.Exists(s1 => s1.Index == s.Index))
+				return;
+			}
+
+			var songs = new List<Config.Song>();
+			foreach (Config.Playlist p in playlists)
+			{
+				foreach (Config.Song s in p.Songs)
 				{
-					songs.Add(s);
+					if (!songs.Exists(s1 => s1.Index == s.Index))
+					{
+						songs.Add(s);
+					}
 				}
 			}
+			songs.Sort((s1, s2) => s1.Index.CompareTo(s2.Index));
+			playlists.Insert(0, new Config.Playlist(Strings.PlaylistMusic, songs));
 		}
-		songs.Sort((s1, s2) => s1.Index.CompareTo(s2.Index));
-		playlists.Insert(playlists.Count, new Config.Playlist(Strings.PlaylistMusic, songs));
+
+		public static void CreateLast(List<Config.Playlist> playlists)
+		{
+			if (playlists.Exists(p => p.Name == "All Songs"))
+			{
+				return;
+			}
+
+			var songs = new List<Config.Song>();
+			foreach (Config.Playlist p in playlists)
+			{
+				foreach (Config.Song s in p.Songs)
+				{
+					if (!songs.Exists(s1 => s1.Index == s.Index))
+					{
+						songs.Add(s);
+					}
+				}
+			}
+			songs.Sort((s1, s2) => s1.Index.CompareTo(s2.Index));
+			playlists.Insert(playlists.Count, new Config.Playlist(Strings.PlaylistMusic, songs));
+		}
 	}
 
 	public static string CombineWithBaseDirectory(string path)

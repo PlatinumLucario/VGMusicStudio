@@ -183,12 +183,12 @@ internal sealed class MainForm : ThemedForm
 		ILoadedSong? loadedSong = player.LoadedSong; // LoadedSong is still null when there are no tracks
 		if (loadedSong is not null)
 		{
-			List<Config.Song> songs = cfg.Playlists[^1].Songs; // Complete "All Songs" playlist is present in all configs at the last index
+			List<Config.Song> songs = cfg.Playlists[0].Songs; // Complete "All Songs" playlist is present in all configs at index 0
 			int songIndex = songs.FindIndex(s => s.Index == index);
 			if (songIndex != -1)
 			{
 				Text = $"{ConfigUtils.PROGRAM_NAME} ― {songs[songIndex].Name}"; // TODO: Make this a func
-				_songsComboBox.SelectedIndex = _songsComboBox.Items.Count - cfg.Playlists[^1].Songs.Count + songIndex; // _songsComboBox.Items.Count - cfg.Playlists[^1].Songs.Count, because the "All Songs" playlist is the last playlist in the combobox
+				_songsComboBox.SelectedIndex = songIndex + 1; // + 1 because the "All Songs" playlist is first in the combobox
 			}
 			_positionBar.Maximum = loadedSong.MaxTicks;
 			_positionBar.LargeChange = _positionBar.Maximum / 10;
@@ -329,7 +329,7 @@ internal sealed class MainForm : ThemedForm
 		DisposeEngine();
 		try
 		{
-			_ = new MP2KEngine(File.ReadAllBytes(inFile));
+			_ = new MP2KEngine(File.ReadAllBytes(inFile), false);
 		}
 		catch (Exception ex)
 		{
@@ -517,7 +517,7 @@ internal sealed class MainForm : ThemedForm
 		//VGMSDebug.EventScan(Engine.Instance.Config.Playlists[0].Songs, numericalVisible);
 #endif
 		_autoplay = false;
-		SetAndLoadSong(Engine.Instance.Config.Playlists[^1].Songs.Count == 0 ? 0 : Engine.Instance.Config.Playlists[^1].Songs[0].Index);
+		SetAndLoadSong(Engine.Instance.Config.Playlists[0].Songs.Count == 0 ? 0 : Engine.Instance.Config.Playlists[0].Songs[0].Index);
 		_songsComboBox.Enabled = _songNumerical.Enabled = _playButton.Enabled = _volumeBar.Enabled = true;
 		_volumeBar.Value = _volumeBar.Maximum;
 		UpdateTaskbarButtons();
