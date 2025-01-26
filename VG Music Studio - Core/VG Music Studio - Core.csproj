@@ -13,12 +13,20 @@
 	<ItemGroup>
 		<PackageReference Include="EndianBinaryIO" Version="2.1.1" />
 		<PackageReference Include="KMIDI" Version="1.0.0" />
-		<PackageReference Include="NAudio.Core" Version="2.2.1" />
-		<PackageReference Include="NAudio.Wasapi" Version="2.2.1" />
+    
+    <!-- Comment out these lines below if debugging and researching NAudio.Core and NAudio.Wasapi and using as Project References -->
+    <PackageReference Include="NAudio.Core" Version="2.2.1" /> 
+    <PackageReference Include="NAudio.Wasapi" Version="2.2.1" /> 
+    
 		<PackageReference Include="YamlDotNet" Version="15.3.0" />
 		<PackageReference Condition="$([MSBuild]::IsOSPlatform('Linux')) And '$(Platform)' != 'ARM64'" Include="org.portaudio.runtime.linux-x64" Version="19.7.5.1" />
 		<PackageReference Condition="$([MSBuild]::IsOSPlatform('OSX')) And '$(Platform)' != 'ARM64'" Include="org.portaudio.runtime.osx-x64" Version="19.7.5" />
 		<PackageReference Condition="$([MSBuild]::IsOSPlatform('Windows')) And '$(Platform)' != 'ARM64'" Include="org.portaudio.runtime.win-x64" Version="19.7.5" />
+    
+    <!-- If debugging and researching NAudio, uncomment these lines and comment out the PackageReferences of NAudio.Core and NAudio.Wasapi to prevent conflicts -->
+    <!--<ProjectReference Include="..\..\NAudio\NAudio.Core\NAudio.Core.csproj" />
+		<ProjectReference Include="..\..\NAudio\NAudio.Wasapi\NAudio.Wasapi.csproj" />-->
+    
 		<Reference Include="DLS2">
 			<HintPath>Dependencies\DLS2.dll</HintPath>
 		</Reference>
