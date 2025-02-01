@@ -9,6 +9,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "VG Music Studio - Core", "V
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "VG Music Studio - GTK4", "VG Music Studio - GTK4\VG Music Studio - GTK4.csproj", "{AB599ACD-26E0-4925-B91E-E25D41CB05E8}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NAudio.Core", "..\NAudio\NAudio.Core\NAudio.Core.csproj", "{357D9629-EB06-408D-AD8A-1BB6665CE6D0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NAudio.Wasapi", "..\NAudio\NAudio.Wasapi\NAudio.Wasapi.csproj", "{5D0567DD-B6C0-4BD7-B4DD-B213B0C4FD62}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -55,6 +59,30 @@ Global
 		{AB599ACD-26E0-4925-B91E-E25D41CB05E8}.Release|ARM64.Build.0 = Release|Any CPU
 		{AB599ACD-26E0-4925-B91E-E25D41CB05E8}.Release|x64.ActiveCfg = Release|Any CPU
 		{AB599ACD-26E0-4925-B91E-E25D41CB05E8}.Release|x64.Build.0 = Release|Any CPU
+		{357D9629-EB06-408D-AD8A-1BB6665CE6D0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{357D9629-EB06-408D-AD8A-1BB6665CE6D0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{357D9629-EB06-408D-AD8A-1BB6665CE6D0}.Debug|ARM64.ActiveCfg = Debug|Any CPU
+		{357D9629-EB06-408D-AD8A-1BB6665CE6D0}.Debug|ARM64.Build.0 = Debug|Any CPU
+		{357D9629-EB06-408D-AD8A-1BB6665CE6D0}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{357D9629-EB06-408D-AD8A-1BB6665CE6D0}.Debug|x64.Build.0 = Debug|Any CPU
+		{357D9629-EB06-408D-AD8A-1BB6665CE6D0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{357D9629-EB06-408D-AD8A-1BB6665CE6D0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{357D9629-EB06-408D-AD8A-1BB6665CE6D0}.Release|ARM64.ActiveCfg = Release|Any CPU
+		{357D9629-EB06-408D-AD8A-1BB6665CE6D0}.Release|ARM64.Build.0 = Release|Any CPU
+		{357D9629-EB06-408D-AD8A-1BB6665CE6D0}.Release|x64.ActiveCfg = Release|Any CPU
+		{357D9629-EB06-408D-AD8A-1BB6665CE6D0}.Release|x64.Build.0 = Release|Any CPU
+		{5D0567DD-B6C0-4BD7-B4DD-B213B0C4FD62}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5D0567DD-B6C0-4BD7-B4DD-B213B0C4FD62}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5D0567DD-B6C0-4BD7-B4DD-B213B0C4FD62}.Debug|ARM64.ActiveCfg = Debug|Any CPU
+		{5D0567DD-B6C0-4BD7-B4DD-B213B0C4FD62}.Debug|ARM64.Build.0 = Debug|Any CPU
+		{5D0567DD-B6C0-4BD7-B4DD-B213B0C4FD62}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{5D0567DD-B6C0-4BD7-B4DD-B213B0C4FD62}.Debug|x64.Build.0 = Debug|Any CPU
+		{5D0567DD-B6C0-4BD7-B4DD-B213B0C4FD62}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5D0567DD-B6C0-4BD7-B4DD-B213B0C4FD62}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5D0567DD-B6C0-4BD7-B4DD-B213B0C4FD62}.Release|ARM64.ActiveCfg = Release|Any CPU
+		{5D0567DD-B6C0-4BD7-B4DD-B213B0C4FD62}.Release|ARM64.Build.0 = Release|Any CPU
+		{5D0567DD-B6C0-4BD7-B4DD-B213B0C4FD62}.Release|x64.ActiveCfg = Release|Any CPU
+		{5D0567DD-B6C0-4BD7-B4DD-B213B0C4FD62}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

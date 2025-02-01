@@ -399,11 +399,11 @@ internal sealed class MainWindow : Window
 
         // Buttons
         _buttonPlay = new Button() { Sensitive = false, TooltipText = Strings.PlayerPlay, IconName = "media-playback-start-symbolic" };
-        _buttonPlay.OnClicked += (o, e) => Play();
+        _buttonPlay.OnClicked += Play_Clicked;
         _buttonPause = new ToggleButton() { Sensitive = false, TooltipText = Strings.PlayerPause, IconName = "media-playback-pause-symbolic" };
-        _buttonPause.OnClicked += (o, e) => Pause();
+        _buttonPause.OnClicked += Pause_Clicked;
         _buttonStop = new Button() { Sensitive = false, TooltipText = Strings.PlayerStop, IconName = "media-playback-stop-symbolic" };
-        _buttonStop.OnClicked += (o, e) => Stop();
+        _buttonStop.OnClicked += Stop_Clicked;
 
         _buttonRecord = new Button() { Sensitive = false, TooltipText = Strings.PlayerRecord, IconName = "media-record-symbolic" };
         _buttonRecord.OnClicked += ExportWAV;
@@ -456,7 +456,7 @@ internal sealed class MainWindow : Window
 
         // Playlist
         _playlistSelector = new PlaylistSelector();
-        _playlistSelector.ButtonPrevPlistSong.OnClicked += (o, e) => PlayPreviousSong();
+        _playlistSelector.ButtonPrevPlistSong.OnClicked += PlayPreviousSong;
         _playlistSelector.ButtonNextPlistSong.OnClicked += PlayNextSong;
         _playlistBox = Box.New(Orientation.Vertical, 0);
         _playlistBox.SetVexpand(true);
@@ -529,15 +529,18 @@ internal sealed class MainWindow : Window
         Instance = this;
 
         // Ensures the entire application gets closed when the main window is closed
-        OnCloseRequest += (sender, args) =>
-        {
-            DisposeEngine(); // Engine must be disposed first, otherwise the window will softlock when closing
-            Dispose();
-            return false;
-        };
+        OnCloseRequest += MainWindow_CloseRequest;
     }
 
-#region Widget Display Toggle Methods
+    // Closes the entire application
+    private bool MainWindow_CloseRequest(Gtk.Window sender, EventArgs args)
+    {
+        DisposeEngine(); // Engine must be disposed first, otherwise the window will softlock when closing
+        Dispose();
+        return false;
+    }
+
+    #region Widget Display Toggle Methods
     private void Playlist_GetTiled(object sender, EventArgs args)
     {
         if (_playlistWidgetTiledAction.GetState()!.GetBoolean() == true)
@@ -861,7 +864,7 @@ internal sealed class MainWindow : Window
     }
     #endregion
 
-#region Widget Menu Enable and Disable Methods
+    #region Widget Menu Enable and Disable Methods
     private void PlaylistWidgetAction_IsEnabled(bool enabled)
     {
 
@@ -899,7 +902,10 @@ internal sealed class MainWindow : Window
     // When the value is changed on the volume scale
     private void VolumeBar_ValueChanged(object sender, EventArgs e)
     {
-        Engine.Instance!.Mixer.SetVolume((float)(_volumeBar.Adjustment!.Value / _volumeBar.Adjustment.Upper));
+        if (Engine.Instance!.UseNewMixer)
+            Engine.Instance!.Mixer!.SetVolume((float)(_volumeBar.Adjustment!.Value / _volumeBar.Adjustment.Upper));
+        else
+            Engine.Instance!.Mixer_NAudio!.SetVolume((float)(_volumeBar.Adjustment!.Value / _volumeBar.Adjustment.Upper));
     }
 
     // Sets the volume scale to the specified position
@@ -992,6 +998,7 @@ internal sealed class MainWindow : Window
 
     private void SequenceNumberSpinButton_ValueChanged(object sender, EventArgs e)
     {
+        _sequenceNumberSpinButton.OnValueChanged -= SequenceNumberSpinButton_ValueChanged;
         var curEvent = _sequenceNumberSpinButtonGestureClick.GetCurrentEvent();
         if (Engine.Instance is not null)
         {
@@ -1004,10 +1011,12 @@ internal sealed class MainWindow : Window
                 _manuallyChanged = ManuallyChanged.None;
             }
         }
+        _sequenceNumberSpinButton.OnValueChanged += SequenceNumberSpinButton_ValueChanged;
     }
 
     private void SequenceNumberSpinButton_ChangeValue(SpinButton sender, SpinButton.ChangeValueSignalArgs args)
     {
+        _sequenceNumberSpinButton.OnChangeValue -= SequenceNumberSpinButton_ChangeValue;
         int index = (int)_sequenceNumberSpinButton.Adjustment!.Value;
         if (_manuallyChanged is ManuallyChanged.None)
         {
@@ -1017,6 +1026,7 @@ internal sealed class MainWindow : Window
             _autoplay = false;
             _manuallyChanged = ManuallyChanged.None;
         }
+        _sequenceNumberSpinButton.OnChangeValue += SequenceNumberSpinButton_ChangeValue;
     }
 
     private void CheckIfChangedManually(int index)
@@ -1124,6 +1134,8 @@ internal sealed class MainWindow : Window
     {
         if (_playlistSelector.PlaylistDropDown!.SelectedItem is not null)
         {
+            _playlistSelector.PlaylistDropDown.OnNotify -= OnPlaylistStringSelected;
+            _playlistSelector.PlaylistSongDropDown.OnNotify -= OnPlaylistSongStringSelected;
             _autoplay = false;  // Must be set to false first
             CheckPlaylistItem();  // Check the playlist item, to set the dropdown to it's first song in the playlist
             _playlistSelector.PlaylistStringSelect();  // Selects the playlist item
@@ -1132,6 +1144,8 @@ internal sealed class MainWindow : Window
             CheckIfChangedManually(_playlistSelector.GetSongIndex(_playlistSelector.PlaylistDropDown.Selected));  // This will set and load the song
             _manuallyChanged = ManuallyChanged.None;
             _playlistChanged = false;  // Now we can set it back to false
+            _playlistSelector.PlaylistDropDown.OnNotify += OnPlaylistStringSelected;
+            _playlistSelector.PlaylistSongDropDown.OnNotify += OnPlaylistSongStringSelected;
         }
     }
 
@@ -1139,6 +1153,8 @@ internal sealed class MainWindow : Window
     {
         if (_playlistSelector.PlaylistSongDropDown.SelectedItem is not null)
         {
+            _playlistSelector.PlaylistDropDown.OnNotify -= OnPlaylistStringSelected;
+            _playlistSelector.PlaylistSongDropDown.OnNotify -= OnPlaylistSongStringSelected;
             if (_playlistSelector.PlaylistDropDown.Selected != _playlistSelector.SelectedPlaylist)
                 Stop();
             if (_playlistSelector.PlaylistSongDropDown.Selected != _playlistSelector.SelectedSong)
@@ -1163,6 +1179,8 @@ internal sealed class MainWindow : Window
                     }
                 }
             }
+            _playlistSelector.PlaylistDropDown.OnNotify += OnPlaylistStringSelected;
+            _playlistSelector.PlaylistSongDropDown.OnNotify += OnPlaylistSongStringSelected;
         }
     }
     private void PlaylistSongStringChanged(int index)
@@ -1208,7 +1226,7 @@ internal sealed class MainWindow : Window
         ILoadedSong? loadedSong = player.LoadedSong; // LoadedSong is still null when there are no tracks
         if (success)
         {
-            if (Engine.Instance.Config.Playlists is not null)
+            if (Engine.Instance.Config.Playlists is not null && Engine.Instance.Config.Playlists.Count != 0)
             {
                 List<Config.Song> songs = cfg.Playlists![^1].Songs; // Complete "All Songs" playlist is present in all configs at the last index value
                 int songIndex = songs.FindIndex(s => s.Index == index);
@@ -1285,638 +1303,228 @@ internal sealed class MainWindow : Window
 
     private void OpenDSE(Gio.SimpleAction sender, EventArgs e)
     {
-        if (Gtk.Functions.GetMinorVersion() <= 8) // There's a bug in Gtk 4.09 and later that has broken FileChooserNative functionality, causing icons and thumbnails to appear broken
+        GTK4Utils.OnPathChanged += LoadFiles;
+        GTK4Utils.CreateLoadDialog(Strings.MenuOpenDSE);
+
+        void LoadFiles(string path)
         {
-            // To allow the dialog to display in native windowing format, FileChooserNative is used instead of FileChooserDialog
-            var d = FileChooserNative.New(
-                Strings.MenuOpenDSE, // The title shown in the folder select dialog window
-                this, // The parent of the dialog window, is the MainWindow itself
-                FileChooserAction.SelectFolder, // To ensure it becomes a folder select dialog window, SelectFolder is used as the FileChooserAction
-                "Select Folder", // Followed by the accept
-                "Cancel");       // and cancel button names.
-
-            d.SetModal(true);
-
-            // Note: Blocking APIs were removed in GTK4, which means the code will proceed to run and return to the main loop, even when a dialog is displayed.
-            // Instead, it's handled by the OnResponse event function when it re-enters upon selection.
-            d.OnResponse += (sender, e) =>
+            GTK4Utils.OnPathChanged -= LoadFiles;
+            DisposeEngine();
+            try
             {
-                if (e.ResponseId != (int)ResponseType.Accept) // In GTK4, the 'Gtk.FileChooserNative.Action' property is used for determining the button selection on the dialog. The 'Gtk.Dialog.Run' method was removed in GTK4, due to it being a non-GUI function and going against GTK's main objectives.
-                {
-                    d.Unref();
-                    return;
-                }
-                var path = d.GetCurrentFolder()!.GetPath() ?? "";
-                d.GetData(path);
-                OpenDSEFinish(path);
-                d.Unref(); // Ensures disposal of the dialog when closed
+                _ = new DSEEngine(path);
+            }
+            catch (Exception ex)
+            {
+                FlexibleMessageBox.Show(ex, Strings.ErrorOpenDSE);
                 return;
-            };
-            d.Show();
+            }
+            DSEConfig config = DSEEngine.DSEInstance!.Config;
+            FinishLoading(config.BGMFiles.Length);
+            _sequenceNumberSpinButton.Visible = false;
+            _sequenceNumberSpinButton.Hide();
+            _mainMenu.AppendItem(_playlistItem);
+            _exportDLSAction.Enabled = false;
+            _exportMIDIAction.Enabled = false;
+            _exportSF2Action.Enabled = false;
         }
-        else
-        {
-            var d = FileDialog.New();
-            d.SetTitle(Strings.MenuOpenDSE);
-
-            SelectFolderCallback = (source, res, data) =>
-            {
-                var folderHandle = Gtk.Internal.FileDialog.SelectFolderFinish(d.Handle, res, out ErrorHandle);
-                if (folderHandle != IntPtr.Zero)
-                {
-                    var path = Marshal.PtrToStringUTF8(Gio.Internal.File.GetPath(folderHandle).DangerousGetHandle());
-                    OpenDSEFinish(path!);
-                    d.Unref();
-                }
-                d.Unref();
-            };
-            Gtk.Internal.FileDialog.SelectFolder(d.Handle, Handle, IntPtr.Zero, SelectFolderCallback, IntPtr.Zero); // SelectFolder, Open and Save methods are currently missing from GirCore, but are available in the Gtk.Internal namespace, so we're using this until GirCore updates with the method bindings. See here: https://github.com/gircore/gir.core/issues/900
-            //d.SelectFolder(Handle, IntPtr.Zero, _selectFolderCallback, IntPtr.Zero);
-        }
-    }
-    private void OpenDSEFinish(string path)
-    {
-        DisposeEngine();
-        try
-        {
-            _ = new DSEEngine(path);
-        }
-        catch (Exception ex)
-        {
-            FlexibleMessageBox.Show(ex, Strings.ErrorOpenDSE);
-            return;
-        }
-        DSEConfig config = DSEEngine.DSEInstance!.Config;
-        FinishLoading(config.BGMFiles.Length);
-        _sequenceNumberSpinButton.Visible = false;
-        _sequenceNumberSpinButton.Hide();
-        _mainMenu.AppendItem(_playlistItem);
-        _exportDLSAction.Enabled = false;
-        _exportMIDIAction.Enabled = false;
-        _exportSF2Action.Enabled = false;
     }
     private void OpenSDAT(Gio.SimpleAction sender, EventArgs e)
     {
-        var filterSDAT = FileFilter.New();
-        filterSDAT.SetName(Strings.FilterOpenSDAT);
-        filterSDAT.AddPattern("*.sdat");
-        var allFiles = FileFilter.New();
-        allFiles.SetName(Strings.FilterAllFiles);
-        allFiles.AddPattern("*.*");
+        GTK4Utils.OnPathChanged += LoadFile;
+        GTK4Utils.CreateLoadDialog(["*.sdat"], Strings.MenuOpenSDAT, Strings.FilterOpenSDAT);
 
-        if (Gtk.Functions.GetMinorVersion() <= 8)
+        void LoadFile(string path)
         {
-            var d = FileChooserNative.New(
-                Strings.MenuOpenSDAT,
-                this,
-                FileChooserAction.Open,
-                "Open",
-                "Cancel");
-
-            d.SetModal(true);
-
-            d.AddFilter(filterSDAT);
-            d.AddFilter(allFiles);
-
-            d.OnResponse += (sender, e) =>
+            GTK4Utils.OnPathChanged -= LoadFile;
+            DisposeEngine();
+            try
             {
-                if (e.ResponseId != (int)ResponseType.Accept)
-                {
-                    d.Unref();
-                    return;
-                }
-
-                var path = d.GetFile()!.GetPath() ?? "";
-                d.GetData(path);
-                OpenSDATFinish(path);
-                d.Unref();
-            };
-            d.Show();
-        }
-        else
-        {
-            var d = FileDialog.New();
-            d.SetTitle(Strings.MenuOpenSDAT);
-            var filters = Gio.ListStore.New(FileFilter.GetGType());
-            filters.Append(filterSDAT);
-            filters.Append(allFiles);
-            d.SetFilters(filters);
-            OpenCallback = (source, res, data) =>
-            {
-                var fileHandle = Gtk.Internal.FileDialog.OpenFinish(d.Handle, res, out ErrorHandle);
-                if (fileHandle != IntPtr.Zero)
-                {
-                    var path = Marshal.PtrToStringUTF8(Gio.Internal.File.GetPath(fileHandle).DangerousGetHandle());
-                    OpenSDATFinish(path!);
-                    d.Unref();
-                }
-                d.Unref();
-            };
-            Gtk.Internal.FileDialog.Open(d.Handle, Handle, IntPtr.Zero, OpenCallback, IntPtr.Zero);
-            //d.Open(Handle, IntPtr.Zero, _openCallback, IntPtr.Zero);
-        }
-    }
-    private void OpenSDATFinish(string path)
-    {
-        DisposeEngine();
-        try
-        {
-            using (FileStream stream = File.OpenRead(path))
-            {
-                _ = new SDATEngine(new SDAT(stream));
+                using FileStream stream = File.OpenRead(path);
+                _ = new SDATEngine(new SDAT(stream), true);
             }
-        }
-        catch (Exception ex)
-        {
-            FlexibleMessageBox.Show(ex, Strings.ErrorOpenSDAT);
-            return;
-        }
+            catch (Exception ex)
+            {
+                FlexibleMessageBox.Show(ex, Strings.ErrorOpenSDAT);
+                return;
+            }
 
-        SDATConfig config = SDATEngine.SDATInstance!.Config;
-        FinishLoading(config.SDAT.INFOBlock.SequenceInfos.NumEntries);
-        _sequenceNumberSpinButton.Visible = true;
-        _sequenceNumberSpinButton.Show();
-        _exportDLSAction.Enabled = false;
-        _exportMIDIAction.Enabled = false;
-        _exportSF2Action.Enabled = false;
+            SDATConfig config = SDATEngine.SDATInstance!.Config;
+            FinishLoading(config.SDAT.INFOBlock.SequenceInfos.NumEntries);
+            _sequenceNumberSpinButton.Visible = true;
+            _sequenceNumberSpinButton.Show();
+            _exportDLSAction.Enabled = false;
+            _exportMIDIAction.Enabled = false;
+            _exportSF2Action.Enabled = false;
+        }
     }
     private void OpenAlphaDream(Gio.SimpleAction sender, EventArgs e)
     {
-        var filterGBA = FileFilter.New();
-        filterGBA.SetName(Strings.FilterOpenGBA);
-        filterGBA.AddPattern("*.gba");
-        filterGBA.AddPattern("*.srl");
-        var allFiles = FileFilter.New();
-        allFiles.SetName(Name = Strings.FilterAllFiles);
-        allFiles.AddPattern("*.*");
+        GTK4Utils.OnPathChanged += LoadFile;
+        GTK4Utils.CreateLoadDialog(["*.gba", "*.srl"], Strings.MenuOpenAlphaDream, Strings.FilterOpenGBA);
 
-        if (Gtk.Functions.GetMinorVersion() <= 8)
+        void LoadFile(string path)
         {
-            var d = FileChooserNative.New(
-                Strings.MenuOpenAlphaDream,
-                this,
-                FileChooserAction.Open,
-                "Open",
-                "Cancel");
-            d.SetModal(true);
-
-            d.AddFilter(filterGBA);
-            d.AddFilter(allFiles);
-
-            d.OnResponse += (sender, e) =>
+            GTK4Utils.OnPathChanged -= LoadFile;
+            DisposeEngine();
+            try
             {
-                if (e.ResponseId != (int)ResponseType.Accept)
-                {
-                    d.Unref();
-                    return;
-                }
-                var path = d.GetFile()!.GetPath() ?? "";
-                d.GetData(path);
-                OpenAlphaDreamFinish(path);
-                d.Unref();
-            };
-            d.Show();
-        }
-        else
-        {
-            var d = FileDialog.New();
-            d.SetTitle(Strings.MenuOpenAlphaDream);
-            var filters = Gio.ListStore.New(FileFilter.GetGType());
-            filters.Append(filterGBA);
-            filters.Append(allFiles);
-            d.SetFilters(filters);
-            OpenCallback = (source, res, data) =>
+                _ = new AlphaDreamEngine(File.ReadAllBytes(path));
+            }
+            catch (Exception ex)
             {
-                var fileHandle = Gtk.Internal.FileDialog.OpenFinish(d.Handle, res, out ErrorHandle);
-                if (fileHandle != IntPtr.Zero)
-                {
-                    var path = Marshal.PtrToStringUTF8(Gio.Internal.File.GetPath(fileHandle).DangerousGetHandle());
-                    OpenAlphaDreamFinish(path!);
-                    d.Unref();
-                }
-                d.Unref();
-            };
-            Gtk.Internal.FileDialog.Open(d.Handle, Handle, IntPtr.Zero, OpenCallback, IntPtr.Zero);
-            //d.Open(Handle, IntPtr.Zero, _openCallback, IntPtr.Zero);
+                FlexibleMessageBox.Show(ex, Strings.ErrorOpenAlphaDream);
+                return;
+            }
+
+            AlphaDreamConfig config = AlphaDreamEngine.AlphaDreamInstance!.Config;
+            FinishLoading(config.SongTableSizes[0]);
+            _sequenceNumberSpinButton.Visible = true;
+            _sequenceNumberSpinButton.Show();
+            _mainMenu.AppendItem(_dataItem);
+            _mainMenu.AppendItem(_playlistItem);
+            _exportDLSAction.Enabled = true;
+            _exportMIDIAction.Enabled = false;
+            _exportSF2Action.Enabled = true;
         }
     }
-    private void OpenAlphaDreamFinish(string path)
-    {
-        DisposeEngine();
-        try
-        {
-            _ = new AlphaDreamEngine(File.ReadAllBytes(path));
-        }
-        catch (Exception ex)
-        {
-            FlexibleMessageBox.Show(ex, Strings.ErrorOpenAlphaDream);
-            return;
-        }
 
-        AlphaDreamConfig config = AlphaDreamEngine.AlphaDreamInstance!.Config;
-        FinishLoading(config.SongTableSizes[0]);
-        _sequenceNumberSpinButton.Visible = true;
-        _sequenceNumberSpinButton.Show();
-        _mainMenu.AppendItem(_dataItem);
-        _mainMenu.AppendItem(_playlistItem);
-        _exportDLSAction.Enabled = true;
-        _exportMIDIAction.Enabled = false;
-        _exportSF2Action.Enabled = true;
-    }
     private void OpenMP2K(Gio.SimpleAction sender, EventArgs e)
     {
-        //var inFile = GTK4Utils.CreateLoadDialog(["*.gba", "*.srl"], Strings.MenuOpenMP2K, Strings.FilterOpenGBA);
-        //if (inFile is not null)
-        //{
-        //    OpenMP2KFinish(inFile);
-        //}
+        GTK4Utils.OnPathChanged += LoadFile;
+        GTK4Utils.CreateLoadDialog(["*.gba", "*.srl"], Strings.MenuOpenMP2K, Strings.FilterOpenGBA);
 
-
-        FileFilter filterGBA = FileFilter.New();
-        filterGBA.SetName(Strings.FilterOpenGBA);
-        filterGBA.AddPattern("*.gba");
-        filterGBA.AddPattern("*.srl");
-        FileFilter allFiles = FileFilter.New();
-        allFiles.SetName(Strings.FilterAllFiles);
-        allFiles.AddPattern("*.*");
-
-        if (Gtk.Functions.GetMinorVersion() <= 8)
+        void LoadFile(string path)
         {
-            var d = FileChooserNative.New(
-                Strings.MenuOpenMP2K,
-                this,
-                FileChooserAction.Open,
-                "Open",
-                "Cancel");
-
-
-            d.AddFilter(filterGBA);
-            d.AddFilter(allFiles);
-
-            d.OnResponse += (sender, e) =>
+            GTK4Utils.OnPathChanged -= LoadFile;
+            if (Engine.Instance is not null)
             {
-                if (e.ResponseId != (int)ResponseType.Accept)
-                {
-                    d.Unref();
-                    return;
-                }
-                var path = d.GetFile()!.GetPath() ?? "";
-                OpenMP2KFinish(path);
-                d.Unref();
-            };
-            d.Show();
-        }
-        else
-        {
-            var d = FileDialog.New();
-            d.SetTitle(Strings.MenuOpenMP2K);
-            var filters = Gio.ListStore.New(FileFilter.GetGType());
-            filters.Append(filterGBA);
-            filters.Append(allFiles);
-            d.SetFilters(filters);
-            OpenCallback = (source, res, data) =>
+                DisposeEngine();
+            }
+
+            try
             {
-                var fileHandle = Gtk.Internal.FileDialog.OpenFinish(d.Handle, res, out ErrorHandle);
-                if (fileHandle != IntPtr.Zero)
-                {
-                    var path = Marshal.PtrToStringUTF8(Gio.Internal.File.GetPath(fileHandle).DangerousGetHandle());
-                    OpenMP2KFinish(path!);
-                    filterGBA.Unref();
-                    allFiles.Unref();
-                    filters.Unref();
-                    GObject.Internal.Object.Unref(fileHandle);
-                    d.Unref();
-                    return;
-                }
-                d.Unref();
-            };
-            Gtk.Internal.FileDialog.Open(d.Handle, Handle, IntPtr.Zero, OpenCallback, IntPtr.Zero);
-            //d.Open(Handle, IntPtr.Zero, _openCallback, IntPtr.Zero);
-        }
-    }
-    private void OpenMP2KFinish(string path)
-    {
-        if (Engine.Instance is not null)
-        {
-            DisposeEngine();
-        }
+                _ = new MP2KEngine(File.ReadAllBytes(path), true, false);
+            }
+            catch (Exception ex)
+            {
+                //_dialog = Adw.MessageDialog.New(this, Strings.ErrorOpenMP2K, ex.ToString());
+                //FlexibleMessageBox.Show(ex, Strings.ErrorOpenMP2K);
+                DisposeEngine();
+                ExceptionDialog(ex, Strings.ErrorOpenMP2K);
+                return;
+            }
 
-        try
-        {
-            _ = new MP2KEngine(File.ReadAllBytes(path), true, false);
+            MP2KConfig config = MP2KEngine.MP2KInstance!.Config;
+            FinishLoading(config.SongTableSizes[0]);
+            _sequenceNumberSpinButton.Visible = true;
+            _sequenceNumberSpinButton.Show();
+            _buttonRecord.Sensitive =
+                _playlistSelector.PlaylistDropDown!.Sensitive =
+                _playlistSelector.ButtonPrevPlistSong.Sensitive =
+                _playlistSelector.PlaylistSongDropDown!.Sensitive =
+                _playlistSelector.ButtonNextPlistSong.Sensitive = true;
+            _trackViewerAction.Enabled = true;
+            _exportDLSAction.Enabled = false;
+            _exportMIDIAction.Enabled = true;
+            _exportSF2Action.Enabled = false;
+            PlaylistWidgetAction_IsEnabled(true);
+            PianoWidgetAction_IsEnabled(true);
+            SeqAudioTrackInfoWidgetAction_IsEnabled(true);
+            SeqAudioListWidgetAction_IsEnabled(true);
+            // _sequencedAudioTrackInfo.Init();
         }
-        catch (Exception ex)
-        {
-            //_dialog = Adw.MessageDialog.New(this, Strings.ErrorOpenMP2K, ex.ToString());
-            //FlexibleMessageBox.Show(ex, Strings.ErrorOpenMP2K);
-            DisposeEngine();
-            ExceptionDialog(ex, Strings.ErrorOpenMP2K);
-            return;
-        }
-
-        MP2KConfig config = MP2KEngine.MP2KInstance!.Config;
-        FinishLoading(config.SongTableSizes[0]);
-        _sequenceNumberSpinButton.Visible = true;
-        _sequenceNumberSpinButton.Show();
-        _buttonRecord.Sensitive =
-            _playlistSelector.PlaylistDropDown!.Sensitive =
-            _playlistSelector.ButtonPrevPlistSong.Sensitive =
-            _playlistSelector.PlaylistSongDropDown!.Sensitive =
-            _playlistSelector.ButtonNextPlistSong.Sensitive = true;
-        _trackViewerAction.Enabled = true;
-        _exportDLSAction.Enabled = false;
-        _exportMIDIAction.Enabled = true;
-        _exportSF2Action.Enabled = false;
-        PlaylistWidgetAction_IsEnabled(true);
-        PianoWidgetAction_IsEnabled(true);
-        SeqAudioTrackInfoWidgetAction_IsEnabled(true);
-        SeqAudioListWidgetAction_IsEnabled(true);
-        // _sequencedAudioTrackInfo.Init();
     }
     private void ExportDLS(Gio.SimpleAction sender, EventArgs e)
     {
-        AlphaDreamConfig cfg = AlphaDreamEngine.AlphaDreamInstance!.Config;
+        GTK4Utils.CreateSaveDialog(Engine.Instance!.Config.GetGameName(), ["*.dls"], Strings.MenuSaveDLS, Strings.FilterSaveDLS);
+        GTK4Utils.OnPathChanged += SaveFile;
 
-        FileFilter ff = FileFilter.New();
-        ff.SetName(Strings.FilterSaveDLS);
-        ff.AddPattern("*.dls");
-
-        if (Gtk.Functions.GetMinorVersion() <= 8)
+        static void SaveFile(string path)
         {
-            var d = FileChooserNative.New(
-                Strings.MenuSaveDLS,
-                this,
-                FileChooserAction.Save,
-                "Save",
-                "Cancel");
-            d.SetCurrentName(cfg.GetGameName());
-            d.AddFilter(ff);
+            AlphaDreamConfig cfg = AlphaDreamEngine.AlphaDreamInstance!.Config;
 
-            d.OnResponse += (sender, e) =>
+            try
             {
-                if (e.ResponseId != (int)ResponseType.Accept)
-                {
-                    d.Unref();
-                    return;
-                }
-
-                var path = d.GetFile()!.GetPath() ?? "";
-                ExportDLSFinish(cfg, path);
-                d.Unref();
-            };
-            d.Show();
-        }
-        else
-        {
-            var d = FileDialog.New();
-            d.SetTitle(Strings.MenuSaveDLS);
-            var filters = Gio.ListStore.New(FileFilter.GetGType());
-            filters.Append(ff);
-            d.SetFilters(filters);
-            SaveCallback = (source, res, data) =>
+                AlphaDreamSoundFontSaver_DLS.Save(cfg, path);
+                FlexibleMessageBox.Show(string.Format(Strings.SuccessSaveDLS, path), Strings.SuccessSaveDLS);
+            }
+            catch (Exception ex)
             {
-                var fileHandle = Gtk.Internal.FileDialog.SaveFinish(d.Handle, res, out ErrorHandle);
-                if (fileHandle != IntPtr.Zero)
-                {
-                    var path = Marshal.PtrToStringUTF8(Gio.Internal.File.GetPath(fileHandle).DangerousGetHandle());
-                    ExportDLSFinish(cfg, path!);
-                    d.Unref();
-                }
-                d.Unref();
-            };
-            Gtk.Internal.FileDialog.Save(d.Handle, Handle, IntPtr.Zero, SaveCallback, IntPtr.Zero);
-            //d.Save(Handle, IntPtr.Zero, _saveCallback, IntPtr.Zero);
-        }
-    }
-    private void ExportDLSFinish(AlphaDreamConfig config, string path)
-    {
-        try
-        {
-            AlphaDreamSoundFontSaver_DLS.Save(config, path);
-            FlexibleMessageBox.Show(string.Format(Strings.SuccessSaveDLS, path), Strings.SuccessSaveDLS);
-        }
-        catch (Exception ex)
-        {
-            FlexibleMessageBox.Show(ex, Strings.ErrorSaveDLS);
+                FlexibleMessageBox.Show(ex, Strings.ErrorSaveDLS);
+            }
         }
     }
     private void ExportMIDI(Gio.SimpleAction sender, EventArgs e)
     {
-        FileFilter ff = FileFilter.New();
-        ff.SetName(Strings.FilterSaveMIDI);
-        ff.AddPattern("*.mid");
-        ff.AddPattern("*.midi");
+        GTK4Utils.CreateSaveDialog(Engine.Instance!.Config.GetSongName((int)_sequenceNumberSpinButton.Value), ["*.mid", "*.midi"], Strings.MenuSaveMIDI, Strings.FilterSaveMIDI);
+        GTK4Utils.OnPathChanged += SaveFile;
 
-        if (Gtk.Functions.GetMinorVersion() <= 8)
+        static void SaveFile(string path)
         {
-            var d = FileChooserNative.New(
-                Strings.MenuSaveMIDI,
-                this,
-                FileChooserAction.Save,
-                "Save",
-                "Cancel");
-            d.SetCurrentName(Engine.Instance!.Config.GetSongName((int)_sequenceNumberSpinButton.Value));
-            d.AddFilter(ff);
+            MP2KPlayer p = MP2KEngine.MP2KInstance!.Player;
+            var args = new MIDISaveArgs(true, false, [(0, (4, 4))]); // timeSignatures collection contains: (int AbsoluteTick, (byte Numerator, byte Denominator))
 
-            d.OnResponse += (sender, e) =>
+            try
             {
-                if (e.ResponseId != (int)ResponseType.Accept)
-                {
-                    d.Unref();
-                    return;
-                }
-
-                var path = d.GetFile()!.GetPath() ?? "";
-                ExportMIDIFinish(path);
-                d.Unref();
-            };
-            d.Show();
-        }
-        else
-        {
-            var d = FileDialog.New();
-            d.SetTitle(Strings.MenuSaveMIDI);
-            var filters = Gio.ListStore.New(FileFilter.GetGType());
-            filters.Append(ff);
-            d.SetFilters(filters);
-            SaveCallback = (source, res, data) =>
+                p.SaveAsMIDI(path, args);
+                FlexibleMessageBox.Show(string.Format(Strings.SuccessSaveMIDI, path), Strings.SuccessSaveMIDI);
+            }
+            catch (Exception ex)
             {
-                var fileHandle = Gtk.Internal.FileDialog.SaveFinish(d.Handle, res, out ErrorHandle);
-                if (fileHandle != IntPtr.Zero)
-                {
-                    var path = Marshal.PtrToStringUTF8(Gio.Internal.File.GetPath(fileHandle).DangerousGetHandle());
-                    ExportMIDIFinish(path!);
-                    d.Unref();
-                }
-                d.Unref();
-            };
-            Gtk.Internal.FileDialog.Save(d.Handle, Handle, IntPtr.Zero, SaveCallback, IntPtr.Zero);
-            //d.Save(Handle, IntPtr.Zero, _saveCallback, IntPtr.Zero);
-        }
-    }
-    private void ExportMIDIFinish(string path)
-    {
-        MP2KPlayer p = MP2KEngine.MP2KInstance!.Player;
-        var args = new MIDISaveArgs(true, false, new (int AbsoluteTick, (byte Numerator, byte Denominator))[]
-        {
-            (0, (4, 4)),
-        });
-
-        try
-        {
-            p.SaveAsMIDI(path, args);
-            FlexibleMessageBox.Show(string.Format(Strings.SuccessSaveMIDI, path), Strings.SuccessSaveMIDI);
-        }
-        catch (Exception ex)
-        {
-            FlexibleMessageBox.Show(ex, Strings.ErrorSaveMIDI);
+                FlexibleMessageBox.Show(ex, Strings.ErrorSaveMIDI);
+            }
         }
     }
     private void ExportSF2(Gio.SimpleAction sender, EventArgs e)
     {
-        AlphaDreamConfig cfg = AlphaDreamEngine.AlphaDreamInstance!.Config;
+        GTK4Utils.CreateSaveDialog(Engine.Instance!.Config.GetGameName(), ["*.sf2"], Strings.MenuSaveSF2, Strings.FilterSaveSF2);
+        GTK4Utils.OnPathChanged += SaveFile;
 
-        FileFilter ff = FileFilter.New();
-        ff.SetName(Strings.FilterSaveSF2);
-        ff.AddPattern("*.sf2");
-
-        if (Gtk.Functions.GetMinorVersion() <= 8)
+        static void SaveFile(string path)
         {
-            var d = FileChooserNative.New(
-                Strings.MenuSaveSF2,
-                this,
-                FileChooserAction.Save,
-                "Save",
-                "Cancel");
+            AlphaDreamConfig cfg = AlphaDreamEngine.AlphaDreamInstance!.Config;
 
-            d.SetCurrentName(cfg.GetGameName());
-            d.AddFilter(ff);
-
-            d.OnResponse += (sender, e) =>
+            try
             {
-                if (e.ResponseId != (int)ResponseType.Accept)
-                {
-                    d.Unref();
-                    return;
-                }
-
-                var path = d.GetFile()!.GetPath() ?? "";
-                ExportSF2Finish(path, cfg);
-                d.Unref();
-            };
-            d.Show();
-        }
-        else
-        {
-            var d = FileDialog.New();
-            d.SetTitle(Strings.MenuSaveSF2);
-            var filters = Gio.ListStore.New(FileFilter.GetGType());
-            filters.Append(ff);
-            d.SetFilters(filters);
-            SaveCallback = (source, res, data) =>
+                AlphaDreamSoundFontSaver_SF2.Save(path, cfg);
+                FlexibleMessageBox.Show(string.Format(Strings.SuccessSaveSF2, path), Strings.SuccessSaveSF2);
+            }
+            catch (Exception ex)
             {
-                var fileHandle = Gtk.Internal.FileDialog.SaveFinish(d.Handle, res, out ErrorHandle);
-                if (fileHandle != IntPtr.Zero)
-                {
-                    var path = Marshal.PtrToStringUTF8(Gio.Internal.File.GetPath(fileHandle).DangerousGetHandle());
-                    ExportSF2Finish(path!, cfg);
-                    d.Unref();
-                }
-                d.Unref();
-            };
-            Gtk.Internal.FileDialog.Save(d.Handle, Handle, IntPtr.Zero, SaveCallback, IntPtr.Zero);
-            //d.Save(Handle, IntPtr.Zero, _saveCallback, IntPtr.Zero);
-        }
-    }
-    private void ExportSF2Finish(string path, AlphaDreamConfig config)
-    {
-        try
-        {
-            AlphaDreamSoundFontSaver_SF2.Save(path, config);
-            FlexibleMessageBox.Show(string.Format(Strings.SuccessSaveSF2, path), Strings.SuccessSaveSF2);
-        }
-        catch (Exception ex)
-        {
-            FlexibleMessageBox.Show(ex, Strings.ErrorSaveSF2);
+                FlexibleMessageBox.Show(ex, Strings.ErrorSaveSF2);
+            }
         }
     }
     private void ExportWAV(object sender, EventArgs e)
     {
-        FileFilter ff = FileFilter.New();
-        ff.SetName(Strings.FilterSaveWAV);
-        ff.AddPattern("*.wav");
+        GTK4Utils.CreateSaveDialog(Engine.Instance!.Config.GetSongName((int)_sequenceNumberSpinButton.Value), ["*.wav"], Strings.MenuSaveWAV, Strings.FilterSaveWAV);
+        GTK4Utils.OnPathChanged += SaveFile;
 
-        if (Gtk.Functions.GetMinorVersion() <= 8)
+        void SaveFile(string path)
         {
-            var d = FileChooserNative.New(
-            Strings.MenuSaveWAV,
-            this,
-            FileChooserAction.Save,
-            "Save",
-            "Cancel");
+            Stop();
 
-            d.SetCurrentName(Engine.Instance!.Config.GetSongName((int)_sequenceNumberSpinButton.Value));
-            d.AddFilter(ff);
+            Player player = Engine.Instance!.Player;
+            bool oldFade = player.ShouldFadeOut;
+            long oldLoops = player.NumLoops;
+            player.ShouldFadeOut = true;
+            player.NumLoops = GlobalConfig.Instance.PlaylistSongLoops;
 
-            d.OnResponse += (sender, e) =>
+            try
             {
-                if (e.ResponseId != (int)ResponseType.Accept)
-                {
-                    d.Unref();
-                    return;
-                }
-
-                var path = d.GetFile()!.GetPath() ?? "";
-                ExportWAVFinish(path);
-                d.Unref();
-            };
-            d.Show();
-        }
-        else
-        {
-            var d = FileDialog.New();
-            d.SetTitle(Strings.MenuSaveWAV);
-            var filters = Gio.ListStore.New(FileFilter.GetGType());
-            filters.Append(ff);
-            d.SetFilters(filters);
-            SaveCallback = (source, res, data) =>
+                player.Record(path);
+                FlexibleMessageBox.Show(string.Format(Strings.SuccessSaveWAV, path), Strings.SuccessSaveWAV);
+            }
+            catch (Exception ex)
             {
-                var fileHandle = Gtk.Internal.FileDialog.SaveFinish(d.Handle, res, out ErrorHandle);
-                if (fileHandle != IntPtr.Zero)
-                {
-                    var path = Marshal.PtrToStringUTF8(Gio.Internal.File.GetPath(fileHandle).DangerousGetHandle());
-                    ExportWAVFinish(path!);
-                    d.Unref();
-                }
-                d.Unref();
-            };
-            Gtk.Internal.FileDialog.Save(d.Handle, Handle, IntPtr.Zero, SaveCallback, IntPtr.Zero);
-            //d.Save(Handle, IntPtr.Zero, _saveCallback, IntPtr.Zero);
-        }
-    }
-    private void ExportWAVFinish(string path)
-    {
-        Stop();
+                FlexibleMessageBox.Show(ex, Strings.ErrorSaveWAV);
+            }
 
-        Player player = Engine.Instance!.Player;
-        bool oldFade = player.ShouldFadeOut;
-        long oldLoops = player.NumLoops;
-        player.ShouldFadeOut = true;
-        player.NumLoops = GlobalConfig.Instance.PlaylistSongLoops;
-
-        try
-        {
-            player.Record(path);
-            FlexibleMessageBox.Show(string.Format(Strings.SuccessSaveWAV, path), Strings.SuccessSaveWAV);
+            player.ShouldFadeOut = oldFade;
+            player.NumLoops = oldLoops;
+            _stopUI = false;
         }
-        catch (Exception ex)
-        {
-            FlexibleMessageBox.Show(ex, Strings.ErrorSaveWAV);
-        }
-
-        player.ShouldFadeOut = oldFade;
-        player.NumLoops = oldLoops;
-        _stopUI = false;
     }
 
     public void ExceptionDialog(Exception error, string heading)
@@ -1971,12 +1579,15 @@ internal sealed class MainWindow : Window
 
     private void Play()
     {
+        _buttonPlay.OnClicked -= Play_Clicked;
         Engine.Instance!.Player.IsPauseToggled = false;
         Engine.Instance.Player.Play();
         LetUIKnowPlayerIsPlaying();
+        _buttonPlay.OnClicked += Play_Clicked;
     }
     private void Pause()
     {
+        _buttonPause.OnClicked -= Pause_Clicked;
         Engine.Instance!.Player.TogglePlaying();
         if (Engine.Instance.Player.State == PlayerState.Paused)
         {
@@ -1992,19 +1603,22 @@ internal sealed class MainWindow : Window
             Engine.Instance.Player.IsPauseToggled = false;
             _timer.Start();
         }
+        _buttonPause.OnClicked += Pause_Clicked;
     }
     private void Stop()
     {
+        _buttonStop.OnClicked -= Stop_Clicked;
         if (Engine.Instance == null)
         {
             return; // This is here to ensure that it returns if the Engine.Instance is null while closing the main window
         }
+        _timer.Stop();
         Engine.Instance!.Player.Stop();
         _buttonPause.Active = false;
         _buttonPause.Sensitive = _buttonStop.Sensitive = false;
         _buttonPause.TooltipText = Strings.PlayerPause;
-        _timer.Stop();
         UpdatePositionIndicators(0L);
+        _buttonStop.OnClicked += Stop_Clicked;
     }
     private void TogglePlayback()
     {
@@ -2015,9 +1629,16 @@ internal sealed class MainWindow : Window
             case PlayerState.Playing: Pause(); break;
         }
     }
-    private void PlayPreviousSong()
-    {
+    private void Play_Clicked(Button sender, EventArgs args) => Play();
 
+    private void Pause_Clicked(Button sender, EventArgs args) => Pause();
+
+    private void Stop_Clicked(Button sender, EventArgs args) => Stop();
+
+    private void PlayPreviousSong(object? sender, EventArgs? e)
+    {
+        _playlistSelector.ButtonPrevPlistSong.OnClicked -= PlayPreviousSong;
+        _playlistSelector.ButtonNextPlistSong.OnClicked -= PlayNextSong;
         if (_playlist is not null)
         {
             _playlist.UndoThenSetAndLoadPrevSong(this, _curSong);
@@ -2032,9 +1653,13 @@ internal sealed class MainWindow : Window
             _manuallyChanged = ManuallyChanged.None;
             CheckPlaylistItem();
         }
+        _playlistSelector.ButtonPrevPlistSong.OnClicked += PlayPreviousSong;
+        _playlistSelector.ButtonNextPlistSong.OnClicked += PlayNextSong;
     }
     private void PlayNextSong(object? sender, EventArgs? e)
     {
+        _playlistSelector.ButtonPrevPlistSong.OnClicked -= PlayPreviousSong;
+        _playlistSelector.ButtonNextPlistSong.OnClicked -= PlayNextSong;
         if (_playlist is not null)
         {
             _playlist.AdvanceThenSetAndLoadNextSong(this, _curSong);
@@ -2049,6 +1674,8 @@ internal sealed class MainWindow : Window
             _manuallyChanged = ManuallyChanged.None;
             CheckPlaylistItem();
         }
+        _playlistSelector.ButtonPrevPlistSong.OnClicked += PlayPreviousSong;
+        _playlistSelector.ButtonNextPlistSong.OnClicked += PlayNextSong;
     }
 
     private void CheckPlaylistItem()
@@ -2076,8 +1703,6 @@ internal sealed class MainWindow : Window
         if (config.Playlists is not null)
         {
             _playlistSelector.AddEntries(config.Playlists);
-            _playlistSelector.PlaylistDropDown.OnNotify += OnPlaylistStringSelected;
-            _playlistSelector.PlaylistSongDropDown.OnNotify += OnPlaylistSongStringSelected;
         }
         //foreach (Config.Playlist playlist in Engine.Instance.Config.Playlists)
         //{
@@ -2091,7 +1716,12 @@ internal sealed class MainWindow : Window
 #endif
         _autoplay = false;
         _manuallyChanged = ManuallyChanged.Initialized;
-        CheckIfChangedManually(Engine.Instance.Config.Playlists[^1].Songs.Count == 0 ? 0 : Engine.Instance.Config.Playlists[^1].Songs[0].Index);
+        CheckIfChangedManually(Engine.Instance.Config.InternalSongNames[0].Songs.Count == 0 ? 0 : Engine.Instance.Config.InternalSongNames[0].Songs[0].Index);
+        if (config.Playlists is not null)
+        {
+            _playlistSelector.PlaylistDropDown.OnNotify += OnPlaylistStringSelected;
+            _playlistSelector.PlaylistSongDropDown.OnNotify += OnPlaylistSongStringSelected;
+        }
         _manuallyChanged = ManuallyChanged.None;
         _sequenceNumberSpinButton.Sensitive = _buttonPlay.Sensitive = _volumeBar.Sensitive = true;
         _volumeBar.SetValue(100);

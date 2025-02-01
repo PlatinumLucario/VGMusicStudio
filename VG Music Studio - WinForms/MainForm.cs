@@ -748,7 +748,7 @@ internal sealed class MainForm : ThemedForm
 	}
 	private void VolumeBar_ValueChanged(object? sender, EventArgs e)
 	{
-		Engine.Instance!.Mixer.SetVolume(_volumeBar.Value / (float)_volumeBar.Maximum);
+		Engine.Instance!.Mixer_NAudio!.SetVolume(_volumeBar.Value / (float)_volumeBar.Maximum);
 	}
 	private void PositionBar_MouseUp(object? sender, MouseEventArgs e)
 	{

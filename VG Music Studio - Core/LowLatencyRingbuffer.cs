@@ -19,7 +19,7 @@ internal class LowLatencyRingbuffer
 		internal float right;
 	}
 
-	private System.Threading.Mutex? mtx = new();
+	private readonly object? lockObj = new();
 	private readonly object? cv = new();
 	private List<Sample>? buffer;
 
@@ -75,7 +75,7 @@ internal class LowLatencyRingbuffer
 
 	public void Reset()
 	{
-		lock (mtx!)
+		lock (lockObj!)
 		{
 			dataCount = 0;
 			dataPos = 0;
@@ -89,7 +89,7 @@ internal class LowLatencyRingbuffer
 
 	public void SetNumBuffers(int numBuffers)
 	{
-		lock (mtx!)
+		lock (lockObj!)
 		{
 			if (numBuffers is 0)
 				numBuffers = 1;
@@ -101,7 +101,7 @@ internal class LowLatencyRingbuffer
 	{
 		lastPut = inBuffer.Length;
 
-		lock (mtx!)
+		lock (lockObj!)
 		{
 			int bufferedNumBuffers = numBuffers;
 			int bufferedLastTake = lastTake;
@@ -129,7 +129,7 @@ internal class LowLatencyRingbuffer
 	{
 		lastTake = outBuffer.Length;
 
-		using (var tl = new TryLock(mtx!))
+		using (var tl = new TryLock(lockObj!))
 		{
 			if (!tl.OwnsLock || outBuffer.Length > dataCount)
 			{

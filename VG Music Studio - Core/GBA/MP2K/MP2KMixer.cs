@@ -28,8 +28,6 @@ public sealed class MP2KMixer : Mixer
     private readonly MP2KPSGChannel[] _psgChannels;
     private readonly Wave _buffer;
 
-    internal MP2KMixer() { }
-
     internal MP2KMixer(MP2KConfig config)
     {
         Config = config;
@@ -60,7 +58,7 @@ public sealed class MP2KMixer : Mixer
         };
         _buffer.CreateIeeeFloatWave((uint)SampleRate, 2);
 
-        Init(_buffer, _audio);
+        Init(_buffer);
     }
 
     internal MP2KPCM8Channel? AllocPCM8Channel(MP2KTrack owner, ADSR env, NoteInfo note, byte vol, sbyte pan, int instPan, int pitch, bool bFixed, bool bCompressed, int sampleOffset)

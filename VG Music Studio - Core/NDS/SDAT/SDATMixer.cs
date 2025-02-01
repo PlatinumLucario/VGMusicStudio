@@ -37,6 +37,9 @@ public sealed class SDATMixer : Mixer
 			BufferLength = _samplesPerBuffer * 64
 		};
 		_buffer.CreateIeeeFloatWave(sampleRate, 2, 16);
+
+		Instance = this;
+
 		Init(_buffer);
 	}
 

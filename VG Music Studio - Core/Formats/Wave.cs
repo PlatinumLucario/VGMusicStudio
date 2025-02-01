@@ -1,9 +1,15 @@
 ﻿using Kermalis.EndianBinaryIO;
 using System;
+using System.Diagnostics;
 using System.IO;
 
 namespace Kermalis.VGMusicStudio.Core.Formats;
 
+// Some code has been based on NAudio's BufferedWaveProvider and CircularBuffer
+// Sources:
+//      https://github.com/naudio/NAudio/blob/master/NAudio.Core/Wave/WaveProviders/BufferedWaveProvider.cs
+//      https://github.com/naudio/NAudio/blob/master/NAudio.Core/Utils/CircularBuffer.cs
+// NAudio License (MIT) - https://github.com/naudio/NAudio/blob/master/license.txt
 public class Wave
 {
     public string? FileName;
@@ -17,12 +23,12 @@ public class Wave
     public uint LoopStart;
     public uint LoopEnd;
 
-    public bool DiscardOnBufferOverflow;
+    public bool DiscardOnBufferOverflow { get; set; }
     public int BufferLength;
 
     public byte[]? Buffer;
-    private int ReadPosition;
-    private int WritePosition;
+    public int ReadPosition { get; private set; }
+    public int WritePosition {  get; private set; }
     private int ByteCount;
     private object? LockObject;
 
@@ -96,20 +102,22 @@ public class Wave
         ExtraSize = 0;
         return new Wave();
     }
-    public Wave CreateIeeeFloatWave(uint sampleRate, ushort channels) => CreateFormat(sampleRate, channels, (ushort)(4 * channels), sampleRate * (ushort)(4 * channels), 32);
-    public Wave CreateIeeeFloatWave(uint sampleRate, ushort channels, ushort bits) => CreateFormat(sampleRate, channels, (ushort)(4 * channels), sampleRate * (ushort)(4 * channels), bits);
+    public Wave CreateIeeeFloatWave(uint sampleRate, ushort channels, ushort bits = 32) => CreateFormat(sampleRate, channels, (ushort)(4 * channels), sampleRate * (ushort)(4 * channels), bits);
 
     public void AddSamples(Span<byte> buffer, int offset, int count)
     {
-        if (Buffer == null)
+        if (Engine.Instance!.Player.State == PlayerState.Playing)
         {
-            Buffer = new byte[BufferLength];
-            LockObject = new object();
-        }
+            if (Buffer == null)
+            {
+                Buffer = new byte[BufferLength];
+                LockObject = new object();
+            }
 
-        if (WriteBuffer(buffer, offset, count) < count && !DiscardOnBufferOverflow)
-        {
-            throw new InvalidOperationException("The buffer is full and cannot be written to.");
+            if (WriteBuffer(buffer, offset, count) < count && !DiscardOnBufferOverflow)
+            {
+                throw new InvalidOperationException("The buffer is full and cannot be written to.");
+            }
         }
     }
 
@@ -123,14 +131,18 @@ public class Wave
             }
 
             int num = 0;
-            int num2 = Math.Min(Buffer!.Length - ReadPosition, count);
-            Array.Copy(Buffer, ReadPosition, data.ToArray(), offset, num2);
-            num += num2;
-            ReadPosition += num2;
+            int readToEnd = Math.Min(Buffer!.Length - ReadPosition, count);
+            var src = new Span<byte>(Buffer, ReadPosition, readToEnd);
+            var dst = data.Slice(offset, readToEnd);
+            src.CopyTo(dst);
+            num += readToEnd;
+            ReadPosition += readToEnd;
             ReadPosition %= Buffer.Length;
             if (num < count)
             {
-                Array.Copy(Buffer, ReadPosition, data.ToArray(), offset + num, count - num);
+                src = new Span<byte>(Buffer, ReadPosition, count - num);
+                dst = data.Slice(offset + num, count - num);
+                src.CopyTo(dst);
                 ReadPosition += count - num;
                 num = count;
             }
@@ -144,26 +156,47 @@ public class Wave
     {
         lock (LockObject!)
         {
-            int num = 0;
+            int bytesWritten = 0;
+            ByteCount = Buffer!.Length % count;
+            if (ByteCount >= Buffer!.Length)
+            {
+                ByteCount = 0;
+            }
             if (count > Buffer!.Length - ByteCount)
             {
                 count = Buffer.Length - ByteCount;
             }
 
-            int num2 = Math.Min(Buffer.Length - WritePosition, count);
-            Array.Copy(data.ToArray(), offset, Buffer, WritePosition, num2);
-            WritePosition += num2;
+            int writeToEnd = Math.Min(Buffer.Length - WritePosition, count);
+            var src = data.Slice(offset, writeToEnd);
+            var dst = new Span<byte>(Buffer, WritePosition, writeToEnd);
+            src.CopyTo(dst);
+            WritePosition += writeToEnd;
             WritePosition %= Buffer.Length;
-            num += num2;
-            if (num < count)
+            bytesWritten += writeToEnd;
+            if (bytesWritten < count)
             {
-                Array.Copy(data.ToArray(), offset + num, Buffer, WritePosition, count - num);
-                WritePosition += count - num;
-                num = count;
+                Debug.Assert(WritePosition == 0);
+                src = data.Slice(offset + bytesWritten, count - bytesWritten);
+                dst = new Span<byte>(Buffer, WritePosition, count - bytesWritten);
+                src.CopyTo(dst);
+                WritePosition += count - bytesWritten;
+                bytesWritten = count;
             }
 
-            ByteCount += num;
-            return num;
+            ByteCount += bytesWritten;
+            return bytesWritten;
+        }
+    }
+
+    public void ResetBuffer()
+    {
+        lock (LockObject!)
+        {
+            new Span<byte>(Buffer).Clear();
+            ByteCount = 0;
+            ReadPosition = 0;
+            WritePosition = 0;
         }
     }
 
@@ -196,9 +229,7 @@ public class Wave
         DataChunkSize += count;
     }
 
-    public Span<byte> WriteBytes(Span<long> data) => WriteBytes(data, WaveEncoding.Pcm16);
-
-    public Span<byte> WriteBytes(Span<long> data, WaveEncoding encoding)
+    public Span<byte> WriteBytes(Span<long> data, WaveEncoding encoding = WaveEncoding.Pcm16)
     {
         var convertedData = new byte[data.Length * 2];
         int index = 0;
@@ -217,9 +248,7 @@ public class Wave
         return WriteBytes(convertedData, encoding);
     }
 
-    public Span<byte> WriteBytes(Span<int> data) => WriteBytes(data, WaveEncoding.Pcm16);
-
-    public Span<byte> WriteBytes(Span<int> data, WaveEncoding encoding)
+    public Span<byte> WriteBytes(Span<int> data, WaveEncoding encoding = WaveEncoding.Pcm16)
     {
         var convertedData = new byte[data.Length * 2];
         int index = 0;
@@ -234,9 +263,7 @@ public class Wave
         return WriteBytes(convertedData, encoding);
     }
 
-    public Span<byte> WriteBytes(Span<short> data) => WriteBytes(data, WaveEncoding.Pcm16);
-
-    public Span<byte> WriteBytes(Span<short> data, WaveEncoding encoding)
+    public Span<byte> WriteBytes(Span<short> data, WaveEncoding encoding = WaveEncoding.Pcm16)
     {
         var convertedData = new byte[data.Length * 2];
         int index = 0;
@@ -249,9 +276,7 @@ public class Wave
         return WriteBytes(convertedData, encoding);
     }
 
-    public Span<byte> WriteBytes(Span<byte> data) => WriteBytes(data, WaveEncoding.Pcm16);
-
-    public Span<byte> WriteBytes(Span<byte> data, WaveEncoding encoding)
+    public Span<byte> WriteBytes(Span<byte> data, WaveEncoding encoding = WaveEncoding.Pcm16)
     {
         // Creating the RIFF Wave header
         string fileID = "RIFF";

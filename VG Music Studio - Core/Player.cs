@@ -1,9 +1,13 @@
 ﻿using PortAudio;
-using Kermalis.VGMusicStudio.Core.Util;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
+using Kermalis.EndianBinaryIO;
+using Kermalis.VGMusicStudio.Core.Formats;
+using Kermalis.VGMusicStudio.Core.Util;
+using System.Timers;
+using System.Runtime.InteropServices;
 
 namespace Kermalis.VGMusicStudio.Core;
 
@@ -22,7 +26,7 @@ public interface ILoadedSong
 	long MaxTicks { get; }
 }
 
-public abstract class Player : IDisposable
+public abstract class Player(double ticksPerSecond) : IDisposable
 {
 	protected abstract string Name { get; }
 	protected abstract Mixer Mixer { get; }
@@ -37,16 +41,12 @@ public abstract class Player : IDisposable
 	public PlayerState State { get; protected set; }
 	public event Action? SongEnded;
 
-	private readonly TimeBarrier _time;
+	private readonly BetterTimer _timer = new BetterTimer(ticksPerSecond);
+	//private readonly TimeBarrier _time;
 	private Thread? _thread;
-	private static LowLatencyRingbuffer Ringbuffer { get; set; } = new LowLatencyRingbuffer();
+	private double? _deltaTimeElapsed;
 	public bool IsStreamStopped = true;
 	public bool IsPauseToggled = false;
-
-	protected Player(double ticksPerSecond)
-	{
-		_time = new TimeBarrier(ticksPerSecond);
-	}
 
 	public abstract void LoadSong(int index);
 	public abstract void UpdateSongState(SongState info);
@@ -56,71 +56,11 @@ public abstract class Player : IDisposable
 
 	protected abstract bool Tick(bool playing, bool recording);
 
-	internal static StreamCallbackResult PlayCallbackLL(
-		nint input, nint output,
-		uint frameCount,
-		ref StreamCallbackTimeInfo timeInfo,
-		StreamCallbackFlags statusFlags,
-		nint userData
-	)
+	private static int ReadPos = 0;
+
+	private static Span<float> CastBytesToFloats(Span<byte> byteMem)
 	{
-		// Marshal.AllocHGlobal() or any related functions cannot and must not be used
-		// in this callback, otherwise it will cause an OutOfMemoryException.
-		//
-		// The memory is already allocated by the output and userData params by
-		// the native PortAudio library itself.
-
-		var player = Engine.Instance!.Player;
-
-		Mixer.Audio d = Mixer.Instance!.Stream!.GetUserData<Mixer.Audio>(userData);
-
-		if (!Mixer.Instance.Stream.UDHandle.IsAllocated)
-		{
-			return StreamCallbackResult.Abort;
-		}
-
-
-		Span<LowLatencyRingbuffer.Sample> buffer;
-		unsafe
-		{
-			// Apply buffer value
-			buffer = new((float*)output, (int)frameCount);
-			Ringbuffer.Take(buffer);
-			for (int i = 0, b = 0; i < frameCount; i++, b += 2)
-			{
-				buffer[i].left = d.Float32Buffer![b];
-				buffer[i].right = d.Float32Buffer![b + 1];
-			}
-		}
-
-		// If we're reading data, play it back
-		if (player.State == PlayerState.Playing)
-		{
-			for (int i = 0; i < frameCount; i++)
-			{
-				buffer[i].left *= Mixer.Instance.Volume;
-				buffer[i].right *= Mixer.Instance.Volume;
-			}
-		}
-		else
-		{
-			for (int i = 0; i < frameCount; i++)
-			{
-				buffer[i].left = 0;
-				buffer[i].right = 0;
-			}
-		}
-
-		if (player.State is PlayerState.Playing or PlayerState.Paused)
-		{
-			// Continue if the song isn't finished
-			return StreamCallbackResult.Continue;
-		}
-		else
-		{
-			// Complete the callback when song is finished
-			return StreamCallbackResult.Complete;
-		}
+		return MemoryMarshal.Cast<byte, float>(byteMem);
 	}
 
 	internal static StreamCallbackResult PlayCallback(
@@ -139,64 +79,140 @@ public abstract class Player : IDisposable
 
 		var player = Engine.Instance!.Player;
 
-		Mixer.Audio d = Mixer.Instance!.Stream!.GetUserData<Mixer.Audio>(userData);
+		Wave d = Mixer.Instance!.Stream!.GetUserData<Wave>(userData);
+		if (d.Buffer is null)
+		{
+			ReadPos = 0;
+			return StreamCallbackResult.Continue;
+		}
 
 		if (!Mixer.Instance.Stream.UDHandle.IsAllocated)
 		{
+			ReadPos = 0;
 			return StreamCallbackResult.Abort;
 		}
 
-		var frameSize = (int)Mixer.Instance.FinalFrameSize;
-		float[] frameBuffer = new float[frameSize];
-		for (int i = 0; i < frameSize; i++)
-			frameBuffer[i] = d.Float32Buffer![i];
-
-		float[] newBuffer = new float[frameSize];
-		for (int i = 0; i < frameSize; i++)
-		{
-			newBuffer[i] = Math.Clamp(frameBuffer[i], -1f, 1f);
-		}
-		// for (int i = 0; i < newBuffer.Length; i++)
-		// {
-		// 	System.Diagnostics.Debug.WriteLine("Buffer value: " + newBuffer[i].ToString());
-		// }
-
+		RealignBufferPos(d);
 		Span<float> buffer;
+		Span<float> waveBuffer = CastBytesToFloats(d.Buffer);
 		unsafe
 		{
-			buffer = new((float*)output, frameSize);
+			// Apply buffer value
+			buffer = new Span<float>((float*)output, (int)(frameCount * 2));
 		}
 
-		// Zero out the memory buffer output before applying buffer values
-		for (int i = 0; i < frameSize; i++)
-			buffer[i] = 0;
+		ReadPos = ReadPos % waveBuffer.Length;
 
 		// If we're reading data, play it back
 		if (player.State == PlayerState.Playing)
 		{
-			// Apply buffer value
-			for (int i = 0; i < frameSize; i++)
-				buffer[i] = newBuffer[i];
-
-			for (int i = 0; i < frameSize; i++)
-				buffer[i] *= Mixer.Instance.Volume;
+			for (int i = 0; i < buffer.Length; i++)
+			{
+				buffer[i] = waveBuffer[ReadPos + i] * Mixer.Instance.Volume;
+			}
+		}
+		else
+		{
+			buffer.Clear();
 		}
 
-		if (player.State is PlayerState.Playing or PlayerState.Paused)
+		ReadPos += buffer.Length;
+
+		if (ReadPos >= waveBuffer.Length)
 		{
-			// Continue if the song isn't finished
+			ReadPos = 0;
+		}
+
+		if (!Engine.Instance!.Mixer!.IsDisposing)
+		{
+			// Continue if the mixer isn't being disposed
 			return StreamCallbackResult.Continue;
 		}
 		else
 		{
-			// Complete the callback when song is finished
+			// Complete the callback if the mixer is being disposed
+			buffer.Clear();
+			d.ResetBuffer();
+			ReadPos = 0;
+			Engine.Instance!.Mixer!.IsDisposing = false;
 			return StreamCallbackResult.Complete;
 		}
 	}
 
+	// Experimental realignment func to prevent reading from buffers being written to
+	protected static void RealignBufferPos(Wave waveData)
+	{
+        var count = waveData.Count / 4;
+        var writePos = waveData.WritePosition / 4;
+
+        if (writePos - count < 0)
+        {
+            if (ReadPos.Equals((writePos - count + (waveData.BufferLength / 4))..^(waveData.BufferLength / 4)))
+            {
+                if (ReadPos < writePos)
+                {
+                    ReadPos -= count;
+                    if (ReadPos <= 0)
+                    {
+                        ReadPos = ReadPos + (waveData.BufferLength / 4);
+                    }
+                }
+                else
+                {
+                    ReadPos += count * 2;
+                    if (ReadPos + count >= (waveData.BufferLength / 4))
+                    {
+                        ReadPos = ReadPos - (waveData.BufferLength / 4);
+                    }
+                }
+            }
+            else if (ReadPos.Equals(writePos..^(writePos + count)))
+            {
+                if (ReadPos < writePos)
+                {
+                    ReadPos -= count;
+                    if (ReadPos <= 0)
+                    {
+                        ReadPos = ReadPos + (waveData.BufferLength / 4);
+                    }
+                }
+                else
+                {
+                    ReadPos += count * 2;
+                    if (ReadPos + count >= (waveData.BufferLength / 4))
+                    {
+                        ReadPos = ReadPos - (waveData.BufferLength / 4);
+                    }
+                }
+            }
+        }
+        if (writePos > count && writePos < (waveData.BufferLength / 4))
+        {
+            if (ReadPos.Equals((writePos - count)..^(writePos + count)))
+            {
+                if (ReadPos < writePos)
+                {
+                    ReadPos -= count;
+                    if (ReadPos <= 0)
+                    {
+                        ReadPos = ReadPos + (waveData.BufferLength / 4);
+                    }
+                }
+                else
+                {
+                    ReadPos += count * 2;
+                    if (ReadPos + count >= (waveData.BufferLength / 4))
+                    {
+                        ReadPos = ReadPos - (waveData.BufferLength / 4);
+                    }
+                }
+            }
+        }
+    }
+
 	protected void CreateThread()
 	{
-		_thread = new Thread(TimerLoop) { Name = Name + " Tick" };
+		_thread = new Thread(TimerTick) { Name = Name + " Tick" };
 		_thread.Start();
 	}
 	protected void WaitThread()
@@ -220,24 +236,6 @@ public abstract class Player : IDisposable
 		throw new InvalidDataException("No loop point found");
 	}
 
-	private void StartStream()
-	{
-		if (IsStreamStopped)
-		{
-			IsStreamStopped = false;
-			CreateThread();
-			Mixer.Instance!.Stream!.Start();
-		}
-	}
-	private void StopStream()
-	{
-		if (!IsStreamStopped)
-		{
-			IsStreamStopped = true;
-			//_time.Stop();
-			Mixer.Instance!.Stream!.Stop();
-		}
-	}
 	public void Play()
 	{
 		if (LoadedSong is null)
@@ -254,14 +252,7 @@ public abstract class Player : IDisposable
 			}
 			InitEmulation();
 			State = PlayerState.Playing;
-			if (Engine.Instance!.UseNewMixer)
-			{
-				StartStream();
-			}
-			else
-			{
-				CreateThread();
-			}
+			CreateThread();
 		}
 	}
 	public void TogglePlaying()
@@ -271,14 +262,14 @@ public abstract class Player : IDisposable
 			case PlayerState.Playing:
 				{
 					State = PlayerState.Paused;
-					WaitThread();
+					_timer.Stop();
 					break;
 				}
 			case PlayerState.Paused:
 			case PlayerState.Stopped:
 				{
 					State = PlayerState.Playing;
-					CreateThread();
+					_timer.Start();
 					break;
 				}
 		}
@@ -290,10 +281,6 @@ public abstract class Player : IDisposable
 			State = PlayerState.Stopped;
 			WaitThread();
 			OnStopped();
-			if (Engine.Instance!.UseNewMixer)
-			{
-				StopStream();
-			}
 			ElapsedTicks = 0L;
 		}
 	}
@@ -320,7 +307,7 @@ public abstract class Player : IDisposable
 		{
 			return;
 		}
-		
+
 		if (State is PlayerState.Stopped)
 		{
 			Play();
@@ -338,40 +325,34 @@ public abstract class Player : IDisposable
 		}
 	}
 
-	private void TimerLoop()
+	private void TimerTick()
 	{
-		_time.Start();
-		while (true)
+		_deltaTimeElapsed = 0;
+		_timer.Start();
+		while (State is not (PlayerState.Stopped or PlayerState.ShutDown))
 		{
 			var state = State;
 			var playing = state == PlayerState.Playing;
 			var recording = state == PlayerState.Recording;
-			if (!playing && !recording)
+			_deltaTimeElapsed += _timer.GetDeltaTime();
+			while (_deltaTimeElapsed >= _timer.GetDeltaTick())
 			{
-				break;
+				if (!playing && !recording)
+				{
+					break;
+				}
+				_deltaTimeElapsed -= _timer.GetDeltaTick();
+				bool allDone = Tick(playing, recording);
+				if (allDone)
+				{
+					// TODO: lock state
+					_timer.Stop(); // TODO: Don't need timer if recording
+					SongEnded?.Invoke();
+					return;
+				}
 			}
-			if (TimerTick(_time, playing, recording) is true)
-			{
-				return;
-			}
 		}
-		_time.Stop();
-	}
-	private bool TimerTick(TimeBarrier time, bool playing, bool recording)
-	{
-		bool allDone = Tick(playing, recording);
-		if (allDone)
-		{
-			// TODO: lock state
-			time.Stop(); // TODO: Don't need timer if recording
-			SongEnded?.Invoke();
-			return allDone;
-		}
-		if (playing)
-		{
-			time.Wait();
-		}
-		return false;
+		_timer.Stop();
 	}
 
 	public void Dispose()

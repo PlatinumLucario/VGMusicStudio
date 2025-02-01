@@ -13,7 +13,7 @@ public abstract class Mixer : IDisposable
 
     public Wave? WaveData;
     public EndianBinaryReader? Reader;
-    public float[] Buffer;
+    //public float[] Buffer;
 
     public readonly bool[] Mutes;
     public int SizeInBytes;
@@ -30,6 +30,7 @@ public abstract class Mixer : IDisposable
     public StreamParameters DefaultOutputParams { get; private set; }
 
     public Stream? Stream;
+    public bool IsDisposing = false;
     private bool IsDisposed = false;
 
     public static Mixer? Instance { get; set; }
@@ -37,12 +38,10 @@ public abstract class Mixer : IDisposable
     protected Mixer()
     {
         Mutes = new bool[SongState.MAX_TRACKS];
-        Buffer = null!;
+        //Buffer = null!;
     }
 
-    protected void Init(Wave waveData) => Init(waveData, new Audio(SizeToAllocateInBytes), SampleFormat.Float32);
-    protected void Init(Wave waveData, Audio audioData) => Init(waveData, audioData, SampleFormat.Float32);
-    protected void Init(Wave waveData, Audio audioData, SampleFormat sampleFormat)
+    protected void Init(Wave waveData, SampleFormat sampleFormat = SampleFormat.Float32)
     {
         // First, check if the instance contains something
         if (WaveData == null)
@@ -72,12 +71,13 @@ public abstract class Mixer : IDisposable
             WaveData!.SampleRate,
             FramesPerBuffer,
             StreamFlags.NoFlag,
-            Player.PlayCallbackLL,
-            audioData
+            Player.PlayCallback,
+            waveData
         );
 
         FinalFrameSize = FramesPerBuffer * 2;
-        Buffer = new Span<float>(audioData.Float32Buffer).ToArray();
+
+        Stream!.Start();
     }
 
     private int ProcessFrame(Span<float> output, Span<float> buffer, int framesPerBuffer)
@@ -116,7 +116,7 @@ public abstract class Mixer : IDisposable
     public void SetVolume(float volume)
     {
         if (!Engine.Instance!.UseNewMixer)
-            Engine.Instance.Mixer_NAudio.SetVolume(volume);
+            Engine.Instance.Mixer_NAudio!.SetVolume(volume);
         else
             Vol = Math.Clamp(volume, 0, 1);
     }
@@ -133,6 +133,9 @@ public abstract class Mixer : IDisposable
     public virtual void Dispose()
     {
         if (IsDisposed || Stream is null) return;
+
+        IsDisposing = true;
+        Stream!.Stop();
 
         Stream!.Dispose();
         //Reader!.Stream.Dispose();
