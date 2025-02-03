@@ -138,7 +138,6 @@ public abstract class Mixer : IDisposable
         Stream!.Stop();
 
         Stream!.Dispose();
-        //Reader!.Stream.Dispose();
         GC.SuppressFinalize(this);
 
         IsDisposed = true;

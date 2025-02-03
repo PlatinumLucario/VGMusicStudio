@@ -41,8 +41,8 @@ public abstract class Player(double ticksPerSecond) : IDisposable
 	public PlayerState State { get; protected set; }
 	public event Action? SongEnded;
 
-	private readonly BetterTimer _timer = new BetterTimer(ticksPerSecond);
-	//private readonly TimeBarrier _time;
+	private readonly BetterTimer _timer = new(ticksPerSecond);
+	// private readonly TimeBarrier _time = new(ticksPerSecond);
 	private Thread? _thread;
 	private double? _deltaTimeElapsed;
 	public bool IsStreamStopped = true;
@@ -101,7 +101,7 @@ public abstract class Player(double ticksPerSecond) : IDisposable
 			buffer = new Span<float>((float*)output, (int)(frameCount * 2));
 		}
 
-		ReadPos = ReadPos % waveBuffer.Length;
+		ReadPos %= waveBuffer.Length;
 
 		// If we're reading data, play it back
 		if (player.State == PlayerState.Playing)
@@ -142,73 +142,73 @@ public abstract class Player(double ticksPerSecond) : IDisposable
 	// Experimental realignment func to prevent reading from buffers being written to
 	protected static void RealignBufferPos(Wave waveData)
 	{
-        var count = waveData.Count / 4;
-        var writePos = waveData.WritePosition / 4;
+		var count = waveData.Count / 4;
+		var writePos = waveData.WritePosition / 4;
 
-        if (writePos - count < 0)
-        {
-            if (ReadPos.Equals((writePos - count + (waveData.BufferLength / 4))..^(waveData.BufferLength / 4)))
-            {
-                if (ReadPos < writePos)
-                {
-                    ReadPos -= count;
-                    if (ReadPos <= 0)
-                    {
-                        ReadPos = ReadPos + (waveData.BufferLength / 4);
-                    }
-                }
-                else
-                {
-                    ReadPos += count * 2;
-                    if (ReadPos + count >= (waveData.BufferLength / 4))
-                    {
-                        ReadPos = ReadPos - (waveData.BufferLength / 4);
-                    }
-                }
-            }
-            else if (ReadPos.Equals(writePos..^(writePos + count)))
-            {
-                if (ReadPos < writePos)
-                {
-                    ReadPos -= count;
-                    if (ReadPos <= 0)
-                    {
-                        ReadPos = ReadPos + (waveData.BufferLength / 4);
-                    }
-                }
-                else
-                {
-                    ReadPos += count * 2;
-                    if (ReadPos + count >= (waveData.BufferLength / 4))
-                    {
-                        ReadPos = ReadPos - (waveData.BufferLength / 4);
-                    }
-                }
-            }
-        }
-        if (writePos > count && writePos < (waveData.BufferLength / 4))
-        {
-            if (ReadPos.Equals((writePos - count)..^(writePos + count)))
-            {
-                if (ReadPos < writePos)
-                {
-                    ReadPos -= count;
-                    if (ReadPos <= 0)
-                    {
-                        ReadPos = ReadPos + (waveData.BufferLength / 4);
-                    }
-                }
-                else
-                {
-                    ReadPos += count * 2;
-                    if (ReadPos + count >= (waveData.BufferLength / 4))
-                    {
-                        ReadPos = ReadPos - (waveData.BufferLength / 4);
-                    }
-                }
-            }
-        }
-    }
+		if (writePos - count < 0)
+		{
+			if (ReadPos.Equals((writePos - count + (waveData.BufferLength / 4))..^(waveData.BufferLength / 4)))
+			{
+				if (ReadPos < writePos)
+				{
+					ReadPos -= count;
+					if (ReadPos <= 0)
+					{
+						ReadPos += waveData.BufferLength / 4;
+					}
+				}
+				else
+				{
+					ReadPos += count * 2;
+					if (ReadPos + count >= (waveData.BufferLength / 4))
+					{
+						ReadPos -= waveData.BufferLength / 4;
+					}
+				}
+			}
+			else if (ReadPos.Equals(writePos..^(writePos + count)))
+			{
+				if (ReadPos < writePos)
+				{
+					ReadPos -= count;
+					if (ReadPos <= 0)
+					{
+						ReadPos += waveData.BufferLength / 4;
+					}
+				}
+				else
+				{
+					ReadPos += count * 2;
+					if (ReadPos + count >= (waveData.BufferLength / 4))
+					{
+						ReadPos -= waveData.BufferLength / 4;
+					}
+				}
+			}
+		}
+		if (writePos > count && writePos < (waveData.BufferLength / 4))
+		{
+			if (ReadPos.Equals((writePos - count)..^(writePos + count)))
+			{
+				if (ReadPos < writePos)
+				{
+					ReadPos -= count;
+					if (ReadPos <= 0)
+					{
+						ReadPos += waveData.BufferLength / 4;
+					}
+				}
+				else
+				{
+					ReadPos += count * 2;
+					if (ReadPos + count >= (waveData.BufferLength / 4))
+					{
+						ReadPos -= waveData.BufferLength / 4;
+					}
+				}
+			}
+		}
+	}
 
 	protected void CreateThread()
 	{
@@ -262,14 +262,13 @@ public abstract class Player(double ticksPerSecond) : IDisposable
 			case PlayerState.Playing:
 				{
 					State = PlayerState.Paused;
-					_timer.Stop();
 					break;
 				}
 			case PlayerState.Paused:
 			case PlayerState.Stopped:
 				{
 					State = PlayerState.Playing;
-					_timer.Start();
+					CreateThread();
 					break;
 				}
 		}
@@ -329,18 +328,18 @@ public abstract class Player(double ticksPerSecond) : IDisposable
 	{
 		_deltaTimeElapsed = 0;
 		_timer.Start();
-		while (State is not (PlayerState.Stopped or PlayerState.ShutDown))
+		while (true)
 		{
 			var state = State;
 			var playing = state == PlayerState.Playing;
 			var recording = state == PlayerState.Recording;
+			if (!playing && !recording)
+			{
+				break;
+			}
 			_deltaTimeElapsed += _timer.GetDeltaTime();
 			while (_deltaTimeElapsed >= _timer.GetDeltaTick())
 			{
-				if (!playing && !recording)
-				{
-					break;
-				}
 				_deltaTimeElapsed -= _timer.GetDeltaTick();
 				bool allDone = Tick(playing, recording);
 				if (allDone)
