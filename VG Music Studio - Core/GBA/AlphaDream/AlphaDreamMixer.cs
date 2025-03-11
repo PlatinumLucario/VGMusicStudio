@@ -8,7 +8,7 @@ public sealed class AlphaDreamMixer : Mixer
 {
 	public readonly float SampleRateReciprocal;
 	private readonly float _samplesReciprocal;
-	public readonly int SamplesPerBuffer;
+	internal override int SamplesPerBuffer { get; }
 	private bool _isFading;
 	private long _fadeMicroFramesLeft;
 	private float _fadePos;

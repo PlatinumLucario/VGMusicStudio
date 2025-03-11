@@ -45,7 +45,7 @@ internal sealed class MP2KNoiseChannel : MP2KPSGChannel
 		_frequency = 524_288f / (r == 0 ? 0.5f : r) / MathF.Pow(2, s + 1);
 	}
 
-	public override void Process(float[] buffer)
+	public override void Process(Span<float> buffer)
 	{
 		StepEnvelope();
 		if (State == EnvelopeState.Dead)

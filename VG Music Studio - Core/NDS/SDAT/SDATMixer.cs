@@ -7,7 +7,7 @@ namespace Kermalis.VGMusicStudio.Core.NDS.SDAT;
 public sealed class SDATMixer : Mixer
 {
 	private readonly float _samplesReciprocal;
-	private readonly int _samplesPerBuffer;
+	internal override int SamplesPerBuffer { get; }
 	private bool _isFading;
 	private long _fadeMicroFramesLeft;
 	private float _fadePos;
@@ -22,8 +22,8 @@ public sealed class SDATMixer : Mixer
 		// - gbatek
 		// I'm not using either of those because the samples per buffer leads to an overflow eventually
 		const int sampleRate = 65456;
-		_samplesPerBuffer = 341; // TODO
-		_samplesReciprocal = 1f / _samplesPerBuffer;
+		SamplesPerBuffer = 341; // TODO
+		_samplesReciprocal = 1f / SamplesPerBuffer;
 
 		Channels = new SDATChannel[0x10];
 		for (byte i = 0; i < 0x10; i++)
@@ -34,21 +34,19 @@ public sealed class SDATMixer : Mixer
 		_buffer = new Wave()
 		{
 			DiscardOnBufferOverflow = true,
-			BufferLength = _samplesPerBuffer * 64
+			BufferLength = SamplesPerBuffer * 64
 		};
 		_buffer.CreateIeeeFloatWave(sampleRate, 2, 16);
 
-		Instance = this;
-
-		Init(_buffer);
+		Init(_buffer, PortAudio.SampleFormat.Int16);
 	}
 
-	private static readonly int[] _pcmChanOrder = new int[] { 4, 5, 6, 7, 2, 0, 3, 1, 8, 9, 10, 11, 14, 12, 15, 13 };
-	private static readonly int[] _psgChanOrder = new int[] { 8, 9, 10, 11, 12, 13 };
-	private static readonly int[] _noiseChanOrder = new int[] { 14, 15 };
+	private static readonly int[] _pcmChanOrder = [4, 5, 6, 7, 2, 0, 3, 1, 8, 9, 10, 11, 14, 12, 15, 13];
+	private static readonly int[] _psgChanOrder = [8, 9, 10, 11, 12, 13];
+	private static readonly int[] _noiseChanOrder = [14, 15];
 	internal SDATChannel? AllocateChannel(InstrumentType type, SDATTrack track)
 	{
-		int[] allowedChannels;
+		Span<int> allowedChannels;
 		switch (type)
 		{
 			case InstrumentType.PCM: allowedChannels = _pcmChanOrder; break;
@@ -151,7 +149,7 @@ public sealed class SDATMixer : Mixer
 
 	internal void EmulateProcess()
 	{
-		for (int i = 0; i < _samplesPerBuffer; i++)
+		for (int i = 0; i < SamplesPerBuffer; i++)
 		{
 			for (int j = 0; j < 0x10; j++)
 			{
@@ -188,7 +186,7 @@ public sealed class SDATMixer : Mixer
 			masterStep = (toMaster - fromMaster) * _samplesReciprocal;
 			masterLevel = fromMaster;
 		}
-		for (int i = 0; i < _samplesPerBuffer; i++)
+		for (int i = 0; i < SamplesPerBuffer; i++)
 		{
 			int left = 0,
 				right = 0;

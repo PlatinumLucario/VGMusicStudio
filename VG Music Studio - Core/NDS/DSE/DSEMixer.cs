@@ -10,7 +10,7 @@ public sealed class DSEMixer : Mixer
 	private const int NUM_CHANNELS = 0x20; // Actual value unknown for now
 
 	private readonly float _samplesReciprocal;
-	private readonly int _samplesPerBuffer;
+	internal override int SamplesPerBuffer { get; }
 	private bool _isFading;
 	private long _fadeMicroFramesLeft;
 	private float _fadePos;
@@ -25,8 +25,8 @@ public sealed class DSEMixer : Mixer
 		// - gbatek
 		// I'm not using either of those because the samples per buffer leads to an overflow eventually
 		const int sampleRate = 65_456;
-		_samplesPerBuffer = 341; // TODO
-		_samplesReciprocal = 1f / _samplesPerBuffer;
+		SamplesPerBuffer = 341; // TODO
+		_samplesReciprocal = 1f / SamplesPerBuffer;
 
 		_channels = new DSEChannel[NUM_CHANNELS];
 		for (byte i = 0; i < NUM_CHANNELS; i++)
@@ -37,7 +37,7 @@ public sealed class DSEMixer : Mixer
 		_buffer = new Wave()
 		{
 			DiscardOnBufferOverflow = true,
-			BufferLength = _samplesPerBuffer * 64,
+			BufferLength = SamplesPerBuffer * 64,
 		};
 		_buffer.CreateIeeeFloatWave(sampleRate, 2, 16);
 		Init(_buffer);
@@ -155,7 +155,7 @@ public sealed class DSEMixer : Mixer
 			masterStep = (toMaster - fromMaster) * _samplesReciprocal;
 			masterLevel = fromMaster;
 		}
-		for (int i = 0; i < _samplesPerBuffer; i++)
+		for (int i = 0; i < SamplesPerBuffer; i++)
 		{
 			int left = 0,
 				right = 0;

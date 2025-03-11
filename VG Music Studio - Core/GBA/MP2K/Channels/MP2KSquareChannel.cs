@@ -33,7 +33,7 @@ internal sealed class MP2KSquareChannel : MP2KPSGChannel
 		_frequency = 3_520 * MathF.Pow(2, ((Note.Note - 69) / 12f) + (pitch / 768f));
 	}
 
-	public override void Process(float[] buffer)
+	public override void Process(Span<float> buffer)
 	{
 		StepEnvelope();
 		if (State == EnvelopeState.Dead)

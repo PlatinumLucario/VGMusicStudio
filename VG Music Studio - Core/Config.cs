@@ -7,6 +7,7 @@ namespace Kermalis.VGMusicStudio.Core;
 
 public abstract class Config : IDisposable
 {
+	public virtual byte[]? ROM { get; }
 	public int[]? SongTableOffset { get; internal set; }
 
 	public readonly struct Song

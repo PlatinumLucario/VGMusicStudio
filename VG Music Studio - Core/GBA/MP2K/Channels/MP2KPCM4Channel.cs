@@ -20,17 +20,21 @@ internal sealed class MP2KPCM4Channel : MP2KPSGChannel
 	{
 		Init(owner, note, env, instPan);
 		if (Engine.Instance!.UseNewMixer)
-			MP2KUtils.PCM4ToFloat(_mixer!.Config.ROM.AsSpan(sampleOffset), _sample);
-		else
-			MP2KUtils.PCM4ToFloat(_mixer_NAudio!.Config.ROM.AsSpan(sampleOffset), _sample);
-	}
+        {
+            MP2KUtils.PCM4ToFloat(_mixer!.Config.ROM.AsSpan(sampleOffset), _sample);
+        }
+        else
+        {
+            MP2KUtils.PCM4ToFloat(_mixer_NAudio!.Config.ROM.AsSpan(sampleOffset), _sample);
+        }
+    }
 
 	public override void SetPitch(int pitch)
 	{
 		_frequency = 7_040 * MathF.Pow(2, ((Note.Note - 69) / 12f) + (pitch / 768f));
 	}
 
-	public override void Process(float[] buffer)
+	public override void Process(Span<float> buffer)
 	{
 		StepEnvelope();
 		if (State == EnvelopeState.Dead)

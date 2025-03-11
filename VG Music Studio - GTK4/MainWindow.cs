@@ -399,11 +399,11 @@ internal sealed class MainWindow : Window
 
         // Buttons
         _buttonPlay = new Button() { Sensitive = false, TooltipText = Strings.PlayerPlay, IconName = "media-playback-start-symbolic" };
-        _buttonPlay.OnClicked += Play_Clicked;
+        _buttonPlay.OnClicked += ButtonPlay_Clicked;
         _buttonPause = new ToggleButton() { Sensitive = false, TooltipText = Strings.PlayerPause, IconName = "media-playback-pause-symbolic" };
-        _buttonPause.OnClicked += Pause_Clicked;
+        _buttonPause.OnClicked += ButtonPause_Clicked;
         _buttonStop = new Button() { Sensitive = false, TooltipText = Strings.PlayerStop, IconName = "media-playback-stop-symbolic" };
-        _buttonStop.OnClicked += Stop_Clicked;
+        _buttonStop.OnClicked += ButtonStop_Clicked;
 
         _buttonRecord = new Button() { Sensitive = false, TooltipText = Strings.PlayerRecord, IconName = "media-record-symbolic" };
         _buttonRecord.OnClicked += ExportWAV;
@@ -473,6 +473,7 @@ internal sealed class MainWindow : Window
 
         // Sequenced Audio List
         _sequencedAudioList = new();
+        _sequencedAudioList.Init();
         _sequencedAudioListBox = Box.New(Orientation.Vertical, 0);
         _sequencedAudioListBox.SetVexpand(true);
         _sequencedAudioListBox.Append(_sequencedAudioList);
@@ -544,7 +545,9 @@ internal sealed class MainWindow : Window
     private void Playlist_GetTiled(object sender, EventArgs args)
     {
         if (_playlistWidgetTiledAction.GetState()!.GetBoolean() == true)
+        {
             return;
+        }
 
         if (_playlistWindow is not null)
         {
@@ -571,7 +574,9 @@ internal sealed class MainWindow : Window
     private void Playlist_GetWindowed(object sender, EventArgs args)
     {
         if (_playlistWidgetWindowedAction.GetState()!.GetBoolean() == true)
+        {
             return;
+        }
 
         if (_playlistBox.GetFirstChild() is not null)
         {
@@ -589,7 +594,9 @@ internal sealed class MainWindow : Window
     private void Playlist_Hide(object sender, EventArgs args)
     {
         if (_playlistWidgetHideAction.GetState()!.GetBoolean() == true)
+        {
             return;
+        }
 
         if (_playlistWindow is not null)
         {
@@ -618,7 +625,9 @@ internal sealed class MainWindow : Window
     private void SeqAudioPiano_GetTiled(object sender, EventArgs args)
     {
         if (_seqAudioPianoWidgetTiledAction.GetState()!.GetBoolean() == true)
+        {
             return;
+        }
 
         if (_seqAudioPianoWindow is not null)
         {
@@ -645,7 +654,9 @@ internal sealed class MainWindow : Window
     private void SeqAudioPiano_GetWindowed(object sender, EventArgs args)
     {
         if (_seqAudioPianoWidgetWindowedAction.GetState()!.GetBoolean() == true)
+        {
             return;
+        }
 
         if (_pianoBox.GetFirstChild() is not null)
         {
@@ -663,7 +674,9 @@ internal sealed class MainWindow : Window
     private void SeqAudioPiano_Hide(object sender, EventArgs args)
     {
         if (_seqAudioPianoWidgetHideAction.GetState()!.GetBoolean() == true)
+        {
             return;
+        }
 
         if (_seqAudioPianoWindow is not null)
         {
@@ -692,7 +705,9 @@ internal sealed class MainWindow : Window
     private void SeqAudioTrackInfo_GetTiled(object sender, EventArgs args)
     {
         if (_seqAudioTrackInfoWidgetTiledAction.GetState()!.GetBoolean() == true)
+        {
             return;
+        }
 
         if (_sequencedAudioTrackInfoWindow is not null)
         {
@@ -719,7 +734,9 @@ internal sealed class MainWindow : Window
     private void SeqAudioTrackInfo_GetWindowed(object sender, EventArgs args)
     {
         if (_seqAudioTrackInfoWidgetWindowedAction.GetState()!.GetBoolean() == true)
+        {
             return;
+        }
 
         if (_sequencedAudioTrackInfoBox.GetFirstChild() is not null)
         {
@@ -737,7 +754,9 @@ internal sealed class MainWindow : Window
     private void SeqAudioTrackInfo_Hide(object sender, EventArgs args)
     {
         if (_seqAudioTrackInfoWidgetHideAction.GetState()!.GetBoolean() == true)
+        {
             return;
+        }
 
         if (_sequencedAudioTrackInfoWindow is not null)
         {
@@ -766,7 +785,9 @@ internal sealed class MainWindow : Window
     private void SeqAudioList_GetTiled(object sender, EventArgs args)
     {
         if (_seqAudioListWidgetTiledAction.GetState()!.GetBoolean() == true)
+        {
             return;
+        }
 
         if (_sequencedAudioListWindow is not null)
         {
@@ -793,7 +814,9 @@ internal sealed class MainWindow : Window
     private void SeqAudioList_GetWindowed(object sender, EventArgs args)
     {
         if (_seqAudioListWidgetWindowedAction.GetState()!.GetBoolean() == true)
+        {
             return;
+        }
 
         if (_sequencedAudioListBox.GetFirstChild() is not null)
         {
@@ -811,7 +834,9 @@ internal sealed class MainWindow : Window
     private void SeqAudioList_Hide(object sender, EventArgs args)
     {
         if (_seqAudioListWidgetHideAction.GetState()!.GetBoolean() == true)
+        {
             return;
+        }
 
         if (_sequencedAudioListWindow is not null)
         {
@@ -903,9 +928,13 @@ internal sealed class MainWindow : Window
     private void VolumeBar_ValueChanged(object sender, EventArgs e)
     {
         if (Engine.Instance!.UseNewMixer)
+        {
             Engine.Instance!.Mixer!.SetVolume((float)(_volumeBar.Adjustment!.Value / _volumeBar.Adjustment.Upper));
+        }
         else
+        {
             Engine.Instance!.Mixer_NAudio!.SetVolume((float)(_volumeBar.Adjustment!.Value / _volumeBar.Adjustment.Upper));
+        }
     }
 
     // Sets the volume scale to the specified position
@@ -993,7 +1022,9 @@ internal sealed class MainWindow : Window
     private void PositionBar_ValueChanged(object sender, EventArgs args)
     {
         if (Engine.Instance is not null)
+        {
             UpdatePositionIndicators(Engine.Instance!.Player.ElapsedTicks); // Sets the value based on the position when mouse button is released
+        }
     }
 
     private void SequenceNumberSpinButton_ValueChanged(object sender, EventArgs e)
@@ -1061,7 +1092,10 @@ internal sealed class MainWindow : Window
                 {
                     _sequencedAudioList.SelectRow(index);
                     if (!_playlistChanged)
+                    {
                         _sequencedAudioList.ColumnView!.ScrollTo((uint)index, null, ListScrollFlags.Select, ScrollInfo.New());
+                    }
+
                     _sequenceNumberSpinButton.Value = index;
                     SetAndLoadSong(index);
                     break;
@@ -1083,7 +1117,11 @@ internal sealed class MainWindow : Window
         }
     }
 
-    internal static string GetProgramName() => ConfigUtils.PROGRAM_NAME;
+    internal static string GetProgramName()
+    {
+        return ConfigUtils.PROGRAM_NAME;
+    }
+
     private void SetSongToProgramTitle(List<Config.Song> songs, int songIndex)
     {
         Title = $"{GetProgramName()} - {songs[songIndex].Name}";
@@ -1156,7 +1194,10 @@ internal sealed class MainWindow : Window
             _playlistSelector.PlaylistDropDown.OnNotify -= OnPlaylistStringSelected;
             _playlistSelector.PlaylistSongDropDown.OnNotify -= OnPlaylistSongStringSelected;
             if (_playlistSelector.PlaylistDropDown.Selected != _playlistSelector.SelectedPlaylist)
+            {
                 Stop();
+            }
+
             if (_playlistSelector.PlaylistSongDropDown.Selected != _playlistSelector.SelectedSong)
             {
                 CheckPlaylistItem();
@@ -1171,7 +1212,10 @@ internal sealed class MainWindow : Window
                         {
                             _manuallyChanged = ManuallyChanged.PlaylistDropDown;
                             if (!_playlistChanged)
+                            {
                                 _autoplay = true;
+                            }
+
                             CheckIfChangedManually(song.Index);
                             _autoplay = false;
                             _manuallyChanged = ManuallyChanged.None;
@@ -1309,7 +1353,14 @@ internal sealed class MainWindow : Window
         void LoadFiles(string path)
         {
             GTK4Utils.OnPathChanged -= LoadFiles;
-            DisposeEngine();
+            if (path is null)
+            {
+                return;
+            }
+            if (Engine.Instance is not null)
+            {
+                DisposeEngine();
+            }
             try
             {
                 _ = new DSEEngine(path);
@@ -1320,10 +1371,12 @@ internal sealed class MainWindow : Window
                 return;
             }
             DSEConfig config = DSEEngine.DSEInstance!.Config;
+            _sequencedAudioList.ChangeColumns();
             FinishLoading(config.BGMFiles.Length);
             _sequenceNumberSpinButton.Visible = false;
             _sequenceNumberSpinButton.Hide();
             _mainMenu.AppendItem(_playlistItem);
+            _trackViewerAction.Enabled = true;
             _exportDLSAction.Enabled = false;
             _exportMIDIAction.Enabled = false;
             _exportSF2Action.Enabled = false;
@@ -1337,7 +1390,14 @@ internal sealed class MainWindow : Window
         void LoadFile(string path)
         {
             GTK4Utils.OnPathChanged -= LoadFile;
-            DisposeEngine();
+            if (path is null)
+            {
+                return;
+            }
+            if (Engine.Instance is not null)
+            {
+                DisposeEngine();
+            }
             try
             {
                 using FileStream stream = File.OpenRead(path);
@@ -1350,12 +1410,18 @@ internal sealed class MainWindow : Window
             }
 
             SDATConfig config = SDATEngine.SDATInstance!.Config;
+            _sequencedAudioList.ChangeColumns();
             FinishLoading(config.SDAT.INFOBlock.SequenceInfos.NumEntries);
             _sequenceNumberSpinButton.Visible = true;
             _sequenceNumberSpinButton.Show();
+            _trackViewerAction.Enabled = true;
             _exportDLSAction.Enabled = false;
             _exportMIDIAction.Enabled = false;
             _exportSF2Action.Enabled = false;
+            PlaylistWidgetAction_IsEnabled(false);
+            PianoWidgetAction_IsEnabled(true);
+            SeqAudioTrackInfoWidgetAction_IsEnabled(true);
+            SeqAudioListWidgetAction_IsEnabled(true);
         }
     }
     private void OpenAlphaDream(Gio.SimpleAction sender, EventArgs e)
@@ -1366,7 +1432,14 @@ internal sealed class MainWindow : Window
         void LoadFile(string path)
         {
             GTK4Utils.OnPathChanged -= LoadFile;
-            DisposeEngine();
+            if (path is null)
+            {
+                return;
+            }
+            if (Engine.Instance is not null)
+            {
+                DisposeEngine();
+            }
             try
             {
                 _ = new AlphaDreamEngine(File.ReadAllBytes(path));
@@ -1378,11 +1451,11 @@ internal sealed class MainWindow : Window
             }
 
             AlphaDreamConfig config = AlphaDreamEngine.AlphaDreamInstance!.Config;
+            _sequencedAudioList.ChangeColumns(true);
             FinishLoading(config.SongTableSizes[0]);
             _sequenceNumberSpinButton.Visible = true;
             _sequenceNumberSpinButton.Show();
-            _mainMenu.AppendItem(_dataItem);
-            _mainMenu.AppendItem(_playlistItem);
+            _trackViewerAction.Enabled = true;
             _exportDLSAction.Enabled = true;
             _exportMIDIAction.Enabled = false;
             _exportSF2Action.Enabled = true;
@@ -1397,6 +1470,10 @@ internal sealed class MainWindow : Window
         void LoadFile(string path)
         {
             GTK4Utils.OnPathChanged -= LoadFile;
+            if (path is null)
+            {
+                return;
+            }
             if (Engine.Instance is not null)
             {
                 DisposeEngine();
@@ -1416,6 +1493,7 @@ internal sealed class MainWindow : Window
             }
 
             MP2KConfig config = MP2KEngine.MP2KInstance!.Config;
+            _sequencedAudioList.ChangeColumns(true);
             FinishLoading(config.SongTableSizes[0]);
             _sequenceNumberSpinButton.Visible = true;
             _sequenceNumberSpinButton.Show();
@@ -1442,6 +1520,12 @@ internal sealed class MainWindow : Window
 
         static void SaveFile(string path)
         {
+            GTK4Utils.OnPathChanged -= SaveFile;
+            if (path is null)
+            {
+                return;
+            }
+
             AlphaDreamConfig cfg = AlphaDreamEngine.AlphaDreamInstance!.Config;
 
             try
@@ -1462,6 +1546,12 @@ internal sealed class MainWindow : Window
 
         static void SaveFile(string path)
         {
+            GTK4Utils.OnPathChanged -= SaveFile;
+            if (path is null)
+            {
+                return;
+            }
+            
             MP2KPlayer p = MP2KEngine.MP2KInstance!.Player;
             var args = new MIDISaveArgs(true, false, [(0, (4, 4))]); // timeSignatures collection contains: (int AbsoluteTick, (byte Numerator, byte Denominator))
 
@@ -1483,6 +1573,12 @@ internal sealed class MainWindow : Window
 
         static void SaveFile(string path)
         {
+            GTK4Utils.OnPathChanged -= SaveFile;
+            if (path is null)
+            {
+                return;
+            }
+            
             AlphaDreamConfig cfg = AlphaDreamEngine.AlphaDreamInstance!.Config;
 
             try
@@ -1503,6 +1599,12 @@ internal sealed class MainWindow : Window
 
         void SaveFile(string path)
         {
+            GTK4Utils.OnPathChanged -= SaveFile;
+            if (path is null)
+            {
+                return;
+            }
+            
             Stop();
 
             Player player = Engine.Instance!.Player;
@@ -1579,15 +1681,16 @@ internal sealed class MainWindow : Window
 
     private void Play()
     {
-        _buttonPlay.OnClicked -= Play_Clicked;
-        Engine.Instance!.Player.IsPauseToggled = false;
+        _buttonPlay.OnClicked -= ButtonPlay_Clicked;
+        Engine.Instance!.Player.IsPauseToggled = _buttonPause.Active = false;
+        _sequencedAudioTrackInfo.ResetTempo();
         Engine.Instance.Player.Play();
         LetUIKnowPlayerIsPlaying();
-        _buttonPlay.OnClicked += Play_Clicked;
+        _buttonPlay.OnClicked += ButtonPlay_Clicked;
     }
     private void Pause()
     {
-        _buttonPause.OnClicked -= Pause_Clicked;
+        _buttonPause.OnClicked -= ButtonPause_Clicked;
         Engine.Instance!.Player.TogglePlaying();
         if (Engine.Instance.Player.State == PlayerState.Paused)
         {
@@ -1603,22 +1706,23 @@ internal sealed class MainWindow : Window
             Engine.Instance.Player.IsPauseToggled = false;
             _timer.Start();
         }
-        _buttonPause.OnClicked += Pause_Clicked;
+        _buttonPause.OnClicked += ButtonPause_Clicked;
     }
     private void Stop()
     {
-        _buttonStop.OnClicked -= Stop_Clicked;
+        _buttonStop.OnClicked -= ButtonStop_Clicked;
         if (Engine.Instance == null)
         {
             return; // This is here to ensure that it returns if the Engine.Instance is null while closing the main window
         }
         _timer.Stop();
         Engine.Instance!.Player.Stop();
-        _buttonPause.Active = false;
+        _sequencedAudioTrackInfo.ResetTempo();
+        Engine.Instance.Player.IsPauseToggled = _buttonPause.Active = false;
         _buttonPause.Sensitive = _buttonStop.Sensitive = false;
         _buttonPause.TooltipText = Strings.PlayerPause;
         UpdatePositionIndicators(0L);
-        _buttonStop.OnClicked += Stop_Clicked;
+        _buttonStop.OnClicked += ButtonStop_Clicked;
     }
     private void TogglePlayback()
     {
@@ -1629,11 +1733,20 @@ internal sealed class MainWindow : Window
             case PlayerState.Playing: Pause(); break;
         }
     }
-    private void Play_Clicked(Button sender, EventArgs args) => Play();
+    private void ButtonPlay_Clicked(Button sender, EventArgs args)
+    {
+        Play();
+    }
 
-    private void Pause_Clicked(Button sender, EventArgs args) => Pause();
+    private void ButtonPause_Clicked(Button sender, EventArgs args)
+    {
+        Pause();
+    }
 
-    private void Stop_Clicked(Button sender, EventArgs args) => Stop();
+    private void ButtonStop_Clicked(Button sender, EventArgs args)
+    {
+        Stop();
+    }
 
     private void PlayPreviousSong(object? sender, EventArgs? e)
     {
@@ -1682,15 +1795,23 @@ internal sealed class MainWindow : Window
     {
         // For the Previous Song button
         if (_playlistSelector.PlaylistSongDropDown.Selected is 0)
+        {
             _playlistSelector.ButtonPrevPlistSong.Sensitive = false;
+        }
         else
+        {
             _playlistSelector.ButtonPrevPlistSong.Sensitive = true;
+        }
 
         // For the Next Song button
         if (_playlistSelector.PlaylistSongDropDown.Selected == PlaylistSelector.GetNumSongs() - 1)
+        {
             _playlistSelector.ButtonNextPlistSong.Sensitive = false;
+        }
         else
+        {
             _playlistSelector.ButtonNextPlistSong.Sensitive = true;
+        }
     }
 
     private void FinishLoading(long numSongs)
@@ -1698,8 +1819,7 @@ internal sealed class MainWindow : Window
         Engine.Instance!.Player.SongEnded += SongEnded;
         _sequencedAudioList.Show();
         var config = Engine.Instance.Config;
-        _sequencedAudioList.AddEntries(numSongs, config.InternalSongNames, config.Playlists, config.SongTableOffset!);
-        _sequencedAudioList.Init();
+        _sequencedAudioList.AddEntries(numSongs, config);
         if (config.Playlists is not null)
         {
             _playlistSelector.AddEntries(config.Playlists);
@@ -1710,7 +1830,7 @@ internal sealed class MainWindow : Window
         //	_sequencedAudioList.Add(new SoundSequenceListItem(playlist));
         //	_sequencedAudioList.AddRange(playlist.Songs.Select(s => new SoundSequenceListItem(s)).ToArray());
         //}
-        _sequenceNumberSpinButton.Adjustment!.Upper = numSongs;
+        _sequenceNumberSpinButton.Adjustment!.Upper = numSongs - 1;
 #if DEBUG
         // [Debug methods specific to this GUI will go in here]
 #endif

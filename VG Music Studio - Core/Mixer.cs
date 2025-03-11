@@ -9,17 +9,9 @@ namespace Kermalis.VGMusicStudio.Core;
 
 public abstract class Mixer : IDisposable
 {
-    public static event Action<float>? VolumeChanged;
-
     public Wave? WaveData;
-    public EndianBinaryReader? Reader;
-    //public float[] Buffer;
-
     public readonly bool[] Mutes;
-    public int SizeInBytes;
-    public uint FramesPerBuffer;
-    public int SizeToAllocateInBytes;
-    public long FinalFrameSize;
+    internal abstract int SamplesPerBuffer { get; }
     private float Vol = 1;
 
     public readonly object CountLock = new object();
@@ -33,12 +25,9 @@ public abstract class Mixer : IDisposable
     public bool IsDisposing = false;
     private bool IsDisposed = false;
 
-    public static Mixer? Instance { get; set; }
-
     protected Mixer()
     {
         Mutes = new bool[SongState.MAX_TRACKS];
-        //Buffer = null!;
     }
 
     protected void Init(Wave waveData, SampleFormat sampleFormat = SampleFormat.Float32)
@@ -52,55 +41,55 @@ public abstract class Mixer : IDisposable
             WaveData = waveData;
 
             // Try setting up an output device
-            OParams.device = Pa.DefaultOutputDevice;
-            if (OParams.device == Pa.NoDevice)
+            OParams.Device = Pa.DefaultOutputDevice;
+            if (OParams.Device == Pa.NoDevice)
                 throw new Exception("No default audio output device is available.");
 
-            OParams.channelCount = 2;
-            OParams.sampleFormat = sampleFormat;
-            OParams.suggestedLatency = Pa.GetDeviceInfo(OParams.device).defaultLowOutputLatency;
-            OParams.hostApiSpecificStreamInfo = IntPtr.Zero;
+            OParams.Channels = 2;
+            OParams.SampleFormat = sampleFormat;
+            OParams.SuggestedLatency = Pa.GetDeviceInfo(OParams.Device).defaultLowOutputLatency;
+            OParams.HostApiSpecificStreamInfo = IntPtr.Zero;
 
             // Set it as a the default
             DefaultOutputParams = OParams;
         }
 
-        Instance!.Stream = new Stream(
+        Stream = new Stream(
             null,
             OParams,
             WaveData!.SampleRate,
-            FramesPerBuffer,
+            (uint)SamplesPerBuffer,
             StreamFlags.NoFlag,
             Player.PlayCallback,
             waveData
         );
 
-        FinalFrameSize = FramesPerBuffer * 2;
+        var hostApiInfo = Pa.GetHostApiInfo(Pa.DefaultHostApi);
 
         Stream!.Start();
     }
 
-    private int ProcessFrame(Span<float> output, Span<float> buffer, int framesPerBuffer)
-    {
-        float counter = 0;
+    // private int ProcessFrame(Span<float> output, Span<float> buffer, int framesPerBuffer)
+    // {
+    //     float counter = 0;
 
-        counter += framesPerBuffer;
-        while (counter >= Instance!.FramesPerBuffer)
-        {
-            counter -= Instance.FramesPerBuffer;
-        }
+    //     counter += framesPerBuffer;
+    //     while (counter >= Instance!.FramesPerBuffer)
+    //     {
+    //         counter -= Instance.FramesPerBuffer;
+    //     }
 
-        framesPerBuffer = (int)(Instance.FramesPerBuffer * 2);
-        float[] outBuffer = buffer.ToArray();
+    //     framesPerBuffer = (int)(Instance.FramesPerBuffer * 2);
+    //     float[] outBuffer = buffer.ToArray();
         
-        float[] outBuf = output.ToArray();
-        for (int i = 0; i < framesPerBuffer; i++)
-        {
-            outBuf[i] = outBuffer[i];
-        }
+    //     float[] outBuf = output.ToArray();
+    //     for (int i = 0; i < framesPerBuffer; i++)
+    //     {
+    //         outBuf[i] = outBuffer[i];
+    //     }
 
-        return 1;
-    }
+    //     return 1;
+    // }
 
     public float Volume
     {
@@ -300,11 +289,10 @@ public abstract class Mixer : IDisposable
 
         public Audio(int sizeToAllocateInBytes)
         {
-            Instance!.FramesPerBuffer = (uint)(sizeToAllocateInBytes / sizeof(float)) / 2;
-            Instance.SizeInBytes = sizeToAllocateInBytes;
-            int num = Instance.SizeInBytes % 4;
-            Instance.SizeToAllocateInBytes = (num == 0) ? Instance.SizeInBytes : (Instance.SizeInBytes + 4 - num);
-            ByteBuffer = new Span<byte>(new byte[Instance.SizeToAllocateInBytes]).ToArray();
+            var sizeInBytes = sizeToAllocateInBytes;
+            int aligned32Bits = sizeInBytes % 4;
+            sizeToAllocateInBytes = (aligned32Bits == 0) ? sizeInBytes : (sizeInBytes + 4 - aligned32Bits);
+            ByteBuffer = new byte[sizeToAllocateInBytes];
             NumberOfBytes = 0;
         }
 

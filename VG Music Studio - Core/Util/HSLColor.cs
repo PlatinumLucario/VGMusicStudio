@@ -27,6 +27,8 @@ public readonly struct HSLColor
 		Hue = h;
 		Saturation = s;
 		Lightness = l;
+		
+		ToRGB(h, s, l, out R, out G, out B);
 	}
 	public HSLColor(in Color c)
 	{

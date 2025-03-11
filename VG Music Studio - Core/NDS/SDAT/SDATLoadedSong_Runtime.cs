@@ -79,9 +79,9 @@ internal sealed partial class SDATLoadedSong
 	{
 		InstrumentType type = inst.Type;
 		if (Engine.Instance!.UseNewMixer)
-			channel = _player.SMixer.AllocateChannel(type, track);
+			channel = _player.SMixer!.AllocateChannel(type, track);
 		else
-			channel = _player.SMixer_NAudio.AllocateChannel(type, track);
+			channel = _player.SMixer_NAudio!.AllocateChannel(type, track);
 		if (channel is null)
 		{
 			return;
@@ -103,7 +103,7 @@ internal sealed partial class SDATLoadedSong
 		{
 			case InstrumentType.PCM:
 			{
-				ushort[] info = param.Info;
+				Span<ushort> info = param.Info;
 				SWAR.SWAV? swav = _sbnk.GetSWAV(info[1], info[0]);
 				if (swav is not null)
 				{

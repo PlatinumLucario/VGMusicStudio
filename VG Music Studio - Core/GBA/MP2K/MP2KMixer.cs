@@ -8,7 +8,7 @@ namespace Kermalis.VGMusicStudio.Core.GBA.MP2K;
 public sealed class MP2KMixer : Mixer
 {
     internal readonly int SampleRate;
-    internal readonly int SamplesPerBuffer;
+    internal override int SamplesPerBuffer { get; }
     internal readonly float SampleRateReciprocal;
     private readonly float _samplesReciprocal;
     internal readonly float PCM8MasterVolume;
@@ -44,7 +44,6 @@ public sealed class MP2KMixer : Mixer
         _psgChannels = [_sq1 = new MP2KSquareChannel(this), _sq2 = new MP2KSquareChannel(this), _pcm4 = new MP2KPCM4Channel(this), _noise = new MP2KNoiseChannel(this)];
 
         int amt = SamplesPerBuffer * 2;
-        Instance = this;
         _audio = new Audio(amt * sizeof(float)) { Float32BufferCount = amt };
         _trackBuffers = new float[0x10][];
         for (int i = 0; i < _trackBuffers.Length; i++)
@@ -193,8 +192,8 @@ public sealed class MP2KMixer : Mixer
     {
         for (int i = 0; i < _trackBuffers.Length; i++)
         {
-            float[] buf = _trackBuffers[i];
-            Array.Clear(buf, 0, buf.Length);
+            Span<float> buf = _trackBuffers[i];
+            buf.Clear();
         }
         _audio.Clear();
 
@@ -246,7 +245,7 @@ public sealed class MP2KMixer : Mixer
             }
 
             float level = masterLevel;
-            float[] buf = _trackBuffers[i];
+            Span<float> buf = _trackBuffers[i];
             for (int j = 0; j < SamplesPerBuffer; j++)
             {
                 _audio.Float32Buffer![j * 2] += buf[j * 2] * level;

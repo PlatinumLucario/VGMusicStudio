@@ -28,9 +28,9 @@ public class Wave
 
     public byte[]? Buffer;
     public int ReadPosition { get; private set; }
-    public int WritePosition {  get; private set; }
+    public int WritePosition { get; private set; }
     private int ByteCount;
-    private object? LockObject;
+    private readonly object? LockObject = new();
 
     private long DataChunkSize;
     private long DataChunkLength;
@@ -102,17 +102,13 @@ public class Wave
         ExtraSize = 0;
         return new Wave();
     }
-    public Wave CreateIeeeFloatWave(uint sampleRate, ushort channels, ushort bits = 32) => CreateFormat(sampleRate, channels, (ushort)(4 * channels), sampleRate * (ushort)(4 * channels), bits);
+    public Wave CreateIeeeFloatWave(uint sampleRate, ushort channels, ushort bits = 32) => CreateFormat(sampleRate, channels, (ushort)(channels * (bits / 8)), sampleRate * (ushort)(channels * (bits / 8)), bits);
 
     public void AddSamples(Span<byte> buffer, int offset, int count)
     {
         if (Engine.Instance!.Player.State == PlayerState.Playing)
         {
-            if (Buffer == null)
-            {
-                Buffer = new byte[BufferLength];
-                LockObject = new object();
-            }
+            Buffer ??= new byte[BufferLength];
 
             if (WriteBuffer(buffer, offset, count) < count && !DiscardOnBufferOverflow)
             {
@@ -193,7 +189,7 @@ public class Wave
     {
         lock (LockObject!)
         {
-            new Span<byte>(Buffer).Clear();
+            Array.Clear(Buffer!);
             ByteCount = 0;
             ReadPosition = 0;
             WritePosition = 0;
@@ -285,7 +281,7 @@ public class Wave
         string formatID = "fmt ";
         uint formatLength = 16; // Always a length 16
         ushort formatType = (ushort)encoding; // 1 is PCM16, 2 is ADPCM, etc.
-                               // Number of channels is already manually defined
+                                              // Number of channels is already manually defined
         uint sampleRate = SampleRate; // Sample Rate is read directly from the Info context
         ushort bitsPerSample = 16; // bitsPerSample must be written to AFTER numNibbles
         uint numNibbles = sampleRate * bitsPerSample * Channels / 8; // numNibbles must be written BEFORE bitsPerSample is written

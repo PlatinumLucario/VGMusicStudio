@@ -13,7 +13,7 @@ public sealed class MP2KConfig : Config
 {
 	private const string CONFIG_FILE = "MP2K.yaml";
 
-	internal readonly byte[] ROM;
+	public override byte[] ROM { get; }
 	internal readonly string GameCode;
 	internal readonly byte Version;
 

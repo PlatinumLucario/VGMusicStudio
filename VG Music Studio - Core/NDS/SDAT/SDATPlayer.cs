@@ -12,8 +12,8 @@ public sealed class SDATPlayer : Player
 	internal readonly SDATTrack[] Tracks = new SDATTrack[0x10];
 	private readonly string?[] _voiceTypeCache = new string?[256];
 	internal readonly SDATConfig Config;
-	internal readonly SDATMixer SMixer;
-	internal readonly SDATMixer_NAudio SMixer_NAudio;
+	internal readonly SDATMixer? SMixer;
+	internal readonly SDATMixer_NAudio? SMixer_NAudio;
 	private SDATLoadedSong? _loadedSong;
 
 	internal byte Volume;
@@ -24,8 +24,8 @@ public sealed class SDATPlayer : Player
 	private ushort? _prevBank;
 
 	public override ILoadedSong? LoadedSong => _loadedSong;
-	protected override Mixer Mixer => SMixer;
-	protected override Mixer_NAudio Mixer_NAudio => SMixer_NAudio;
+	protected override Mixer Mixer => SMixer!;
+	protected override Mixer_NAudio Mixer_NAudio => SMixer_NAudio!;
 
 	internal SDATPlayer(SDATConfig config, SDATMixer mixer)
 		: base(192)
@@ -94,9 +94,9 @@ public sealed class SDATPlayer : Player
 		_elapsedLoops = 0;
 		ElapsedTicks = 0;
 		if (Engine.Instance!.UseNewMixer)
-			SMixer.ResetFade();
+			SMixer!.ResetFade();
 		else
-			SMixer_NAudio.ResetFade();
+			SMixer_NAudio!.ResetFade();
 		_loadedSong!.InitEmulation();
 		for (int i = 0; i < 0x10; i++)
 		{
@@ -133,7 +133,7 @@ public sealed class SDATPlayer : Player
 				{
 					TickTrack(i, ref allDone);
 				}
-				if (SMixer.IsFadeDone())
+				if (SMixer!.IsFadeDone())
 				{
 					allDone = true;
 				}
@@ -150,7 +150,7 @@ public sealed class SDATPlayer : Player
 					track.UpdateChannels();
 				}
 			}
-			SMixer.ChannelTick();
+			SMixer!.ChannelTick();
 			SMixer.Process(playing, recording);
 			return allDone;
 		}
@@ -164,7 +164,7 @@ public sealed class SDATPlayer : Player
 				{
 					TickTrack(i, ref allDone);
 				}
-				if (SMixer_NAudio.IsFadeDone())
+				if (SMixer_NAudio!.IsFadeDone())
 				{
 					allDone = true;
 				}
@@ -181,7 +181,7 @@ public sealed class SDATPlayer : Player
 					track.UpdateChannels();
 				}
 			}
-			SMixer_NAudio.ChannelTick();
+			SMixer_NAudio!.ChannelTick();
 			SMixer_NAudio.Process(playing, recording);
 			return allDone;
 		}
@@ -239,14 +239,14 @@ public sealed class SDATPlayer : Player
 		}
 		if (Engine.Instance!.UseNewMixer)
 		{
-			if (ShouldFadeOut && _elapsedLoops > NumLoops && !SMixer.IsFading())
+			if (ShouldFadeOut && _elapsedLoops > NumLoops && !SMixer!.IsFading())
 			{
 				SMixer.BeginFadeOut();
 			}
 		}
 		else
 		{
-			if (ShouldFadeOut && _elapsedLoops > NumLoops && !SMixer_NAudio.IsFading())
+			if (ShouldFadeOut && _elapsedLoops > NumLoops && !SMixer_NAudio!.IsFading())
 			{
 				SMixer_NAudio.BeginFadeOut();
 			}

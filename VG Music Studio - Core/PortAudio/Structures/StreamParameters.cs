@@ -23,7 +23,7 @@ namespace PortAudio
         /// device(s) to use are specified in hostApiSpecificStreamInfo.
         /// This field must not be set to paNoDevice.
         /// </summary>
-        public DeviceIndex device;
+        public DeviceIndex Device;
 
         /// <summary>
         /// The number of channels of sound to be delivered to the
@@ -31,14 +31,14 @@ namespace PortAudio
         /// It can range from 1 to the value of maxInputChannels in the
         /// PaDeviceInfo record for the device specified by the device parameter.
         /// </summary>
-        public int channelCount;
+        public int Channels;
 
         /// <summary>
         /// The sample format of the buffer provided to the stream callback,
         /// a_ReadStream() or Pa_WriteStream(). It may be any of the formats described
         /// by the PaSampleFormat enumeration.
         /// </summary>
-        public SampleFormat sampleFormat;
+        public SampleFormat SampleFormat;
 
         /// <summary>
         /// The desired latency in seconds. Where practical, implementations should
@@ -52,7 +52,7 @@ namespace PortAudio
         /// returned by Pa_GetStreamInfo().
         /// @see default*Latency in PaDeviceInfo, *Latency in PaStreamInfo
         /// </summary>
-        public Time suggestedLatency;
+        public Time SuggestedLatency;
 
         /// <summary>
         /// An optional pointer to a host api specific data structure
@@ -60,17 +60,17 @@ namespace PortAudio
         /// hostApiSpecificStreamInfo is never required for correct operation,
         /// if not used it should be set to NULL.
         /// </summary>
-        public IntPtr hostApiSpecificStreamInfo;    // Originally `void *`
+        public IntPtr HostApiSpecificStreamInfo;    // Originally `void *`
 
         public override string ToString()
         {
             StringBuilder sb = new StringBuilder();
             sb.AppendLine("StreamParameters [");
-            sb.AppendLine($"  device={device}");
-            sb.AppendLine($"  channelCount={channelCount}");
-            sb.AppendLine($"  sampleFormat={sampleFormat}");
-            sb.AppendLine($"  suggestedLatency={suggestedLatency}");
-            sb.AppendLine($"  hostApiSpecificStreamInfo?=[{hostApiSpecificStreamInfo != IntPtr.Zero}]");
+            sb.AppendLine($"  device={Device}");
+            sb.AppendLine($"  channelCount={Channels}");
+            sb.AppendLine($"  sampleFormat={SampleFormat}");
+            sb.AppendLine($"  suggestedLatency={SuggestedLatency}");
+            sb.AppendLine($"  hostApiSpecificStreamInfo?=[{HostApiSpecificStreamInfo != IntPtr.Zero}]");
             sb.AppendLine("]");
             return sb.ToString();
         }

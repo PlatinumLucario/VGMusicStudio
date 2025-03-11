@@ -1,4 +1,6 @@
-﻿namespace Kermalis.VGMusicStudio.Core.GBA.MP2K;
+﻿using System;
+
+namespace Kermalis.VGMusicStudio.Core.GBA.MP2K;
 
 internal abstract class MP2KChannel
 {
@@ -39,7 +41,7 @@ internal abstract class MP2KChannel
 		}
 	}
 
-	public abstract void Process(float[] buffer);
+	public abstract void Process(Span<float> buffer);
 
 	/// <summary>Returns whether the note is active or not</summary>
 	public virtual bool TickNote()

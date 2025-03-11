@@ -11,6 +11,8 @@ namespace Kermalis.VGMusicStudio.GTK4;
 internal class SequencedAudio_TrackInfo : Box
 {
     private Label? TempoLabel { get; set; }
+    private ushort BaseTempo { get; set; }
+    private Label? BaseTempoLabel { get; set; }
     private SpinButton TempoSpinButton { get; set; }
 
     private CheckButton? TrackToggleCheckButtonHeader { get; set; }
@@ -42,21 +44,26 @@ internal class SequencedAudio_TrackInfo : Box
     {
         NumTracks = new bool[SongState.MAX_TRACKS];
         for (int i = 0; i < SongState.MAX_TRACKS; i++)
+        {
             NumTracks[i] = true;
+        }
 
         Info = new SongState();
         
-        TempoLabel = Label.New(Strings.PlayerTempo);
-        TempoSpinButton = SpinButton.New(Adjustment.New(Info.Tempo, 0, ushort.MaxValue, 1, 10, 0), 0, 0);
+        TempoLabel = Label.New(string.Format("{0} - {1}", Strings.PlayerTempo, Info!.Tempo));
+        TempoSpinButton = SpinButton.New(Adjustment.New(0, 0, -1, 1, 10, 0), 0, 0);
         TempoSpinButton.SetNumeric(true);
         TempoSpinButton.OnValueChanged += ChangeTempo;
         TempoSpinButton.OnChangeValue += ChangeTempo;
-        var tempoBox = New(Orientation.Horizontal, 4);
+        BaseTempo = Info.Tempo;
+        BaseTempoLabel = Label.New(string.Format("{0} + ", BaseTempo));
+        var tempoBox = New(Orientation.Vertical, 4);
+        var tempoControlBox = New(Orientation.Horizontal, 4);
+        tempoControlBox.Append(BaseTempoLabel);
+        tempoControlBox.Append(TempoSpinButton);
+        tempoControlBox.SetHalign(Align.Center);
         tempoBox.Append(TempoLabel);
-        tempoBox.Append(TempoSpinButton);
-        tempoBox.SetHalign(Align.Center);
-        tempoBox.MarginStart = 100;
-        tempoBox.MarginEnd = 100;
+        tempoBox.Append(tempoControlBox);
         var listHeader = CreateListHeader();
         var viewport = Viewport.New(Adjustment.New(0, -1, -1, 1, 1, 1), Adjustment.New(0, -1, -1, 1, 1, 1));
         var scrolledWindow = ScrolledWindow.New();
@@ -86,8 +93,13 @@ internal class SequencedAudio_TrackInfo : Box
     {
         if (Engine.Instance is not null)
         {
-            Engine.Instance.Player.Tempo = (ushort)TempoSpinButton.Value;
+            Engine.Instance.Player.Tempo = (ushort)(BaseTempo! + TempoSpinButton.Value);
         }
+    }
+    
+    internal void ResetTempo()
+    {
+        TempoSpinButton.Value = 0;
     }
 
     internal static void SetNumTracks(int num) => NumTracksToDraw = num;
@@ -105,6 +117,10 @@ internal class SequencedAudio_TrackInfo : Box
 
     private bool TrackTimerCallback()
     {
+        if (Engine.Instance is not null)
+        {
+            TempoLabel!.SetLabel(string.Format("{0} - {1}", Strings.PlayerTempo, Engine.Instance!.Player.Tempo));
+        }
         if (TrackToggleCheckButton is not null &&
             PositionLabel is not null &&
             RestLabel is not null &&
@@ -118,7 +134,11 @@ internal class SequencedAudio_TrackInfo : Box
             Velocity is not null &&
             TypeLabel is not null)
         {
-            if (PositionLabel.Length == 0) return true;
+            if (PositionLabel.Length == 0)
+            {
+                return true;
+            }
+
             for (int i = 0; i < NumTracksToDraw; i++)
             {
                 if (TrackToggleCheckButton[i] is not null &&
@@ -137,7 +157,7 @@ internal class SequencedAudio_TrackInfo : Box
                     if (Engine.Instance!.Player.State is not PlayerState.Stopped)
                     {
                         ToggleTrack(i, TrackToggleCheckButton[i].Active);
-                        PositionLabel[i].SetText(string.Format("0x{0:X}", Info.Tracks[i].Position));
+                        PositionLabel[i].SetText(string.Format("0x{0:X}", Info!.Tracks[i].Position));
                         RestLabel[i].SetText(Info.Tracks[i].Rest.ToString());
                         VoiceLabel[i].SetText(Info.Tracks[i].Voice.ToString());
                         NotesLabel[i].SetText(GetNote(Info.Tracks[i]));
@@ -148,11 +168,12 @@ internal class SequencedAudio_TrackInfo : Box
                         ExtraLabel[i].SetText(Info.Tracks[i].Extra.ToString());
                         VelocityHeader!.WidthRequest = GetWidth() / 4;
                         Velocity[i].WidthRequest = GetWidth() / 4;
-                        Velocity[i].UpdateColor(Info.Tracks[i]);
+                        Velocity[i].UpdateColor(Info.Tracks[i], TrackToggleCheckButton[i].Active);
                         Velocity[i].QueueDraw();
-                        // Visualizer[i].Update(Info.Tracks[i]);
                         if (Info.Tracks[i].Type is not null)
+                        {
                             TypeLabel[i].SetText(Info.Tracks[i].Type);
+                        }
                     }
                     else
                     {
@@ -165,13 +186,15 @@ internal class SequencedAudio_TrackInfo : Box
                         VolumeLabel[i].SetText(0.ToString());
                         LFOLabel[i].SetText(0.ToString());
                         PitchBendLabel[i].SetText(0.ToString());
-                        ExtraLabel[i].SetText(Info.Tracks[i].Extra.ToString());
+                        ExtraLabel[i].SetText(Info!.Tracks[i].Extra.ToString());
                         VelocityHeader!.WidthRequest = GetWidth() / 4;
                         Velocity[i].WidthRequest = GetWidth() / 4;
-                        Velocity[i].UpdateColor(Info.Tracks[i]);
+                        Velocity[i].UpdateColor(Info.Tracks[i], TrackToggleCheckButton[i].Active);
                         Velocity[i].QueueDraw();
                         if (Info.Tracks[i].Type is not null)
+                        {
                             TypeLabel[i].SetText("");
+                        }
                     }
                 }
             }
@@ -183,19 +206,32 @@ internal class SequencedAudio_TrackInfo : Box
     {
         private SongState.Track? Track;
         private HSLColor Color;
+        private HSLColor OverampColor;
         internal VelocityBar()
         {
             Color = new HSLColor();
+            OverampColor = new HSLColor(0, 1, 0.5);
             SetHexpand(true);
             SetVexpand(true);
             SetDrawFunc(DrawVisualizerBar);
         }
 
-        internal void UpdateColor(SongState.Track track)
+        internal void UpdateColor(SongState.Track track, bool trackEnabled)
         {
             Track = track;
             if (GlobalConfig.Instance is not null) // Nullability check
+            {
                 Color = new HSLColor(GlobalConfig.Instance.Colors[track.Voice]);
+                if (!trackEnabled)
+                {
+                    Color = new HSLColor(Color.Hue, 0, Color.Lightness);
+                }
+            }
+            OverampColor = new HSLColor(0, 1, 0.5);
+            if (!trackEnabled)
+            {
+                OverampColor = new HSLColor(OverampColor.Hue, 0, 0.8);
+            }
         }
 
         private void DrawVisualizerBar(DrawingArea drawingArea, Context cr, int width, int height)
@@ -283,7 +319,7 @@ internal class SequencedAudio_TrackInfo : Box
         private void DrawOverampLine(Context cr, int height, float pos, int length)
         {
             cr.Save();
-            cr.SetSourceRgba(1.0, 0.0, 0.0, 0.5);
+            cr.SetSourceRgba(OverampColor.R, OverampColor.G, OverampColor.B, 0.5);
             cr.LineWidth = 5;
             cr.MoveTo(pos, height / 2);
             cr.LineTo(pos + length, height / 2);
@@ -437,12 +473,12 @@ internal class SequencedAudio_TrackInfo : Box
     {
         if (active)
         {
-            Engine.Instance!.Mixer.Mutes[index] = false;
+            Engine.Instance!.Mixer!.Mutes[index] = false;
             NumTracks![index] = true;
         }
         else
         {
-            Engine.Instance!.Mixer.Mutes[index] = true;
+            Engine.Instance!.Mixer!.Mutes[index] = true;
             NumTracks![index] = false;
         }
 
@@ -450,7 +486,9 @@ internal class SequencedAudio_TrackInfo : Box
         for (int i = 0; i < NumTracksToDraw; i++)
         {
             if (NumTracks[i])
+            {
                 numActive++;
+            }
         }
         if (numActive == NumTracksToDraw)
         {
@@ -474,7 +512,7 @@ internal class SequencedAudio_TrackInfo : Box
         {
             for (int i = 0; i < NumTracksToDraw; i++)
             {
-                Engine.Instance!.Mixer.Mutes[i] = false;
+                Engine.Instance!.Mixer!.Mutes[i] = false;
                 NumTracks![i] = TrackToggleCheckButton![i].Active = true;
             }
         }
@@ -482,7 +520,7 @@ internal class SequencedAudio_TrackInfo : Box
         {
             for (int i = 0; i < NumTracksToDraw; i++)
             {
-                Engine.Instance!.Mixer.Mutes[i] = true;
+                Engine.Instance!.Mixer!.Mutes[i] = true;
                 NumTracks![i] = TrackToggleCheckButton![i].Active = false;
             }
         }
@@ -494,12 +532,19 @@ internal class SequencedAudio_TrackInfo : Box
         for (int i = 0; i < NumTracks!.Length; i++)
         {
             if (i < NumTracksToDraw)
+            {
                 NumTracks[i] = true;
+            }
             else
+            {
                 NumTracks[i] = false;
+            }
         }
 
-        TempoSpinButton.Value = Engine.Instance!.Player.Tempo;
+        TempoSpinButton.Value = 0;
+        BaseTempo = Engine.Instance!.Player.Tempo;
+        BaseTempoLabel!.SetLabel(string.Format("{0} + ", BaseTempo));
+        TempoSpinButton.SetRange(-BaseTempo, short.MaxValue);
 
         TrackToggleCheckButton = new CheckButton[NumTracksToDraw];
         PositionLabel = new Label[NumTracksToDraw];
@@ -599,7 +644,9 @@ internal class SequencedAudio_TrackInfo : Box
         {
             NumTracks![i] = true;
             if (TrackToggleCheckButton is not null && i < TrackToggleCheckButton.Length)
+            {
                 TrackToggleCheckButton[i].Active = true;
+            }
         }
     }
 }

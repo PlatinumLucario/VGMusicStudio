@@ -9,9 +9,9 @@ namespace Kermalis.VGMusicStudio.GTK4.Util;
 internal class GTK4Utils : DialogUtils
 {
     // Callback
-    private static Gio.Internal.AsyncReadyCallback? _saveCallback { get; set; }
-    private static Gio.Internal.AsyncReadyCallback? _openCallback { get; set; }
-    private static Gio.Internal.AsyncReadyCallback? _selectFolderCallback { get; set; }
+    private static Gio.Internal.AsyncReadyCallback? SaveCallback { get; set; }
+    private static Gio.Internal.AsyncReadyCallback? OpenCallback { get; set; }
+    private static Gio.Internal.AsyncReadyCallback? SelectFolderCallback { get; set; }
 
 
     public static event Action<string>? OnPathChanged;
@@ -98,12 +98,12 @@ internal class GTK4Utils : DialogUtils
                 {
                     if (e.ResponseId != (int)ResponseType.Accept)
                     {
-                        d.Unref();
+                        d.Dispose();
                         return;
                     }
                     var path = d.GetFile()!.GetPath() ?? "";
                     OnPathChanged!.Invoke(path!);
-                    d.Unref();
+                    d.Dispose();
                 }
             }
             else
@@ -111,25 +111,30 @@ internal class GTK4Utils : DialogUtils
                 var d = FileDialog.New();
                 d.SetTitle(title);
                 d.SetFilters(filters);
-                _openCallback += OpenCallback;
+                GTK4Utils.OpenCallback += OpenCallback;
 
                 // SelectFolder, Open and Save methods are currently missing from GirCore, but are available in the Gtk.Internal namespace,
                 // so we're using this until GirCore updates with the method bindings. See here: https://github.com/gircore/gir.core/issues/900
                 var p = (Window)parent!;
-                Gtk.Internal.FileDialog.Open(d.Handle, p.Handle, IntPtr.Zero, _openCallback, IntPtr.Zero);
+                Gtk.Internal.FileDialog.Open(d.Handle, p.Handle, nint.Zero, GTK4Utils.OpenCallback, nint.Zero);
                 //d.Open(Handle, IntPtr.Zero, _openCallback, IntPtr.Zero);
                 return path!;
 
                 void OpenCallback(nint sourceObject, nint res, nint data)
                 {
-                    var errorHandle = new GLib.Internal.ErrorOwnedHandle(IntPtr.Zero);
-                    var fileHandle = Gtk.Internal.FileDialog.OpenFinish(d.Handle, res, out errorHandle);
+                    GTK4Utils.OpenCallback -= OpenCallback;
+                    var fileHandle = Gtk.Internal.FileDialog.OpenFinish(d.Handle, res, out GLib.Internal.ErrorOwnedHandle errorHandle);
                     if (fileHandle != IntPtr.Zero)
                     {
                         path = Marshal.PtrToStringUTF8(Gio.Internal.File.GetPath(fileHandle).DangerousGetHandle());
-                        OnPathChanged!.Invoke(path!);
+                        Gio.Internal.File.GetPath(fileHandle).Dispose();
                     }
-                    d.Unref();
+                    OnPathChanged!.Invoke(path!);
+                    errorHandle.Close();
+                    filters.Dispose();
+                    allFiles.Dispose();
+                    ff.Dispose();
+                    d.Dispose();
                 }
             }
         }
@@ -157,13 +162,13 @@ internal class GTK4Utils : DialogUtils
                 {
                     if (e.ResponseId != (int)ResponseType.Accept) // In GTK4, the 'Gtk.FileChooserNative.Action' property is used for determining the button selection on the dialog. The 'Gtk.Dialog.Run' method was removed in GTK4, due to it being a non-GUI function and going against GTK's main objectives.
                     {
-                        d.Unref();
+                        d.Dispose();
                         return;
                     }
                     var path = d.GetCurrentFolder()!.GetPath() ?? "";
                     d.GetData(path);
                     OnPathChanged!.Invoke(path!);
-                    d.Unref(); // Ensures disposal of the dialog when closed
+                    d.Dispose(); // Ensures disposal of the dialog when closed
                 }
             }
             else
@@ -171,21 +176,23 @@ internal class GTK4Utils : DialogUtils
                 var d = FileDialog.New();
                 d.SetTitle(title);
 
-                _selectFolderCallback += SelectFolderCallback;
+                GTK4Utils.SelectFolderCallback += SelectFolderCallback;
                 var p = (Window)parent!;
-                Gtk.Internal.FileDialog.SelectFolder(d.Handle, p.Handle, IntPtr.Zero, _selectFolderCallback, IntPtr.Zero);
+                Gtk.Internal.FileDialog.SelectFolder(d.Handle, p.Handle, nint.Zero, GTK4Utils.SelectFolderCallback, nint.Zero);
                 return path!;
 
                 void SelectFolderCallback(nint sourceObject, nint res, nint data)
                 {
-                    var errorHandle = new GLib.Internal.ErrorOwnedHandle(IntPtr.Zero);
-                    var folderHandle = Gtk.Internal.FileDialog.SelectFolderFinish(d.Handle, res, out errorHandle);
+                    GTK4Utils.SelectFolderCallback -= SelectFolderCallback;
+                    var folderHandle = Gtk.Internal.FileDialog.SelectFolderFinish(d.Handle, res, out GLib.Internal.ErrorOwnedHandle errorHandle);
                     if (folderHandle != IntPtr.Zero)
                     {
                         var path = Marshal.PtrToStringUTF8(Gio.Internal.File.GetPath(folderHandle).DangerousGetHandle());
-                        OnPathChanged!.Invoke(path!);
+                        Gio.Internal.File.GetPath(folderHandle).Close();
                     }
-                    d.Unref();
+                    OnPathChanged!.Invoke(path!);
+                    errorHandle.Close();
+                    d.Dispose();
                 }
             }
         }
@@ -231,13 +238,13 @@ internal class GTK4Utils : DialogUtils
             {
                 if (e.ResponseId != (int)ResponseType.Accept)
                 {
-                    d.Unref();
+                    d.Dispose();
                     return;
                 }
 
                 var path = d.GetFile()!.GetPath() ?? "";
                 OnPathChanged!.Invoke(path!);
-                d.Unref();
+                d.Dispose();
             }
         }
         else
@@ -247,22 +254,28 @@ internal class GTK4Utils : DialogUtils
             d.SetInitialName(fileName);
             d.SetFilters(filters);
             string? path = null;
-            _saveCallback = SaveCallback;
+            GTK4Utils.SaveCallback += SaveCallback;
             var p = (Window)parent!;
-            Gtk.Internal.FileDialog.Save(d.Handle, p.Handle, IntPtr.Zero, _saveCallback, IntPtr.Zero);
+            Gtk.Internal.FileDialog.Save(d.Handle, p.Handle, nint.Zero, GTK4Utils.SaveCallback, nint.Zero);
             //d.Open(Handle, IntPtr.Zero, _openCallback, IntPtr.Zero);
             return path!;
 
             void SaveCallback(nint sourceObject, nint res, nint data)
             {
+                GTK4Utils.SaveCallback -= SaveCallback;
                 var errorHandle = new GLib.Internal.ErrorOwnedHandle(IntPtr.Zero);
                 var fileHandle = Gtk.Internal.FileDialog.SaveFinish(d.Handle, res, out errorHandle);
                 if (fileHandle != IntPtr.Zero)
                 {
                     path = Marshal.PtrToStringUTF8(Gio.Internal.File.GetPath(fileHandle).DangerousGetHandle());
-                    OnPathChanged!.Invoke(path!);
+                    Gio.Internal.File.GetPath(fileHandle).Dispose();
                 }
-                d.Unref();
+                OnPathChanged!.Invoke(path!);
+                errorHandle.Close();
+                filters.Dispose();
+                allFiles.Dispose();
+                ff.Dispose();
+                d.Dispose();
             }
         }
     }
