@@ -374,7 +374,7 @@ internal class SequencedAudio_TrackInfo : Box
                 }
             }
 
-            track.PreviousKeysTime = GlobalConfig.Instance.RefreshRate << 2;
+            track.PreviousKeysTime = 120;
             track.PreviousKeys = key;
         }
         return key;

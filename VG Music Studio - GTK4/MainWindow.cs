@@ -1375,7 +1375,6 @@ internal sealed class MainWindow : Window
             FinishLoading(config.BGMFiles.Length);
             _sequenceNumberSpinButton.Visible = false;
             _sequenceNumberSpinButton.Hide();
-            _mainMenu.AppendItem(_playlistItem);
             _trackViewerAction.Enabled = true;
             _exportDLSAction.Enabled = false;
             _exportMIDIAction.Enabled = false;
@@ -1672,7 +1671,7 @@ internal sealed class MainWindow : Window
     private void ConfigureTimer()
     {
         var context = GLib.MainContext.GetThreadDefault(); // Grabs the default GLib MainContext thread
-        var source = GLib.Functions.TimeoutSourceNew((uint)(1_000.0 / GlobalConfig.Instance!.RefreshRate)); // Creates and configures the timeout interval
+        var source = GLib.Functions.TimeoutSourceNew(50); // Creates and configures the timeout interval
         source.SetCallback(TimerCallback); // Sets the callback for the timer interval to be used on
         var microsec = (ulong)source.Attach(context); // Configures the microseconds based on attaching the GLib MainContext thread
         _timer.Elapsed(ref microsec); // Adds the pointer to the configured microseconds source
@@ -1717,6 +1716,7 @@ internal sealed class MainWindow : Window
         }
         _timer.Stop();
         Engine.Instance!.Player.Stop();
+        _sequencedAudioTrackInfo.Info!.Reset();
         _sequencedAudioTrackInfo.ResetTempo();
         Engine.Instance.Player.IsPauseToggled = _buttonPause.Active = false;
         _buttonPause.Sensitive = _buttonStop.Sensitive = false;
@@ -1889,9 +1889,8 @@ internal sealed class MainWindow : Window
             if (_positionBarFree)
             {
                 Player player = Engine.Instance!.Player;
-                SongState info = _sequencedAudioTrackInfo.Info!;
-                player.UpdateSongState(info);
-                _piano.UpdateKeys(info.Tracks, _sequencedAudioTrackInfo.NumTracks!);
+                player.Info = _sequencedAudioTrackInfo.Info!;
+                _piano.UpdateKeys(player.Info.Tracks, _sequencedAudioTrackInfo.NumTracks!);
                 if (player.State is PlayerState.Stopped)
                 {
                     UpdatePositionIndicators(0L);

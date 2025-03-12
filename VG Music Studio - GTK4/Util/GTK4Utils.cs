@@ -101,7 +101,7 @@ internal class GTK4Utils : DialogUtils
                         d.Dispose();
                         return;
                     }
-                    var path = d.GetFile()!.GetPath() ?? "";
+                    path = d.GetFile()!.GetPath() ?? "";
                     OnPathChanged!.Invoke(path!);
                     d.Dispose();
                 }
@@ -165,7 +165,7 @@ internal class GTK4Utils : DialogUtils
                         d.Dispose();
                         return;
                     }
-                    var path = d.GetCurrentFolder()!.GetPath() ?? "";
+                    path = d.GetCurrentFolder()!.GetPath() ?? "";
                     d.GetData(path);
                     OnPathChanged!.Invoke(path!);
                     d.Dispose(); // Ensures disposal of the dialog when closed
@@ -187,8 +187,8 @@ internal class GTK4Utils : DialogUtils
                     var folderHandle = Gtk.Internal.FileDialog.SelectFolderFinish(d.Handle, res, out GLib.Internal.ErrorOwnedHandle errorHandle);
                     if (folderHandle != IntPtr.Zero)
                     {
-                        var path = Marshal.PtrToStringUTF8(Gio.Internal.File.GetPath(folderHandle).DangerousGetHandle());
-                        Gio.Internal.File.GetPath(folderHandle).Close();
+                        path = Marshal.PtrToStringUTF8(Gio.Internal.File.GetPath(folderHandle).DangerousGetHandle());
+                        Gio.Internal.File.GetPath(folderHandle).Dispose();
                     }
                     OnPathChanged!.Invoke(path!);
                     errorHandle.Close();
@@ -206,6 +206,9 @@ internal class GTK4Utils : DialogUtils
         CreateSaveDialog(fileName, title, filterName, [fileExtension], false);
     public override string CreateSaveDialog(string fileName, string title, string filterName, Span<string> fileExtensions, bool isFile = false, bool allowAllFiles = false, object? parent = null)
     {
+        parent ??= MainWindow.Instance;
+        string? path = null;
+
         var ff = FileFilter.New();
         Convert(filterName, fileExtensions, ff);
 
@@ -242,7 +245,7 @@ internal class GTK4Utils : DialogUtils
                     return;
                 }
 
-                var path = d.GetFile()!.GetPath() ?? "";
+                path = d.GetFile()!.GetPath() ?? "";
                 OnPathChanged!.Invoke(path!);
                 d.Dispose();
             }
@@ -253,7 +256,6 @@ internal class GTK4Utils : DialogUtils
             d.SetTitle(title);
             d.SetInitialName(fileName);
             d.SetFilters(filters);
-            string? path = null;
             GTK4Utils.SaveCallback += SaveCallback;
             var p = (Window)parent!;
             Gtk.Internal.FileDialog.Save(d.Handle, p.Handle, nint.Zero, GTK4Utils.SaveCallback, nint.Zero);

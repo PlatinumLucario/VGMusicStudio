@@ -36,6 +36,7 @@ public abstract class Player(double ticksPerSecond) : IDisposable
 	public abstract ushort Tempo { get; set; }
 	public bool ShouldFadeOut { get; set; }
 	public long NumLoops { get; set; }
+	public SongState? Info { get; set; }
 
 	public long ElapsedTicks { get; internal set; }
 	public PlayerState State { get; protected set; }
@@ -580,6 +581,10 @@ public abstract class Player(double ticksPerSecond) : IDisposable
 			{
 				_deltaTimeElapsed -= _timer.GetDeltaTick();
 				bool allDone = Tick(playing, recording);
+				if (Info is not null)
+				{
+					UpdateSongState(Info);
+				}
 				if (allDone)
 				{
 					// TODO: lock state

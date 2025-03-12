@@ -8,12 +8,12 @@ public sealed class DSEEngine : Engine
 	public override DSEMixer Mixer { get; }
 	public override DSEMixer_NAudio Mixer_NAudio { get; }
 	public override DSEPlayer Player { get; }
-	public override bool UseNewMixer { get => false; }
+	public override bool UseNewMixer { get => true; }
 
 	public DSEEngine(string bgmPath)
 	{
 		Config = new DSEConfig(bgmPath);
-		if (Engine.Instance!.UseNewMixer)
+		if (UseNewMixer)
 		{
 			Mixer = new DSEMixer();
 			Player = new DSEPlayer(Config, Mixer);

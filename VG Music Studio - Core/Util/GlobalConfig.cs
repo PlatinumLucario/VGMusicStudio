@@ -21,7 +21,6 @@ public sealed class GlobalConfig
 	public static GlobalConfig Instance { get; private set; } = null!;
 
 	public readonly bool TaskbarProgress;
-	public readonly ushort RefreshRate;
 	public readonly bool CenterIndicators;
 	public readonly bool PanpotIndicators;
 	public readonly PlaylistMode PlaylistMode;
@@ -41,7 +40,6 @@ public sealed class GlobalConfig
 
 				var mapping = (YamlMappingNode)yaml.Documents[0].RootNode;
 				TaskbarProgress = mapping.GetValidBoolean(nameof(TaskbarProgress));
-				RefreshRate = (ushort)mapping.GetValidValue(nameof(RefreshRate), 1, 1000);
 				CenterIndicators = mapping.GetValidBoolean(nameof(CenterIndicators));
 				PanpotIndicators = mapping.GetValidBoolean(nameof(PanpotIndicators));
 				PlaylistMode = mapping.GetValidEnum<PlaylistMode>(nameof(PlaylistMode));

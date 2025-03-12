@@ -83,7 +83,7 @@ public sealed class SDATPlayer : Player
 			SDATTrack track = Tracks[i];
 			if (track.Enabled)
 			{
-				track.UpdateSongState(info.Tracks[i], _loadedSong!, _voiceTypeCache);
+				track.UpdateSongState(info.Tracks[i], _loadedSong!, _voiceTypeCache!);
 			}
 		}
 	}

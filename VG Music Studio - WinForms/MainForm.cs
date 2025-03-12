@@ -624,7 +624,7 @@ internal sealed class MainForm : ThemedForm
 		_pauseButton.Enabled = true;
 		_stopButton.Enabled = true;
 		_pauseButton.Text = Strings.PlayerPause;
-		_timer.Interval = (int)(1_000.0 / GlobalConfig.Instance.RefreshRate);
+		_timer.Interval = 50;
 		_timer.Start();
 		TaskbarPlayerButtons.UpdateState();
 		UpdateTaskbarButtons();
@@ -728,9 +728,8 @@ internal sealed class MainForm : ThemedForm
 			Player player = Engine.Instance!.Player;
 			if (WindowState != FormWindowState.Minimized)
 			{
-				SongState info = _songInfo.Info;
-				player.UpdateSongState(info);
-				_piano.UpdateKeys(info.Tracks, PianoTracks);
+				player.Info = _songInfo.Info;
+				_piano.UpdateKeys(player.Info.Tracks, PianoTracks);
 				_songInfo.Invalidate();
 			}
 			UpdatePositionIndicators(player.ElapsedTicks);

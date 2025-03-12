@@ -211,7 +211,7 @@ internal sealed class SDATTrack
 		tin.Extra = Portamento ? PortamentoTime : (byte)0;
 		tin.Panpot = GetPan();
 
-		Span<SDATChannel> channels = [.. Channels]; // TODO: Fix "Destination array was not long enough." and System.InvalidOperationException exceptions by moving track channels to a single thread, so they don't copy while elements are being added or removed
+		Span<SDATChannel> channels = [.. Channels];
 		if (channels.Length == 0)
 		{
 			tin.Keys[0] = byte.MaxValue;

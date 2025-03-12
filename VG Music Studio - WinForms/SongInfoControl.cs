@@ -353,7 +353,7 @@ internal sealed class SongInfoControl : Control
 			}
 			keys = _keysCache.ToString();
 
-			track.PreviousKeysTime = GlobalConfig.Instance.RefreshRate << 2;
+			track.PreviousKeysTime = 120;
 			track.PreviousKeys = keys;
 		}
 		if (keys.Length != 0)
