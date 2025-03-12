@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 
 namespace Kermalis.VGMusicStudio.Core.NDS.DSE;
 
@@ -9,7 +10,8 @@ public sealed class DSEPlayer : Player
 	private readonly DSEConfig _config;
 	internal readonly DSEMixer DMixer;
 	internal readonly DSEMixer_NAudio DMixer_NAudio;
-	internal readonly SWD MasterSWD;
+	internal readonly SWD MainSWD;
+	internal readonly SWD? LocalSWD;
 	private DSELoadedSong? _loadedSong;
 
 	public override ushort Tempo { get; set; }
@@ -20,21 +22,29 @@ public sealed class DSEPlayer : Player
 	protected override Mixer Mixer => DMixer;
 	protected override Mixer_NAudio Mixer_NAudio => DMixer_NAudio;
 
-	public DSEPlayer(DSEConfig config, DSEMixer mixer)
+	public DSEPlayer(string[] SWDFiles, DSEConfig config, DSEMixer mixer)
 		: base(192)
 	{
 		DMixer = mixer;
 		_config = config;
 
-		MasterSWD = new SWD(Path.Combine(config.BGMPath, "bgm.swd"));
+		MainSWD = new SWD(SWDFiles[0]);
+		if (SWDFiles.Length > 1)
+		{
+			LocalSWD = new SWD(SWDFiles[1]);
+		}
 	}
-	public DSEPlayer(DSEConfig config, DSEMixer_NAudio mixer)
+	public DSEPlayer(string[] SWDFiles, DSEConfig config, DSEMixer_NAudio mixer)
 		: base(192)
 	{
 		DMixer_NAudio = mixer;
 		_config = config;
 
-		MasterSWD = new SWD(Path.Combine(config.BGMPath, "bgm.swd"));
+		MainSWD = new SWD(SWDFiles[0]);
+		if (SWDFiles.Length > 1 )
+		{
+			LocalSWD = new SWD(SWDFiles[1]);
+		}
 	}
 
 	public override void LoadSong(int index)
@@ -45,7 +55,7 @@ public sealed class DSEPlayer : Player
 		}
 
 		// If there's an exception, this will remain null
-		_loadedSong = new DSELoadedSong(this, _config.BGMFiles[index]);
+		_loadedSong = new DSELoadedSong(this, _config.SMDFiles[index]);
 		_loadedSong.SetTicks();
 	}
 	public override void UpdateSongState(SongState info)
@@ -87,28 +97,52 @@ public sealed class DSEPlayer : Player
 		DSELoadedSong s = _loadedSong!;
 
 		bool allDone = false;
-		while (!allDone && TempoStack >= 240)
+		switch (_config.Header!.Type)
 		{
-			TempoStack -= 240;
-			allDone = true;
-			for (int i = 0; i < s.Tracks.Length; i++)
-			{
-				TickTrack(s, s.Tracks[i], ref allDone);
-			}
-			if (Engine.Instance!.UseNewMixer)
-			{
-				if (DMixer.IsFadeDone())
+			case "smdl":
 				{
-					allDone = true;
+					while (!allDone && TempoStack >= 240)
+					{
+						TempoStack -= 240;
+						allDone = true;
+						for (int i = 0; i < s.Tracks.Length; i++)
+						{
+							TickTrack(s, s.Tracks[i], ref allDone);
+						}
+						if (Engine.Instance!.UseNewMixer)
+						{
+							if (DMixer.IsFadeDone())
+							{
+								allDone = true;
+							}
+						}
+						else
+						{
+							if (DMixer_NAudio.IsFadeDone())
+							{
+								allDone = true;
+							}
+						}
+					}
+					break;
 				}
-			}
-			else
-			{
-				if (DMixer_NAudio.IsFadeDone())
+			case "smdb":
 				{
-					allDone = true;
+					while (!allDone && TempoStack >= 120) // Wii tempo is 120 by default
+					{
+						TempoStack -= 120;
+						allDone = true;
+						for (int i = 0; i < s.Tracks.Length; i++)
+						{
+							TickTrack(s, s.Tracks[i], ref allDone);
+						}
+						if (DMixer.IsFadeDone())
+						{
+							allDone = true;
+						}
+					}
+					break;
 				}
-			}
 		}
 		if (!allDone)
 		{

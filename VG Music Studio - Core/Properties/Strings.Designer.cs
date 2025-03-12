@@ -385,6 +385,15 @@ namespace Kermalis.VGMusicStudio.Core.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Wave Data.
+        /// </summary>
+        public static string FilterOpenSWD {
+            get {
+                return ResourceManager.GetString("FilterOpenSWD", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to DLS Format (*.dls).
         /// </summary>
         public static string FilterSaveDLS {
@@ -457,7 +466,7 @@ namespace Kermalis.VGMusicStudio.Core.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Open DSE Folder.
+        ///   Looks up a localized string similar to Open DSE Files.
         /// </summary>
         public static string MenuOpenDSE {
             get {
@@ -480,6 +489,24 @@ namespace Kermalis.VGMusicStudio.Core.Properties {
         public static string MenuOpenSDAT {
             get {
                 return ResourceManager.GetString("MenuOpenSDAT", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Open Folder Containing SMD Files.
+        /// </summary>
+        public static string MenuOpenSMD {
+            get {
+                return ResourceManager.GetString("MenuOpenSMD", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Open Main SWD File.
+        /// </summary>
+        public static string MenuOpenSWD {
+            get {
+                return ResourceManager.GetString("MenuOpenSWD", resourceCulture);
             }
         }
         
