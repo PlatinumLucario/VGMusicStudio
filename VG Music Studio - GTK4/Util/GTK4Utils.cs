@@ -116,14 +116,14 @@ internal class GTK4Utils : DialogUtils
                 // SelectFolder, Open and Save methods are currently missing from GirCore, but are available in the Gtk.Internal namespace,
                 // so we're using this until GirCore updates with the method bindings. See here: https://github.com/gircore/gir.core/issues/900
                 var p = (Window)parent!;
-                Gtk.Internal.FileDialog.Open(d.Handle, p.Handle, nint.Zero, GTK4Utils.OpenCallback, nint.Zero);
+                Gtk.Internal.FileDialog.Open(d.Handle.DangerousGetHandle(), p.Handle.DangerousGetHandle(), nint.Zero, GTK4Utils.OpenCallback, nint.Zero);
                 //d.Open(Handle, IntPtr.Zero, _openCallback, IntPtr.Zero);
                 return path!;
 
                 void OpenCallback(nint sourceObject, nint res, nint data)
                 {
                     GTK4Utils.OpenCallback -= OpenCallback;
-                    var fileHandle = Gtk.Internal.FileDialog.OpenFinish(d.Handle, res, out GLib.Internal.ErrorOwnedHandle errorHandle);
+                    var fileHandle = Gtk.Internal.FileDialog.OpenFinish(d.Handle.DangerousGetHandle(), res, out GLib.Internal.ErrorOwnedHandle errorHandle);
                     if (fileHandle != IntPtr.Zero)
                     {
                         path = Marshal.PtrToStringUTF8(Gio.Internal.File.GetPath(fileHandle).DangerousGetHandle());
@@ -178,13 +178,13 @@ internal class GTK4Utils : DialogUtils
 
                 GTK4Utils.SelectFolderCallback += SelectFolderCallback;
                 var p = (Window)parent!;
-                Gtk.Internal.FileDialog.SelectFolder(d.Handle, p.Handle, nint.Zero, GTK4Utils.SelectFolderCallback, nint.Zero);
+                Gtk.Internal.FileDialog.SelectFolder(d.Handle.DangerousGetHandle(), p.Handle.DangerousGetHandle(), nint.Zero, GTK4Utils.SelectFolderCallback, nint.Zero);
                 return path!;
 
                 void SelectFolderCallback(nint sourceObject, nint res, nint data)
                 {
                     GTK4Utils.SelectFolderCallback -= SelectFolderCallback;
-                    var folderHandle = Gtk.Internal.FileDialog.SelectFolderFinish(d.Handle, res, out GLib.Internal.ErrorOwnedHandle errorHandle);
+                    var folderHandle = Gtk.Internal.FileDialog.SelectFolderFinish(d.Handle.DangerousGetHandle(), res, out GLib.Internal.ErrorOwnedHandle errorHandle);
                     if (folderHandle != IntPtr.Zero)
                     {
                         path = Marshal.PtrToStringUTF8(Gio.Internal.File.GetPath(folderHandle).DangerousGetHandle());
@@ -258,7 +258,7 @@ internal class GTK4Utils : DialogUtils
             d.SetFilters(filters);
             GTK4Utils.SaveCallback += SaveCallback;
             var p = (Window)parent!;
-            Gtk.Internal.FileDialog.Save(d.Handle, p.Handle, nint.Zero, GTK4Utils.SaveCallback, nint.Zero);
+            Gtk.Internal.FileDialog.Save(d.Handle.DangerousGetHandle(), p.Handle.DangerousGetHandle(), nint.Zero, GTK4Utils.SaveCallback, nint.Zero);
             //d.Open(Handle, IntPtr.Zero, _openCallback, IntPtr.Zero);
             return path!;
 
@@ -266,7 +266,7 @@ internal class GTK4Utils : DialogUtils
             {
                 GTK4Utils.SaveCallback -= SaveCallback;
                 var errorHandle = new GLib.Internal.ErrorOwnedHandle(IntPtr.Zero);
-                var fileHandle = Gtk.Internal.FileDialog.SaveFinish(d.Handle, res, out errorHandle);
+                var fileHandle = Gtk.Internal.FileDialog.SaveFinish(d.Handle.DangerousGetHandle(), res, out errorHandle);
                 if (fileHandle != IntPtr.Zero)
                 {
                     path = Marshal.PtrToStringUTF8(Gio.Internal.File.GetPath(fileHandle).DangerousGetHandle());

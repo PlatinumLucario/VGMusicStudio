@@ -10,10 +10,10 @@ internal sealed class TrackViewer : Window
     private readonly string? EventType;
     private readonly string? Arguments;
     private readonly long Offset;
-    private readonly long[] Ticks;
+    private readonly long[]? Ticks;
 
-    private Gtk.StringList TrackList;
-    private Gtk.DropDown TrackDropDown;
+    private Gtk.StringList? TrackList;
+    private Gtk.DropDown? TrackDropDown;
     private readonly Gio.ListStore Model = Gio.ListStore.New(GetGType());
     private Gtk.NoSelection? SelectionModel { get; set; }
     internal Gtk.ColumnView? ColumnView { get; set; }
@@ -113,7 +113,7 @@ internal sealed class TrackViewer : Window
         // Ticks Column
         listItemFactory = Gtk.SignalListItemFactory.New();
         listItemFactory.OnSetup += (_, args) => OnSetupLabel(args, Gtk.Align.Center);
-        listItemFactory.OnBind += (_, args) => OnBindTicksText(args, (ud) => ud.Ticks);
+        listItemFactory.OnBind += (_, args) => OnBindTicksText(args, (ud) => ud.Ticks!);
 
         var ticksColumn = Gtk.ColumnViewColumn.New("Ticks", listItemFactory);
         ticksColumn.SetFixedWidth(100);
@@ -124,7 +124,7 @@ internal sealed class TrackViewer : Window
 
     public void ReloadDropDownEntries()
     {
-        if (TrackList.NItems is not 0)
+        if (TrackList!.NItems is not 0)
         {
             TrackList.Splice(0, TrackList.NItems, null);
         }
@@ -143,7 +143,7 @@ internal sealed class TrackViewer : Window
         if (Engine.Instance is null) return;
         if (Engine.Instance.Player.LoadedSong is null) return;
 
-        TrackData = new TrackViewer[Engine.Instance.Player.LoadedSong.Events[TrackDropDown.Selected]!.Count];
+        TrackData = new TrackViewer[Engine.Instance.Player.LoadedSong.Events[TrackDropDown!.Selected]!.Count];
         int i = 0;
         foreach (var trackEvent in Engine.Instance.Player.LoadedSong.Events[TrackDropDown.Selected]!)
         {
@@ -164,7 +164,7 @@ internal sealed class TrackViewer : Window
     
     private void TrackSelected(GObject.Object sender, NotifySignalArgs args)
     {
-        if (TrackDropDown.SelectedItem is not null)
+        if (TrackDropDown!.SelectedItem is not null)
         {
             ReloadColumnEntries();
         }

@@ -205,11 +205,20 @@ namespace Kermalis.VGMusicStudio.Core.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to There are no &quot;bgm(NNNN).smd&quot; files..
+        ///   Looks up a localized string similar to There are no SMD files..
         /// </summary>
         public static string ErrorDSENoSequences {
             get {
                 return ResourceManager.GetString("ErrorDSENoSequences", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to There's not enough Program Infos (instruments) in the loaded SWD..
+        /// </summary>
+        public static string ErrorDSEVoiceIndexOutOfRange {
+            get {
+                return ResourceManager.GetString("ErrorDSEVoiceIndexOutOfRange", resourceCulture);
             }
         }
         

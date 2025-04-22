@@ -8,10 +8,9 @@ public sealed class DSEPlayer : Player
 	protected override string Name => "DSE Player";
 
 	private readonly DSEConfig _config;
-	internal readonly DSEMixer DMixer;
-	internal readonly DSEMixer_NAudio DMixer_NAudio;
+	internal readonly DSEMixer? DMixer;
+	internal readonly DSEMixer_NAudio? DMixer_NAudio;
 	internal readonly SWD MainSWD;
-	internal readonly SWD? LocalSWD;
 	private DSELoadedSong? _loadedSong;
 
 	public override ushort Tempo { get; set; }
@@ -19,32 +18,24 @@ public sealed class DSEPlayer : Player
 	private long _elapsedLoops;
 
 	public override ILoadedSong? LoadedSong => _loadedSong;
-	protected override Mixer Mixer => DMixer;
-	protected override Mixer_NAudio Mixer_NAudio => DMixer_NAudio;
+	protected override Mixer Mixer => DMixer!;
+	protected override Mixer_NAudio Mixer_NAudio => DMixer_NAudio!;
 
-	public DSEPlayer(string[] SWDFiles, DSEConfig config, DSEMixer mixer)
+	public DSEPlayer(string mainSWDFile, DSEConfig config, DSEMixer mixer)
 		: base(192)
 	{
 		DMixer = mixer;
 		_config = config;
 
-		MainSWD = new SWD(SWDFiles[0]);
-		if (SWDFiles.Length > 1)
-		{
-			LocalSWD = new SWD(SWDFiles[1]);
-		}
+		MainSWD = new SWD(mainSWDFile);
 	}
-	public DSEPlayer(string[] SWDFiles, DSEConfig config, DSEMixer_NAudio mixer)
+	public DSEPlayer(string SWDFile, DSEConfig config, DSEMixer_NAudio mixer)
 		: base(192)
 	{
 		DMixer_NAudio = mixer;
 		_config = config;
 
-		MainSWD = new SWD(SWDFiles[0]);
-		if (SWDFiles.Length > 1 )
-		{
-			LocalSWD = new SWD(SWDFiles[1]);
-		}
+		MainSWD = new SWD(SWDFile);
 	}
 
 	public override void LoadSong(int index)
@@ -70,9 +61,9 @@ public sealed class DSEPlayer : Player
 		_elapsedLoops = 0;
 		ElapsedTicks = 0;
 		if (Engine.Instance!.UseNewMixer)
-			DMixer.ResetFade();
+			DMixer!.ResetFade();
 		else
-			DMixer_NAudio.ResetFade();
+			DMixer_NAudio!.ResetFade();
 		DSETrack[] tracks = _loadedSong!.Tracks;
 		for (int i = 0; i < tracks.Length; i++)
 		{
@@ -111,14 +102,14 @@ public sealed class DSEPlayer : Player
 						}
 						if (Engine.Instance!.UseNewMixer)
 						{
-							if (DMixer.IsFadeDone())
+							if (DMixer!.IsFadeDone())
 							{
 								allDone = true;
 							}
 						}
 						else
 						{
-							if (DMixer_NAudio.IsFadeDone())
+							if (DMixer_NAudio!.IsFadeDone())
 							{
 								allDone = true;
 							}
@@ -136,7 +127,7 @@ public sealed class DSEPlayer : Player
 						{
 							TickTrack(s, s.Tracks[i], ref allDone);
 						}
-						if (DMixer.IsFadeDone())
+						if (DMixer!.IsFadeDone())
 						{
 							allDone = true;
 						}
@@ -150,12 +141,12 @@ public sealed class DSEPlayer : Player
 		}
 		if (Engine.Instance!.UseNewMixer)
 		{
-			DMixer.ChannelTick();
+			DMixer!.ChannelTick();
 			DMixer.Process(playing, recording);
 		}
 		else
 		{
-			DMixer_NAudio.ChannelTick();
+			DMixer_NAudio!.ChannelTick();
 			DMixer_NAudio.Process(playing, recording);
 		}
 		return allDone;
@@ -194,14 +185,14 @@ public sealed class DSEPlayer : Player
 		UpdateElapsedTicksAfterLoop(s.Events[track.Index], track.CurOffset, track.Rest);
 		if (Engine.Instance!.UseNewMixer)
 		{
-			if (ShouldFadeOut && _elapsedLoops > NumLoops && !DMixer.IsFading())
+			if (ShouldFadeOut && _elapsedLoops > NumLoops && !DMixer!.IsFading())
 			{
 				DMixer.BeginFadeOut();
 			}
 		}
 		else
 		{
-			if (ShouldFadeOut && _elapsedLoops > NumLoops && !DMixer_NAudio.IsFading())
+			if (ShouldFadeOut && _elapsedLoops > NumLoops && !DMixer_NAudio!.IsFading())
 			{
 				DMixer_NAudio.BeginFadeOut();
 			}

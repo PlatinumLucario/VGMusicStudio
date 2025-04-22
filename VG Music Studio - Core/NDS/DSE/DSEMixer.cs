@@ -40,7 +40,7 @@ public sealed class DSEMixer : Mixer
 			BufferLength = SamplesPerBuffer * 64,
 		};
 		_buffer.CreateIeeeFloatWave(sampleRate, 2, 16);
-		Init(_buffer);
+		Init(_buffer, PortAudio.SampleFormat.Int16);
 	}
 
 	internal DSEChannel? AllocateChannel()

@@ -271,7 +271,7 @@
     <value>Comando inválido en la pista {0} en 0x{1:X}: 0x{2:X}</value>
   </data>
   <data name="ErrorDSENoSequences" xml:space="preserve">
-    <value>No hay ningún archivo "bgm(NNNN).smd".</value>
+    <value>No hay ningún archivo SMD.</value>
   </data>
   <data name="ErrorGlobalConfig" xml:space="preserve">
     <value>Error al Cargar la Configuración Global</value>

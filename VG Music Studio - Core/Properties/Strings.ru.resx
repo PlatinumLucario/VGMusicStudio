@@ -271,7 +271,7 @@
     <value>Недопустимая команда в треке {0} по адресу 0x{1:X}: 0x{2:X}</value>
   </data>
   <data name="ErrorDSENoSequences" xml:space="preserve">
-    <value>Файлы типа "bgm(NNNN).smd" отсутствуют.</value>
+    <value>Файлы типа SMD отсутствуют.</value>
   </data>
   <data name="ErrorGlobalConfig" xml:space="preserve">
     <value>Ошибка загрузки глобальной конфигурвции</value>

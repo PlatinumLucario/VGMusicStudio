@@ -247,6 +247,7 @@ internal class SequencedAudio_List : Viewport
 		// 	if (ColumnView!.GetModel()!.IsSelected(i))
 		// 		selectedItem = ColumnView!.GetModel()!.GetSelection().ToString();
 		// }
+		HasSelectedRow = false;
 	}
 	
 	private static void OnSetupIDLabel(SignalListItemFactory sender, SetupSignalArgs args)

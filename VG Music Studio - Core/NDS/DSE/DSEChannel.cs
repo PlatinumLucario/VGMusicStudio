@@ -1,4 +1,5 @@
 ﻿using Kermalis.VGMusicStudio.Core.Codec;
+using Kermalis.VGMusicStudio.Core.Properties;
 using Kermalis.VGMusicStudio.Core.Wii;
 using System;
 
@@ -62,20 +63,30 @@ internal sealed class DSEChannel
 	{
 		if (localswd == null) { SWDType = masterswd.Type; }
 		else { SWDType = localswd.Type; }
-		
+
 		SWD.IProgramInfo? programInfo = null; // Declaring Program Info Interface here, to ensure VGMS compiles
 		if (localswd == null)
 		{
 			// Failsafe to check if SWD.ProgramBank contains an instance, if it doesn't, it will be skipped
 			// This is especially important for initializing a main SWD before the local SWDs
 			// accompaning the SMDs with the same names are loaded in.
-			if (masterswd.Programs != null) { programInfo = masterswd.Programs!.ProgramInfos![voice]; }
+			if (voice > masterswd.Programs!.ProgramInfos!.Length)
+			{
+				throw new IndexOutOfRangeException(string.Format(Strings.ErrorDSEVoiceIndexOutOfRange, voice, masterswd.Programs!.ProgramInfos!.Length));
+			}
+			if (masterswd.Programs != null)
+			{
+				programInfo = masterswd.Programs!.ProgramInfos![voice];
+			}
 		}
 		else if (voice > localswd.Programs!.ProgramInfos!.Length)
 		{
 			programInfo = masterswd.Programs!.ProgramInfos![voice];
 		}
-		else { programInfo = localswd.Programs!.ProgramInfos![voice]; }
+		else
+		{
+			programInfo = localswd.Programs!.ProgramInfos![voice];
+		}
 
 		if (programInfo is null)
 		{
@@ -90,7 +101,6 @@ internal sealed class DSEChannel
 				continue;
 			}
 
-			//if (_sample == null) { throw new NullReferenceException("Null Reference Exception:\n\nThere's no data associated with this Sample Block in this SWD. Please check to make sure the samples are being read correctly.\n\nCall Stack:"); }
 			_sample = masterswd.Samples![split.SampleId];
 			Key = (byte)key;
 			RootKey = split.SampleRootKey;
@@ -101,7 +111,7 @@ internal sealed class DSEChannel
 					case "wds ": throw new NotImplementedException("The base timer for the WDS type is not yet implemented."); // PlayStation
 					case "swdm": throw new NotImplementedException("The base timer for the SWDM type is not yet implemented."); // PlayStation 2
 					case "swdl": BaseTimer = (ushort)(NDSUtils.ARM7_CLOCK / _sample.WavInfo!.SampleRate); break; // Nintendo DS // Time Base algorithm is the ARM7 CPU clock rate divided by SampleRate
-					case "swdb": BaseTimer = (ushort)(256 * 65536 / _sample.WavInfo!.SampleRate); break; // Wii // The AX Time Base algorithm is 256 multiplied by 65536, divided by SampleRate
+					case "swdb": BaseTimer = (ushort)(WiiUtils.Macronix_DSP_Clock / _sample.WavInfo!.SampleRate); break; // Wii // The AX Time Base algorithm is the DSP clock rate divided by SampleRate
 				}
 				if (_sample.WavInfo!.SampleFormat == SampleFormat.ADPCM)
 				{
@@ -263,18 +273,18 @@ internal sealed class DSEChannel
 				{
 					default: return _velocity >> 23; // case 8
 					case EnvelopeState.Hold:
-					{
-						if (_hold == 0)
 						{
-							goto LABEL_6;
+							if (_hold == 0)
+							{
+								goto LABEL_6;
+							}
+							else
+							{
+								UpdateEnvelopePlan(0x7F, _hold);
+								State = EnvelopeState.Decay;
+							}
+							break;
 						}
-						else
-						{
-							UpdateEnvelopePlan(0x7F, _hold);
-							State = EnvelopeState.Decay;
-						}
-						break;
-					}
 					case EnvelopeState.Decay:
 					LABEL_6:
 						{
@@ -312,12 +322,12 @@ internal sealed class DSEChannel
 							break;
 						}
 					case EnvelopeState.Seven:
-					{
-						State = EnvelopeState.Eight;
-						_velocity = 0;
-						_envelopeTimeLeft = 0;
-						break;
-					}
+						{
+							State = EnvelopeState.Eight;
+							_velocity = 0;
+							_envelopeTimeLeft = 0;
+							break;
+						}
 				}
 			}
 		}

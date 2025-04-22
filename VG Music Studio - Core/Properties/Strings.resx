@@ -285,7 +285,14 @@
     <comment>{0} is the track number, {1} is the offset, {2} is the command.</comment>
   </data>
   <data name="ErrorDSENoSequences" xml:space="preserve">
-    <value>There are no "bgm(NNNN).smd" files.</value>
+    <value>There are no SMD files.</value>
+  </data>
+  <data name="ErrorDSEVoiceIndexOutOfRange" xml:space="preserve">
+    <value>There's not enough Program Infos (instruments) in the loaded SWD to load this song.
+    
+    Voice key index requested: {0}
+    Number of ProgramInfos (Voices): {1}</value>
+    <comment>{0} is the requested voice key index, {1} is the length of ProgramInfos.</comment>
   </data>
   <data name="ErrorGlobalConfig" xml:space="preserve">
     <value>Error Loading Global Config</value>

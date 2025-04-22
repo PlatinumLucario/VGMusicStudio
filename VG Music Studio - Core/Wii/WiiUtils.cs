@@ -2,6 +2,8 @@
 {
     internal static class WiiUtils
     {
-        public const int PPC_Broadway_Clock = 382_205_952; // (764.411904 / 2) = 382.205952 = 382,205,952
+        // (48 * 48 / 9) = 256, (256 * 65536) = 16,777,216 Hz = 16.777216 MHz, (16777216 * 7.24) = 121,467,043.84 Hz = 121.46704384 MHz
+        // It's close enough to the 121.5MHz mentioned in the RVL DSP spec sheet
+        public const int Macronix_DSP_Clock = 16_777_216;
     }
 }

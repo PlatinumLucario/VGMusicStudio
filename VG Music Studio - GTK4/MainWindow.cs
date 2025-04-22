@@ -118,15 +118,6 @@ internal sealed class MainWindow : Window
     // Sequenced Audio Track Info
     private readonly SequencedAudio_TrackInfo _sequencedAudioTrackInfo;
 
-    // Error Handle
-    private GLib.Internal.ErrorOwnedHandle ErrorHandle = new GLib.Internal.ErrorOwnedHandle(IntPtr.Zero);
-
-    // Callback
-    private Gio.Internal.AsyncReadyCallback? SaveCallback { get; set; }
-    private Gio.Internal.AsyncReadyCallback? OpenCallback { get; set; }
-    private Gio.Internal.AsyncReadyCallback? SelectFolderCallback { get; set; }
-    private Gio.Internal.AsyncReadyCallback? ExceptionCallback { get; set; }
-
     #endregion
 
     private enum ManuallyChanged
@@ -1062,6 +1053,10 @@ internal sealed class MainWindow : Window
 
     private void CheckIfChangedManually(int index)
     {
+        if (index == _curSong)
+        {
+            return;
+        }
         switch (_manuallyChanged)
         {
             case ManuallyChanged.Initialized:
@@ -1071,10 +1066,9 @@ internal sealed class MainWindow : Window
                         PlaylistSongStringChanged(index);
                     }
                     _sequencedAudioList.SelectRow(index);
-                    // _sequencedAudioList.ColumnView!.ScrollTo((uint)index, null, ListScrollFlags.None, ScrollInfo.New());
+                    _sequencedAudioList.ColumnView!.ScrollTo((uint)index, null, ListScrollFlags.Select, ScrollInfo.New());
                     _sequenceNumberSpinButton.Value = index;
                     SetAndLoadSong(index);
-                    // _manuallyChanged = ManuallyChanged.None;
                     break;
                 }
             case ManuallyChanged.SpinButton:
@@ -1133,14 +1127,12 @@ internal sealed class MainWindow : Window
         // to prevent it from unexpectedly stopping
         if (index != Instance!._curSong)
         {
-            if (!Instance._sequencedAudioList.HasSelectedRow)
+            Instance._sequencedAudioList.HasSelectedRow = true;
+            if (Instance._manuallyChanged is ManuallyChanged.None)
             {
-                if (Instance._manuallyChanged is ManuallyChanged.None)
-                {
-                    Instance._manuallyChanged = ManuallyChanged.List;
-                    Instance!.CheckIfChangedManually(index);  // This will check to see if it was changed manually
-                    Instance._manuallyChanged = ManuallyChanged.None;
-                }
+                Instance._manuallyChanged = ManuallyChanged.List;
+                Instance!.CheckIfChangedManually(index);  // This will check to see if it was changed manually
+                Instance._manuallyChanged = ManuallyChanged.None;
             }
             Instance._sequencedAudioList.HasSelectedRow = false;
         }
@@ -1262,7 +1254,14 @@ internal sealed class MainWindow : Window
         }
         catch (Exception ex)
         {
-            FlexibleMessageBox.Show(ex, string.Format(Strings.ErrorLoadSong, Engine.Instance!.Config.GetSongName(index)));
+            if (ex is IndexOutOfRangeException && Engine.Instance is DSEEngine)
+            {
+                FlexibleDialog.Show(ex.Message, "Unable to load song.");
+            }
+            else
+            {
+                FlexibleDialog.Show(ex, string.Format(Strings.ErrorLoadSong, Engine.Instance!.Config.GetSongName(index)));
+            }
             success = false;
         }
 
@@ -1270,6 +1269,10 @@ internal sealed class MainWindow : Window
         ILoadedSong? loadedSong = player.LoadedSong; // LoadedSong is still null when there are no tracks
         if (success)
         {
+            if (_buttonPlay.Sensitive is false)
+            {
+                _buttonPlay.Sensitive = true;
+            }
             if (Engine.Instance.Config.Playlists is not null && Engine.Instance.Config.Playlists.Count != 0)
             {
                 List<Config.Song> songs = cfg.Playlists![^1].Songs; // Complete "All Songs" playlist is present in all configs at the last index value
@@ -1301,6 +1304,7 @@ internal sealed class MainWindow : Window
         }
         else
         {
+            _buttonPlay.Sensitive = false;
             SequencedAudio_TrackInfo.SetNumTracks(0);
         }
         if (_trackViewer is not null)
@@ -1339,46 +1343,68 @@ internal sealed class MainWindow : Window
     }
     private void EndCurrentPlaylist(object sender, EventArgs e)
     {
-        if (FlexibleMessageBox.Show(Strings.EndPlaylistBody, Strings.MenuPlaylist, ButtonsType.YesNo) == ResponseType.Yes)
+        FlexibleDialog.Show(Strings.EndPlaylistBody, Strings.MenuPlaylist, FlexibleDialog.ButtonsType.YesNo);
+        FlexibleDialog.OnResponse += ResponseSelected;
+        void ResponseSelected(FlexibleDialog.ResponseSelected response)
         {
-            ResetPlaylistStuff(true);
+            FlexibleDialog.OnResponse -= ResponseSelected;
+            if (response == FlexibleDialog.ResponseSelected.Yes)
+            {
+                ResetPlaylistStuff(true);
+            }
         }
     }
 
     private void OpenDSE(Gio.SimpleAction sender, EventArgs e)
     {
-        GTK4Utils.OnPathChanged += LoadFiles;
-        GTK4Utils.CreateLoadDialog(Strings.MenuOpenDSE);
+        GTK4Utils.OnPathChanged += LoadSWD;
+        GTK4Utils.CreateLoadDialog(["*.swd"], Strings.MenuOpenSWD, Strings.FilterOpenSWD);
 
-        void LoadFiles(string path)
+        void LoadSWD(string swdPath)
         {
-            GTK4Utils.OnPathChanged -= LoadFiles;
-            if (path is null)
+            GTK4Utils.OnPathChanged -= LoadSWD;
+            if (swdPath is null)
             {
                 return;
             }
-            if (Engine.Instance is not null)
+
+            GTK4Utils.OnPathChanged += LoadFiles;
+            GTK4Utils.CreateLoadDialog(Strings.MenuOpenSMD);
+
+            void LoadFiles(string smdPath)
             {
-                DisposeEngine();
+                GTK4Utils.OnPathChanged -= LoadFiles;
+                if (smdPath is null)
+                {
+                    return;
+                }
+                if (Engine.Instance is not null)
+                {
+                    DisposeEngine();
+                }
+                try
+                {
+                    _ = new DSEEngine(swdPath, smdPath, true, true);
+                }
+                catch (Exception ex)
+                {
+                    FlexibleDialog.Show(ex, Strings.ErrorOpenDSE);
+                    return;
+                }
+                DSEConfig config = DSEEngine.DSEInstance!.Config;
+                _sequencedAudioList.ChangeColumns();
+                FinishLoading(config.SMDFiles.Length);
+                _sequenceNumberSpinButton.Visible = false;
+                _sequenceNumberSpinButton.Hide();
+                _trackViewerAction.Enabled = true;
+                _exportDLSAction.Enabled = false;
+                _exportMIDIAction.Enabled = false;
+                _exportSF2Action.Enabled = false;
+                PlaylistWidgetAction_IsEnabled(false);
+                PianoWidgetAction_IsEnabled(true);
+                SeqAudioTrackInfoWidgetAction_IsEnabled(true);
+                SeqAudioListWidgetAction_IsEnabled(true);
             }
-            try
-            {
-                _ = new DSEEngine(path);
-            }
-            catch (Exception ex)
-            {
-                FlexibleMessageBox.Show(ex, Strings.ErrorOpenDSE);
-                return;
-            }
-            DSEConfig config = DSEEngine.DSEInstance!.Config;
-            _sequencedAudioList.ChangeColumns();
-            FinishLoading(config.BGMFiles.Length);
-            _sequenceNumberSpinButton.Visible = false;
-            _sequenceNumberSpinButton.Hide();
-            _trackViewerAction.Enabled = true;
-            _exportDLSAction.Enabled = false;
-            _exportMIDIAction.Enabled = false;
-            _exportSF2Action.Enabled = false;
         }
     }
     private void OpenSDAT(Gio.SimpleAction sender, EventArgs e)
@@ -1404,7 +1430,7 @@ internal sealed class MainWindow : Window
             }
             catch (Exception ex)
             {
-                FlexibleMessageBox.Show(ex, Strings.ErrorOpenSDAT);
+                FlexibleDialog.Show(ex, Strings.ErrorOpenSDAT);
                 return;
             }
 
@@ -1445,7 +1471,7 @@ internal sealed class MainWindow : Window
             }
             catch (Exception ex)
             {
-                FlexibleMessageBox.Show(ex, Strings.ErrorOpenAlphaDream);
+                FlexibleDialog.Show(ex, Strings.ErrorOpenAlphaDream);
                 return;
             }
 
@@ -1484,10 +1510,8 @@ internal sealed class MainWindow : Window
             }
             catch (Exception ex)
             {
-                //_dialog = Adw.MessageDialog.New(this, Strings.ErrorOpenMP2K, ex.ToString());
-                //FlexibleMessageBox.Show(ex, Strings.ErrorOpenMP2K);
                 DisposeEngine();
-                ExceptionDialog(ex, Strings.ErrorOpenMP2K);
+                FlexibleDialog.Show(ex, Strings.ErrorOpenMP2K);
                 return;
             }
 
@@ -1530,11 +1554,11 @@ internal sealed class MainWindow : Window
             try
             {
                 AlphaDreamSoundFontSaver_DLS.Save(cfg, path);
-                FlexibleMessageBox.Show(string.Format(Strings.SuccessSaveDLS, path), Strings.SuccessSaveDLS);
+                FlexibleDialog.Show(string.Format(Strings.SuccessSaveDLS, path), Strings.SuccessSaveDLS);
             }
             catch (Exception ex)
             {
-                FlexibleMessageBox.Show(ex, Strings.ErrorSaveDLS);
+                FlexibleDialog.Show(ex, Strings.ErrorSaveDLS);
             }
         }
     }
@@ -1550,18 +1574,18 @@ internal sealed class MainWindow : Window
             {
                 return;
             }
-            
+
             MP2KPlayer p = MP2KEngine.MP2KInstance!.Player;
             var args = new MIDISaveArgs(true, false, [(0, (4, 4))]); // timeSignatures collection contains: (int AbsoluteTick, (byte Numerator, byte Denominator))
 
             try
             {
                 p.SaveAsMIDI(path, args);
-                FlexibleMessageBox.Show(string.Format(Strings.SuccessSaveMIDI, path), Strings.SuccessSaveMIDI);
+                FlexibleDialog.Show(string.Format(Strings.SuccessSaveMIDI, path), Strings.SuccessSaveMIDI);
             }
             catch (Exception ex)
             {
-                FlexibleMessageBox.Show(ex, Strings.ErrorSaveMIDI);
+                FlexibleDialog.Show(ex, Strings.ErrorSaveMIDI);
             }
         }
     }
@@ -1577,17 +1601,17 @@ internal sealed class MainWindow : Window
             {
                 return;
             }
-            
+
             AlphaDreamConfig cfg = AlphaDreamEngine.AlphaDreamInstance!.Config;
 
             try
             {
                 AlphaDreamSoundFontSaver_SF2.Save(path, cfg);
-                FlexibleMessageBox.Show(string.Format(Strings.SuccessSaveSF2, path), Strings.SuccessSaveSF2);
+                FlexibleDialog.Show(string.Format(Strings.SuccessSaveSF2, path), Strings.SuccessSaveSF2);
             }
             catch (Exception ex)
             {
-                FlexibleMessageBox.Show(ex, Strings.ErrorSaveSF2);
+                FlexibleDialog.Show(ex, Strings.ErrorSaveSF2);
             }
         }
     }
@@ -1603,7 +1627,7 @@ internal sealed class MainWindow : Window
             {
                 return;
             }
-            
+
             Stop();
 
             Player player = Engine.Instance!.Player;
@@ -1615,34 +1639,17 @@ internal sealed class MainWindow : Window
             try
             {
                 player.Record(path);
-                FlexibleMessageBox.Show(string.Format(Strings.SuccessSaveWAV, path), Strings.SuccessSaveWAV);
+                FlexibleDialog.Show(string.Format(Strings.SuccessSaveWAV, path), Strings.SuccessSaveWAV);
             }
             catch (Exception ex)
             {
-                FlexibleMessageBox.Show(ex, Strings.ErrorSaveWAV);
+                FlexibleDialog.Show(ex, Strings.ErrorSaveWAV);
             }
 
             player.ShouldFadeOut = oldFade;
             player.NumLoops = oldLoops;
             _stopUI = false;
         }
-    }
-
-    public void ExceptionDialog(Exception error, string heading)
-    {
-        Debug.WriteLine(error.Message);
-        var md = Adw.MessageDialog.New(this, heading, error.Message);
-        md.SetModal(true);
-        md.AddResponse("ok", ("_OK"));
-        md.SetResponseAppearance("ok", ResponseAppearance.Default);
-        md.SetDefaultResponse("ok");
-        md.SetCloseResponse("ok");
-        ExceptionCallback = (source, res, data) =>
-        {
-            md.Destroy();
-        };
-        md.Activate();
-        md.Show();
     }
 
     public void LetUIKnowPlayerIsPlaying()
@@ -1673,8 +1680,9 @@ internal sealed class MainWindow : Window
         var context = GLib.MainContext.GetThreadDefault(); // Grabs the default GLib MainContext thread
         var source = GLib.Functions.TimeoutSourceNew(50); // Creates and configures the timeout interval
         source.SetCallback(TimerCallback); // Sets the callback for the timer interval to be used on
-        var microsec = (ulong)source.Attach(context); // Configures the microseconds based on attaching the GLib MainContext thread
-        _timer.Elapsed(ref microsec); // Adds the pointer to the configured microseconds source
+        var microsec = new CULong(source.Attach(context)); // Configures the microseconds based on attaching the GLib MainContext thread
+        // _timer.Elapsed(ref microsec); // Adds the pointer to the configured microseconds source
+        GLib.Internal.Timer.Elapsed(_timer.Handle, ref microsec); // GLib.Timer.Elapsed was removed in GirCore 0.6.3, so we're using this workaround instead
         _timer.Start(); // Starts the timer
     }
 
@@ -1836,6 +1844,7 @@ internal sealed class MainWindow : Window
 #endif
         _autoplay = false;
         _manuallyChanged = ManuallyChanged.Initialized;
+        _sequenceNumberSpinButton.Sensitive = _buttonPlay.Sensitive = _volumeBar.Sensitive = true;
         CheckIfChangedManually(Engine.Instance.Config.InternalSongNames[0].Songs.Count == 0 ? 0 : Engine.Instance.Config.InternalSongNames[0].Songs[0].Index);
         if (config.Playlists is not null)
         {
@@ -1843,7 +1852,6 @@ internal sealed class MainWindow : Window
             _playlistSelector.PlaylistSongDropDown.OnNotify += OnPlaylistSongStringSelected;
         }
         _manuallyChanged = ManuallyChanged.None;
-        _sequenceNumberSpinButton.Sensitive = _buttonPlay.Sensitive = _volumeBar.Sensitive = true;
         _volumeBar.SetValue(100);
     }
     private void DisposeEngine()

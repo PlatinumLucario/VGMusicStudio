@@ -271,7 +271,7 @@
     <value>Comando non valido nella traccia {0} a 0x{1:X}: 0x{2:X}</value>
   </data>
   <data name="ErrorDSENoSequences" xml:space="preserve">
-    <value>Non sono presenti file "bgm(NNNN).smd".</value>
+    <value>Non sono presenti file SMD.</value>
   </data>
   <data name="ErrorGlobalConfig" xml:space="preserve">
     <value>Errore nel Caricamento della Configurazione Globale</value>

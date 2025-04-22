@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using Cairo;
 using Gtk;
 using Kermalis.VGMusicStudio.Core;
@@ -110,8 +111,9 @@ internal class SequencedAudio_TrackInfo : Box
         var context = GLib.MainContext.GetThreadDefault(); // Reads the main context default thread
         var source = GLib.Functions.TimeoutSourceNew(1); // Creates and configures the timeout interval at 1 microsecond, so it updates in real time
         source.SetCallback(TrackTimerCallback); // Sets the callback for the timer interval to be used on
-        var microsec = (ulong)source.Attach(context); // Configures the microseconds based on attaching the GLib MainContext thread
-        timer.Elapsed(ref microsec); // Adds the pointer to the configured microseconds source
+        var microsec = new CULong(source.Attach(context)); // Configures the microseconds based on attaching the GLib MainContext thread
+        // timer.Elapsed(ref microsec); // Adds the pointer to the configured microseconds source
+        GLib.Internal.Timer.Elapsed(timer.Handle, ref microsec); // GLib.Timer.Elapsed was removed in GirCore 0.6.3, so we're using this workaround instead
         timer.Start(); // Starts the timer
     }
 

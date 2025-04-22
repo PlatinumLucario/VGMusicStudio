@@ -1,5 +1,6 @@
 ﻿using Kermalis.EndianBinaryIO;
 using Kermalis.VGMusicStudio.Core.Properties;
+using System;
 using System.Collections.Generic;
 using System.IO;
 
@@ -11,10 +12,11 @@ public sealed class DSEConfig : Config
 	public readonly string[] SMDFiles;
 	internal SMD.Header? Header;
 
-	internal DSEConfig(string smdPath)
+	internal DSEConfig(string smdPath, bool useNewUI)
 	{
 		SMDPath = smdPath;
 		SMDFiles = Directory.GetFiles(smdPath, "*.smd", SearchOption.TopDirectoryOnly);
+		Array.Sort(SMDFiles);
 		if (SMDFiles.Length == 0)
 		{
 			throw new DSENoSequencesException(smdPath);
@@ -32,17 +34,31 @@ public sealed class DSEConfig : Config
 			{
 				char[] chars = Header.Label.ToCharArray();
 				EndianBinaryPrimitives.TrimNullTerminators(ref chars);
-				songs.Add(new Song(i, $"{Path.GetFileNameWithoutExtension(SMDFiles[i])} - {new string(chars)}"));
+				if (useNewUI)
+				{
+					songs.Add(new Song(i, $"{new string(chars)}"));
+				}
+				else
+				{
+					songs.Add(new Song(i, $"{Path.GetFileNameWithoutExtension(SMDFiles[i])} - {new string(chars)}"));
+				}
 			}
 			else if (Header.Type == "smdb")
 			{
 				r.Endianness = Endianness.BigEndian;
 				char[] chars = Header.Label.ToCharArray();
 				EndianBinaryPrimitives.TrimNullTerminators(ref chars);
-				songs.Add(new Song(i, $"{Path.GetFileNameWithoutExtension(SMDFiles[i])} - {new string(chars)}"));
+				if (useNewUI)
+				{
+					songs.Add(new Song(i, $"{new string(chars)}"));
+				}
+				else
+				{
+					songs.Add(new Song(i, $"{Path.GetFileNameWithoutExtension(SMDFiles[i])} - {new string(chars)}"));
+				}
 			}
 		}
-		Playlists.Add(new Playlist(Strings.PlaylistMusic, songs));
+		InternalSongNames.Add(new InternalSongName(Strings.InternalSongName, songs));
 	}
 
 	public override string GetGameName()
