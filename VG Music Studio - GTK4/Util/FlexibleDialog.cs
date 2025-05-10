@@ -18,12 +18,12 @@ internal sealed class FlexibleDialog
 
 	private static readonly Gdk.Clipboard Clipboard = Gdk.Display.GetDefault()!.GetClipboard();
 	private static string? ExceptionDetails;
-	private static readonly string[] Button_Labels_English_EN = ["OK", "Cancel", "_Yes", "_No", "_Copy", "_Abort", "_Terminate", "_Retry", "_Ignore"];
-	private static readonly string[] Button_Labels_German_DE = ["OK", "Abbrechen", "_Ja", "_Nein", "_Kopie", "_Abbrechen", "_Beenden", "_Wiederholen", "_Ignorieren"];
-	private static readonly string[] Button_Labels_Spanish_ES = ["Aceptar", "Cancelar", "_Sí", "_No", "_Copiar", "_Abortar", "_Terminar", "_Reintentar", "_Ignorar"];
-	public static readonly string[] Button_Labels_French_FR = ["_Approuvé", "_Annuler", "_Oui", "_Non", "_Copie", "_Avorter", "_Terminer", "_Refaire", "_Ignorer"];
-	private static readonly string[] Button_Labels_Italian_IT = ["OK", "Annulla", "_Sì", "_No", "_Copia", "_Interrompi", "_Terminare", "_Riprova", "_Ignora"];
-	public static readonly string[] Button_Labels_Russian_RU = ["_Есть", "_Отмена", "_Да", "_Нет", "_Копия", "_Стоп", "_Прекратить", "_Переделать", "_Игнорировать"];
+	private static readonly string[] Button_Labels_English_EN = ["OK", "Cancel", "Yes", "No", "Copy", "Abort", "Terminate", "Retry", "Ignore"];
+	private static readonly string[] Button_Labels_German_DE = ["OK", "Abbrechen", "Ja", "Nein", "Kopie", "Abbrechen", "Beenden", "Wiederholen", "Ignorieren"];
+	private static readonly string[] Button_Labels_Spanish_ES = ["Aceptar", "Cancelar", "Sí", "No", "Copiar", "Abortar", "Terminar", "Reintentar", "Ignorar"];
+	public static readonly string[] Button_Labels_French_FR = ["Approuvé", "Annuler", "Oui", "Non", "Copie", "Avorter", "Terminer", "Refaire", "Ignorer"];
+	private static readonly string[] Button_Labels_Italian_IT = ["OK", "Annulla", "Sì", "No", "Copia", "Interrompi", "Terminare", "Riprova", "Ignora"];
+	public static readonly string[] Button_Labels_Russian_RU = ["Есть", "Отмена", "Да", "Нет", "Копия", "Стоп", "Прекратить", "Переделать", "Игнорировать"];
 
 	private enum ButtonID
 	{
@@ -189,7 +189,6 @@ internal sealed class FlexibleDialog
 			case DialogType.Exception:
 				{
 					var d = (Dialog)dialog;
-					var id = $"_{ButtonID.OK}";
 
 					var buttonTerminate = Gtk.Button.New();
 					buttonTerminate.SetLabel(GetButtonLabel(ButtonID.Terminate));

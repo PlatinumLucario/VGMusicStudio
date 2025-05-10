@@ -1,6 +1,5 @@
 ﻿using Kermalis.EndianBinaryIO;
 using Kermalis.VGMusicStudio.Core.Util;
-using System;
 using System.Collections.Generic;
 using System.IO;
 

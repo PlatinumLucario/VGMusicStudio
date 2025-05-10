@@ -161,7 +161,13 @@ internal sealed class TrackViewer : Window
             Model.Append(data);
         }
     }
-    
+
+    internal void UpdateTracks()
+    {
+        ReloadDropDownEntries();
+        ReloadColumnEntries();
+    }
+
     private void TrackSelected(GObject.Object sender, NotifySignalArgs args)
     {
         if (TrackDropDown!.SelectedItem is not null)

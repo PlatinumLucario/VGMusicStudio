@@ -29,13 +29,13 @@ public sealed class DSEPlayer : Player
 
 		MainSWD = new SWD(mainSWDFile);
 	}
-	public DSEPlayer(string SWDFile, DSEConfig config, DSEMixer_NAudio mixer)
+	public DSEPlayer(string mainSWDFile, DSEConfig config, DSEMixer_NAudio mixer)
 		: base(192)
 	{
 		DMixer_NAudio = mixer;
 		_config = config;
 
-		MainSWD = new SWD(SWDFile);
+		MainSWD = new SWD(mainSWDFile);
 	}
 
 	public override void LoadSong(int index)

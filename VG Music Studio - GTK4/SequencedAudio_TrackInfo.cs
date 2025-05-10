@@ -572,54 +572,63 @@ internal class SequencedAudio_TrackInfo : Box
 
             PositionLabel[i] = Label.New(string.Format("0x{0:X}", Info!.Tracks[i].Position));
             PositionLabel[i].SetEllipsize(Pango.EllipsizeMode.End);
+            PositionLabel[i].SetMaxWidthChars(1);
             PositionLabel[i].WidthRequest = 80;
             PositionLabel[i].SetHexpand(true);
             columns.Append(PositionLabel[i]);
 
             RestLabel[i] = Label.New(Info.Tracks[i].Rest.ToString());
             RestLabel[i].SetEllipsize(Pango.EllipsizeMode.End);
+            RestLabel[i].SetMaxWidthChars(1);
             RestLabel[i].WidthRequest = 30;
             RestLabel[i].SetHexpand(true);
             columns.Append(RestLabel[i]);
 
             VoiceLabel[i] = Label.New(Info.Tracks[i].Voice.ToString());
             VoiceLabel[i].SetEllipsize(Pango.EllipsizeMode.End);
+            VoiceLabel[i].SetMaxWidthChars(1);
             VoiceLabel[i].WidthRequest = 30;
             VoiceLabel[i].SetHexpand(true);
             columns.Append(VoiceLabel[i]);
 
             NotesLabel[i] = Label.New("");
             NotesLabel[i].SetEllipsize(Pango.EllipsizeMode.End);
+            NotesLabel[i].SetMaxWidthChars(1);
             NotesLabel[i].WidthRequest = 30;
             NotesLabel[i].SetHexpand(true);
             columns.Append(NotesLabel[i]);
 
             PanpotLabel[i] = Label.New(Info.Tracks[i].Panpot.ToString());
             PanpotLabel[i].SetEllipsize(Pango.EllipsizeMode.End);
+            PanpotLabel[i].SetMaxWidthChars(1);
             PanpotLabel[i].WidthRequest = 30;
             PanpotLabel[i].SetHexpand(true);
             columns.Append(PanpotLabel[i]);
 
             VolumeLabel[i] = Label.New(Info.Tracks[i].Volume.ToString());
             VolumeLabel[i].SetEllipsize(Pango.EllipsizeMode.End);
+            VolumeLabel[i].SetMaxWidthChars(1);
             VolumeLabel[i].WidthRequest = 30;
             VolumeLabel[i].SetHexpand(true);
             columns.Append(VolumeLabel[i]);
 
             LFOLabel[i] = Label.New(Info.Tracks[i].LFO.ToString());
             LFOLabel[i].SetEllipsize(Pango.EllipsizeMode.End);
+            LFOLabel[i].SetMaxWidthChars(1);
             LFOLabel[i].WidthRequest = 30;
             LFOLabel[i].SetHexpand(true);
             columns.Append(LFOLabel[i]);
 
             PitchBendLabel[i] = Label.New(Info.Tracks[i].PitchBend.ToString());
             PitchBendLabel[i].SetEllipsize(Pango.EllipsizeMode.End);
+            PitchBendLabel[i].SetMaxWidthChars(1);
             PitchBendLabel[i].WidthRequest = 30;
             PitchBendLabel[i].SetHexpand(true);
             columns.Append(PitchBendLabel[i]);
 
             ExtraLabel[i] = Label.New(Info.Tracks[i].Extra.ToString());
             ExtraLabel[i].SetEllipsize(Pango.EllipsizeMode.End);
+            ExtraLabel[i].SetMaxWidthChars(1);
             ExtraLabel[i].WidthRequest = 30;
             ExtraLabel[i].SetHexpand(true);
             columns.Append(ExtraLabel[i]);

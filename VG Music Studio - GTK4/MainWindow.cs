@@ -1258,6 +1258,11 @@ internal sealed class MainWindow : Window
             {
                 FlexibleDialog.Show(ex.Message, "Unable to load song.");
             }
+            else if (ex is DSEInvalidNoteException)
+            {
+                var dseEx = ex as DSEInvalidNoteException;
+                FlexibleDialog.Show($"Attempted to read a note that was out of range.\n\nTrack Index: {dseEx.TrackIndex}\nCommand Offset: {string.Format("0x{0:X}", dseEx.Offset)}\nAttempted note: {ConfigUtils.GetKeyName(dseEx.Note)} ({dseEx.Note})", "Unable to load song.");
+            }
             else
             {
                 FlexibleDialog.Show(ex, string.Format(Strings.ErrorLoadSong, Engine.Instance!.Config.GetSongName(index)));
@@ -1265,7 +1270,6 @@ internal sealed class MainWindow : Window
             success = false;
         }
 
-        //_trackViewer?.UpdateTracks();
         ILoadedSong? loadedSong = player.LoadedSong; // LoadedSong is still null when there are no tracks
         if (success)
         {
@@ -1307,30 +1311,12 @@ internal sealed class MainWindow : Window
             _buttonPlay.Sensitive = false;
             SequencedAudio_TrackInfo.SetNumTracks(0);
         }
-        if (_trackViewer is not null)
-        {
-            _trackViewer.ReloadDropDownEntries();
-            _trackViewer.ReloadColumnEntries();
-        }
+        _trackViewer?.UpdateTracks();
         _positionBar.Sensitive = _exportWAVAction.Enabled = success;
         _exportMIDIAction.Enabled = success && MP2KEngine.MP2KInstance is not null;
         _exportDLSAction.Enabled = _exportSF2Action.Enabled = success && AlphaDreamEngine.AlphaDreamInstance is not null;
     }
 
-    //private void SetAndLoadNextPlaylistSong()
-    //{
-    //	if (_remainingSequences.Count == 0)
-    //	{
-    //		_remainingSequences.AddRange(_curPlaylist.Songs.Select(s => s.Index));
-    //		if (GlobalConfig.Instance.PlaylistMode == PlaylistMode.Random)
-    //		{
-    //			_remainingSequences.Any();
-    //		}
-    //	}
-    //	long nextSequence = _remainingSequences[0];
-    //	_remainingSequences.RemoveAt(0);
-    //	SetAndLoadSong(nextSequence);
-    //}
     private void ResetPlaylistStuff(bool spinButtonAndListBoxEnabled)
     {
         if (Engine.Instance != null)

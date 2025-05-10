@@ -178,11 +178,10 @@ internal sealed partial class DSELoadedSong
 						}
 					case 0x9C:
 						{
-							byte[] args = new byte[1];
-							r.ReadBytes(args);
+							byte repeats = r.ReadByte();
 							if (!EventExists(trackIndex, cmdOffset))
 							{
-								AddEvent(trackIndex, cmdOffset, new UnknownCommand { Command = cmd, Args = args });
+								AddEvent(trackIndex, cmdOffset, new SegnoCommand { Command = cmd, Repeats = repeats });
 							}
 							break;
 						}
@@ -190,7 +189,7 @@ internal sealed partial class DSELoadedSong
 						{
 							if (!EventExists(trackIndex, cmdOffset))
 							{
-								AddEvent(trackIndex, cmdOffset, new UnknownCommand { Command = cmd });
+								AddEvent(trackIndex, cmdOffset, new DalSegnoCommand { Command = cmd });
 							}
 							break;
 						}
@@ -501,11 +500,9 @@ internal sealed partial class DSELoadedSong
 						}
 					case 0xC0:
 						{
-							byte[] args = new byte[1];
-							r.ReadBytes(args);
 							if (!EventExists(trackIndex, cmdOffset))
 							{
-								AddEvent(trackIndex, cmdOffset, new UnknownCommand { Command = cmd, Args = args });
+								AddEvent(trackIndex, cmdOffset, new UnknownCommand { Command = cmd });
 							}
 							break;
 						}

@@ -12,10 +12,12 @@ internal sealed class SMD
 	public sealed class Header // Size 0x40
 	{
 		public string Type { get; set; } // "smdb" or "smdl"
-		public byte[] Unknown1 { get; set; }
+		public byte[] Padding1 { get; set; }
 		public uint Length { get; set; }
 		public ushort Version { get; set; }
-		public byte[] Unknown2 { get; set; }
+		public byte BankLo { get; set; }
+		public byte BankHi { get; set; }
+		public byte[] Padding2 { get; set; }
 		public ushort Year { get; set; }
 		public byte Month { get; set; }
 		public byte Day { get; set; }
@@ -24,7 +26,8 @@ internal sealed class SMD
 		public byte Second { get; set; }
 		public byte Centisecond { get; set; }
 		public string Label { get; set; }
-		public byte[] Unknown3 { get; set; }
+		public byte[] Unknown { get; set; }
+		public byte[] HeaderEndPadding { get; set; }
 
 		public Header(EndianBinaryReader r)
 		{
@@ -32,15 +35,18 @@ internal sealed class SMD
 
 			if (Type == "smdb") { r.Endianness = Endianness.BigEndian; }
 
-			Unknown1 = new byte[4];
-			r.ReadBytes(Unknown1);
+			Padding1 = new byte[4];
+			r.ReadBytes(Padding1);
 
 			Length = r.ReadUInt32();
 
 			Version = r.ReadUInt16();
 
-			Unknown2 = new byte[10];
-			r.ReadBytes(Unknown2);
+			BankLo = r.ReadByte();
+			BankHi = r.ReadByte();
+
+			Padding2 = new byte[8];
+			r.ReadBytes(Padding2);
 
 			r.Endianness = Endianness.LittleEndian;
 
@@ -60,8 +66,11 @@ internal sealed class SMD
 
 			Label = r.ReadString_Count(16);
 
-			Unknown3 = new byte[16];
-			r.ReadBytes(Unknown3);
+			Unknown = new byte[8];
+			r.ReadBytes(Unknown);
+
+			HeaderEndPadding = new byte[8];
+			r.ReadBytes(HeaderEndPadding);
 
 			if (Type == "smdb") { r.Endianness = Endianness.BigEndian; }
 		}

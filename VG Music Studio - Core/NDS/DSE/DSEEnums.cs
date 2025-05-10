@@ -7,7 +7,7 @@ internal enum EnvelopeState : byte
 	Two = 2,
 	Hold = 3,
 	Decay = 4,
-	Decay2 = 5,
+	Fade = 5,
 	Six = 6,
 	Seven = 7,
 	Eight = 8,

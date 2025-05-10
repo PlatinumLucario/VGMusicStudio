@@ -20,6 +20,7 @@ internal sealed class DSEChannel
 	public ushort Timer;
 	public uint NoteLength;
 	public byte Volume;
+    internal int SweepCounter;
 	public static readonly float Root12Of2 = MathF.Pow(2, 1f / 12);
 
 	private int _pos;
@@ -36,7 +37,7 @@ internal sealed class DSEChannel
 	private byte _decay;
 	private byte _sustain;
 	private byte _hold;
-	private byte _decay2;
+	private byte _fade;
 	private byte _release;
 
 	// PCM8, PCM16, IMA-ADPCM, DSP-ADPCM
@@ -53,13 +54,13 @@ internal sealed class DSEChannel
 	private byte _psgDuty;
 	private int _psgCounter;
 
-	public DSEChannel(byte i)
+    public DSEChannel(byte i)
 	{
 		_sample = null!;
 		Index = i;
 	}
 
-	public bool StartPCM(SWD localswd, SWD masterswd, byte voice, int key, uint noteLength)
+	public bool StartChannel(SWD localswd, SWD masterswd, byte voice, int key, uint noteLength)
 	{
 		if (localswd == null) { SWDType = masterswd.Type; }
 		else { SWDType = localswd.Type; }
@@ -137,10 +138,10 @@ internal sealed class DSEChannel
 				//release = split.Release == 0 ? sample.WavInfo.Release : split.Release;
 				_attackVolume = split.AttackVolume == 0 ? _sample.WavInfo.AttackVolume == 0 ? (byte)0x7F : _sample.WavInfo.AttackVolume : split.AttackVolume;
 				_attack = split.Attack == 0 ? _sample.WavInfo.Attack == 0 ? (byte)0x7F : _sample.WavInfo.Attack : split.Attack;
-				_decay = split.Decay1 == 0 ? _sample.WavInfo.Decay1 == 0 ? (byte)0x7F : _sample.WavInfo.Decay1 : split.Decay1;
+				_decay = split.Decay == 0 ? _sample.WavInfo.Decay == 0 ? (byte)0x7F : _sample.WavInfo.Decay : split.Decay;
 				_sustain = split.Sustain == 0 ? _sample.WavInfo.Sustain == 0 ? (byte)0x7F : _sample.WavInfo.Sustain : split.Sustain;
 				_hold = split.Hold == 0 ? _sample.WavInfo.Hold == 0 ? (byte)0x7F : _sample.WavInfo.Hold : split.Hold;
-				_decay2 = split.Decay2 == 0 ? _sample.WavInfo.Decay2 == 0 ? (byte)0x7F : _sample.WavInfo.Decay2 : split.Decay2;
+				_fade = split.Fade == 0 ? _sample.WavInfo.Fade == 0 ? (byte)0x7F : _sample.WavInfo.Fade : split.Fade;
 				_release = split.Release == 0 ? _sample.WavInfo.Release == 0 ? (byte)0x7F : _sample.WavInfo.Release : split.Release;
 				DetermineEnvelopeStartingPoint();
 				_pos = 0;
@@ -150,24 +151,6 @@ internal sealed class DSEChannel
 			}
 		}
 		return false;
-	}
-
-	public void StartPSG(byte duty, uint noteDuration)
-	{
-		_sample!.WavInfo!.SampleFormat = SampleFormat.PSG;
-		_psgCounter = 0;
-		_psgDuty = duty;
-		BaseTimer = 8006; // NDSUtils.ARM7_CLOCK / 2093
-		Start(noteDuration);
-	}
-
-	private void Start(uint noteDuration)
-	{
-		State = EnvelopeState.One;
-		_velocity = -92544;
-		_pos = 0;
-		_prevLeft = _prevRight = 0;
-		NoteLength = noteDuration;
 	}
 
 	public void Stop()
@@ -180,6 +163,48 @@ internal sealed class DSEChannel
 		Volume = 0;
 	}
 
+	public int SweepMain()
+	{
+		if (Owner!.SweepPitch == 0 || SweepCounter >= Owner.SweepRate)
+		{
+			return 0;
+		}
+
+		int sweep = (int)(Math.BigMul(Owner.SweepPitch, Owner.SweepRate - SweepCounter) / Owner.SweepRate);
+		SweepCounter++;
+		return sweep;
+	}
+	public void CheckEnvelopeValues()
+	{
+		if (Owner!.Attack != 0)
+		{
+			_attackVolume = Owner.Attack;
+		}
+		if (Owner.Time != 0)
+		{
+			_attack = Owner.Time;
+		}
+		if (Owner.Decay != 0)
+		{
+			_decay = Owner.Decay;
+		}
+		if (Owner.Sustain != 0)
+		{
+			_sustain = Owner.Sustain;
+		}
+		if (Owner.Hold != 0)
+		{
+			_hold = Owner.Hold;
+		}
+		if (Owner.Fade != 0)
+		{
+			_fade = Owner.Fade;
+		}
+		if (Owner.Release != 0)
+		{
+			_release = Owner.Release;
+		}
+	}
 	private bool CMDB1___sub_2074CA0()
 	{
 		bool b = true;
@@ -195,7 +220,7 @@ internal sealed class DSEChannel
 			&& _decay > 0x7F
 			&& _sustain > 0x7F
 			&& _hold > 0x7F
-			&& _decay2 > 0x7F
+			&& _fade > 0x7F
 			&& _release > 0x7F)
 		{
 			b = false;
@@ -225,7 +250,7 @@ internal sealed class DSEChannel
 				else if (_decay != 0)
 				{
 					UpdateEnvelopePlan(_sustain, _decay);
-					State = EnvelopeState.Decay2;
+					State = EnvelopeState.Fade;
 				}
 				else
 				{
@@ -296,20 +321,20 @@ internal sealed class DSEChannel
 							else
 							{
 								UpdateEnvelopePlan(_sustain, _decay);
-								State = EnvelopeState.Decay2;
+								State = EnvelopeState.Fade;
 							}
 							break;
 						}
-					case EnvelopeState.Decay2:
+					case EnvelopeState.Fade:
 					LABEL_9:
 						{
-							if (_decay2 == 0)
+							if (_fade == 0)
 							{
 								goto LABEL_11;
 							}
 							else
 							{
-								UpdateEnvelopePlan(0, _decay2);
+								UpdateEnvelopePlan(0, _fade);
 								State = EnvelopeState.Six;
 							}
 							break;

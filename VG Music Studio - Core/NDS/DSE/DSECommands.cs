@@ -111,6 +111,23 @@ internal sealed class TempoCommand : ICommand
 	public byte Command { get; set; }
 	public byte Tempo { get; set; }
 }
+internal sealed class SegnoCommand : ICommand
+{
+	public Color Color => Color.MediumVioletRed;
+	public string Label => $"Segno Repeat {Repeats} Time(s)";
+	public string Arguments => Repeats.ToString();
+
+	public byte Command { get; set; }
+	public byte Repeats { get; set; }
+}
+internal sealed class DalSegnoCommand : ICommand
+{
+	public Color Color => Color.MediumVioletRed;
+	public string Label => $"DalSegno";
+	public string Arguments => string.Empty;
+
+	public byte Command { get; set; }
+}
 internal sealed class UnknownCommand : ICommand
 {
 	public Color Color => Color.MediumVioletRed;

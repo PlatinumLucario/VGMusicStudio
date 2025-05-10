@@ -22,8 +22,9 @@ internal sealed class SWD
 		public byte[]? Unknown1 { get; set; }
 		public uint Length { get; set; }
 		public ushort Version { get; set; }
-		public byte[]? Unknown2 { get; set; }
-		public byte[]? Padding1 { get; set; }
+		public byte BankLo { get; set; }
+		public byte BankHi { get; set; }
+		public byte[]? Padding { get; set; }
 		public ushort Year { get; set; }
 		public byte Month { get; set; }
 		public byte Day { get; set; }
@@ -40,7 +41,7 @@ internal sealed class SWD
 		public byte NumKeyGroups { get; set; }
 		public byte[]? Unknown5 { get; set; }
 		public uint WAVILength { get; set; }
-		public byte[]? Padding2 { get; set; }
+		public byte[]? HeaderEndPadding { get; set; } // TODO: Check if there's anything other than padding in this array
 
 		public Header(EndianBinaryReader r)
 		{
@@ -58,14 +59,14 @@ internal sealed class SWD
 			r.ReadBytes(Unknown1);
 			Length = r.ReadUInt32();
 			Version = r.ReadUInt16();
-			Unknown2 = new byte[2];
-			r.ReadBytes(Unknown2);
+			BankLo = r.ReadByte();
+			BankHi = r.ReadByte();
 
 			// Timestamp metadata - The time the SWD was published
 			r.Endianness = Endianness.LittleEndian; // Timestamp is always Little Endian, regardless of version or type, so it must be set to Little Endian to be read
 
-			Padding1 = new byte[8]; // Padding
-			r.ReadBytes(Padding1);
+			Padding = new byte[8]; // Padding
+			r.ReadBytes(Padding);
 			Year = r.ReadUInt16(); // Year
 			Month = r.ReadByte(); // Month
 			Day = r.ReadByte(); // Day
@@ -92,8 +93,8 @@ internal sealed class SWD
 
 						NumKeyGroups = r.ReadByte();
 
-						Padding2 = new byte[7];
-						r.ReadBytes(Padding2);
+						HeaderEndPadding = new byte[7];
+						r.ReadBytes(HeaderEndPadding);
 
 						break;
 					}
@@ -168,10 +169,10 @@ internal sealed class SWD
 		sbyte SampleTranspose { get; }
 		byte AttackVolume { get; set; }
 		byte Attack { get; set; }
-		byte Decay1 { get; set; }
+		byte Decay { get; set; }
 		byte Sustain { get; set; }
 		byte Hold { get; set; }
-		byte Decay2 { get; set; }
+		byte Fade { get; set; }
 		byte Release { get; set; }
 	}
 	public class SplitEntry : ISplitEntry // 0x30
@@ -198,10 +199,10 @@ internal sealed class SWD
 		public byte[]? Unknown5 { get; set; }
 		public byte AttackVolume { get; set; }
 		public byte Attack { get; set; }
-		public byte Decay1 { get; set; }
+		public byte Decay { get; set; }
 		public byte Sustain { get; set; }
 		public byte Hold { get; set; }
-		public byte Decay2 { get; set; }
+		public byte Fade { get; set; }
 		public byte Release { get; set; }
 		public byte Break { get; set; }
 
@@ -261,13 +262,13 @@ internal sealed class SWD
 
 						Attack = r.ReadByte();
 
-						Decay1 = r.ReadByte();
+						Decay = r.ReadByte();
 
 						Sustain = r.ReadByte();
 
 						Hold = r.ReadByte();
 
-						Decay2 = r.ReadByte();
+						Fade = r.ReadByte();
 
 						Release = r.ReadByte();
 
@@ -302,13 +303,13 @@ internal sealed class SWD
 
 						Attack = r.ReadByte();
 
-						Decay1 = r.ReadByte();
+						Decay = r.ReadByte();
 
 						Sustain = r.ReadByte();
 
 						Hold = r.ReadByte();
 
-						Decay2 = r.ReadByte();
+						Fade = r.ReadByte();
 
 						Release = r.ReadByte();
 
@@ -446,10 +447,10 @@ internal sealed class SWD
 		byte EnvMulti { get; }
 		byte AttackVolume { get; }
 		byte Attack { get; }
-		byte Decay1 { get; }
+		byte Decay { get; }
 		byte Sustain { get; }
 		byte Hold { get; }
-		byte Decay2 { get; }
+		byte Fade { get; }
 		byte Release { get; }
 	}
 
@@ -481,10 +482,10 @@ internal sealed class SWD
 		public byte[] Unknown8 { get; set; }
 		public byte AttackVolume { get; set; }
 		public byte Attack { get; set; }
-		public byte Decay1 { get; set; }
+		public byte Decay { get; set; }
 		public byte Sustain { get; set; }
 		public byte Hold { get; set; }
-		public byte Decay2 { get; set; }
+		public byte Fade { get; set; }
 		public byte Release { get; set; }
 		public byte Break { get; set; }
 
@@ -576,7 +577,7 @@ internal sealed class SWD
 						Attack = r.ReadByte();
 
 						// Decay 1
-						Decay1 = r.ReadByte();
+						Decay = r.ReadByte();
 
 						// Sustain
 						Sustain = r.ReadByte();
@@ -585,7 +586,7 @@ internal sealed class SWD
 						Hold = r.ReadByte();
 
 						// Decay 2
-						Decay2 = r.ReadByte();
+						Fade = r.ReadByte();
 
 						// Release
 						Release = r.ReadByte();
@@ -698,7 +699,7 @@ internal sealed class SWD
 						Attack = r.ReadByte();
 
 						// Decay 1
-						Decay1 = r.ReadByte();
+						Decay = r.ReadByte();
 
 						// Sustain
 						Sustain = r.ReadByte();
@@ -707,7 +708,7 @@ internal sealed class SWD
 						Hold = r.ReadByte();
 
 						// Decay 2
-						Decay2 = r.ReadByte();
+						Fade = r.ReadByte();
 
 						// Release
 						Release = r.ReadByte();

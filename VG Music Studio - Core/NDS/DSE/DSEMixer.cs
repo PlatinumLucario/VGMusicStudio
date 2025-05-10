@@ -88,7 +88,7 @@ public sealed class DSEMixer : Mixer
 			}
 			int vol = SDATUtils.SustainTable[chan.NoteVelocity] + SDATUtils.SustainTable[chan.Volume] + SDATUtils.SustainTable[chan.Owner.Volume] + SDATUtils.SustainTable[chan.Owner.Expression];
 			//int pitch = ((chan.Key - chan.BaseKey) << 6) + chan.SweepMain() + chan.Owner.GetPitch(); // "<< 6" is "* 0x40"
-			int pitch = (chan.Key - chan.RootKey) << 6; // "<< 6" is "* 0x40"
+			int pitch = ((chan.Key - chan.RootKey) << 6) + chan.SweepMain(); // "<< 6" is "* 0x40"
 			if (DSEUtils.IsStateRemovable(chan.State) && vol <= -92544)
 			{
 				chan.Stop();

@@ -2,10 +2,10 @@
 
 namespace Kermalis.VGMusicStudio.Core.NDS.DSE;
 
-internal sealed class DSETrack
+internal sealed class DSETrack(byte i, int startOffset)
 {
-	public readonly byte Index;
-	private readonly int _startOffset;
+	public readonly byte Index = i;
+	private readonly int _startOffset = startOffset;
 	public byte Octave;
 	public byte Voice;
 	public byte Expression;
@@ -13,19 +13,56 @@ internal sealed class DSETrack
 	public sbyte Panpot;
 	public uint Rest;
 	public ushort PitchBend;
+	public byte PitchBendRange;
+	public byte FineTune;
+	public byte FineTuneAdd;
+	public byte CoarseTune;
+	public ushort CoarseTuneAdd;
+	public ushort SweepTuneRate;
+	public byte SweepTuneTarget;
+	public byte RandomNoteRangeMin;
+	public byte RandomNoteRangeMax;
+	public ushort DetuneRange;
+	public byte NoteVolume;
+	public bool FlagEnded;
+	public byte FlagValue; // Unsure as to what value it's referring to
+	public byte ChannelPanpot;
+	public byte ChannelVolume;
+	public ushort LFORate;
+	public ushort LFODepth;
+	public byte LFOWaveID;
+	public ushort LFODelay;
+	public ushort LFOFadeTime;
+	public byte LFOParamID;
+	public byte LFOParamWaveID;
+	public byte LFOTarget;
+	public bool LFOEnabled;
+	public byte LFOTargetID;
+	public bool LFO1PitchEnabled;
+	public bool LFO2VolumeEnabled;
+	public bool LFO3PanpotEnabled;
+	public byte VolumeAdd;
+	public byte PanpotAdd;
 	public int CurOffset;
 	public int LoopOffset;
 	public bool Stopped;
 	public uint LastNoteDuration;
 	public uint LastRest;
-
+	public uint TickInterval;
+	public ushort SweepRate;
+	public byte SweepPitch;
+	public byte SweepVolume;
+	public byte PanpotTarget;
+	public int WaveIndex;
+	public List<SongEvent>? SegnoCommands;
+	public byte Attack;
+	public byte Time;
+	public byte Hold;
+	public byte Decay;
+	public byte Sustain;
+	public byte Fade;
+	public byte Release;
 	public readonly List<DSEChannel> Channels = new(0x10);
-
-	public DSETrack(byte i, int startOffset)
-	{
-		Index = i;
-		_startOffset = startOffset;
-	}
 
 	public void Init()
 	{
@@ -36,11 +73,29 @@ internal sealed class DSETrack
 		Panpot = 0;
 		Rest = 0;
 		PitchBend = 0;
+		NoteVolume = 0;
+		FlagEnded = true;
+		FlagValue = 0;
+		ChannelPanpot = 0;
+		ChannelVolume = 0;
 		CurOffset = _startOffset;
 		LoopOffset = -1;
 		Stopped = false;
 		LastNoteDuration = 0;
 		LastRest = 0;
+		TickInterval = 0;
+		SweepRate = 0;
+		SweepPitch = 0;
+		WaveIndex = -1;
+		SegnoCommands = [];
+
+		Attack = 0;
+		Time = 0;
+		Hold = 0;
+		Decay = 0;
+		Sustain = 0;
+		Fade = 0;
+		Release = 0;
 		StopAllChannels();
 	}
 
