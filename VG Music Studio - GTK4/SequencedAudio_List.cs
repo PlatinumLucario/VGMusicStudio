@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.InteropServices;
 using Gtk;
 using Kermalis.EndianBinaryIO;
 using Kermalis.VGMusicStudio.Core;
@@ -51,11 +52,11 @@ internal class SequencedAudio_List : Viewport
 	public void AddEntries(long numSongs, Config config)
 	{
 		if (Model.GetNItems() is not 0)
-        {
-            Model.RemoveAll();
-        }
+		{
+			Model.RemoveAll();
+		}
 
-        SoundData = new SequencedAudio_List[numSongs];
+		SoundData = new SequencedAudio_List[numSongs];
 		var sNames = new string[numSongs];
 		for (int i = 0; i < sNames.Length; i++)
 		{
@@ -236,20 +237,42 @@ internal class SequencedAudio_List : Viewport
 				ColumnView!.RemoveColumn(SequenceOffsetColumn);
 			}
 		}
+		ConfigureTimer();
 	}
 	internal void SelectRow(int index)
 	{
 		HasSelectedRow = true;
 		SelectionModel?.SelectItem((uint)index, true);
-		// var selectedItem = "";
-		// for (uint i = 0; i < Model.NItems; i++)
-		// {
-		// 	if (ColumnView!.GetModel()!.IsSelected(i))
-		// 		selectedItem = ColumnView!.GetModel()!.GetSelection().ToString();
-		// }
 		HasSelectedRow = false;
 	}
-	
+
+	private void ConfigureTimer()
+	{
+		var timer = GLib.Timer.New(); // Creates a new timer variable
+		var context = GLib.MainContext.GetThreadDefault(); // Reads the main context default thread
+		var source = GLib.Functions.TimeoutSourceNew(50); // Creates and configures the timeout interval at 50 microseconds, so it updates upon selection
+		source.SetCallback(ListCallback); // Sets the callback for the timer interval to be used on
+		var microsec = new CULong(source.Attach(context)); // Configures the microseconds based on attaching the GLib MainContext thread
+		// timer.Elapsed(ref microsec); // Adds the pointer to the configured microseconds source
+		GLib.Internal.Timer.Elapsed(timer.Handle, ref microsec); // GLib.Timer.Elapsed was removed in GirCore 0.6.3, so we're using this workaround instead
+		timer.Start(); // Starts the timer
+	}
+
+	private bool ListCallback()
+	{
+		if (SelectionModel?.GetSelectedItem() is SequencedAudio_List list)
+		{
+			if (list.Id is not null)
+			{
+				if (IsInitialized)
+				{
+					MainWindow.ChangeIndex(list.Id.GetInt());
+				}
+			}
+		}
+		return true;
+	}
+
 	private static void OnSetupIDLabel(SignalListItemFactory sender, SetupSignalArgs args)
 	{
 		if (args.Object is not ListItem listItem)
@@ -323,34 +346,18 @@ internal class SequencedAudio_List : Viewport
 		}
 
 		if (listItem.Child is not Label label)
-        {
-            return;
-        }
-
-        if (listItem.Item is not SequencedAudio_List userData)
-        {
-            return;
-        }
-
-        if (userData.Id is not null)
 		{
-			label.SetText(userData.Id.GetInt().ToString());
+			return;
 		}
 
-		if (listItem is not ColumnViewCell cell)
-        {
-            return;
-        }
-
-        if (cell.Selected == true)
+		if (listItem.Item is not SequencedAudio_List userData)
 		{
-			if (userData.Id is not null)
-			{
-				if (IsInitialized)
-                {
-                    MainWindow.ChangeIndex(userData.Id.GetInt());
-                }
-            }
+			return;
+		}
+
+		if (userData.Id is not null)
+		{
+			label.SetText(userData.Id.GetInt().ToString());
 		}
 	}
 
@@ -362,16 +369,16 @@ internal class SequencedAudio_List : Viewport
 		}
 
 		if (listItem.Child is not Label label)
-        {
-            return;
-        }
+		{
+			return;
+		}
 
-        if (listItem.Item is not SequencedAudio_List userData)
-        {
-            return;
-        }
+		if (listItem.Item is not SequencedAudio_List userData)
+		{
+			return;
+		}
 
-        if (userData.InternalName is not null && userData.InternalName.GetString != null)
+		if (userData.InternalName is not null && userData.InternalName.GetString != null)
 		{
 			label.SetText(userData.InternalName.GetString()!);
 		}
@@ -385,16 +392,16 @@ internal class SequencedAudio_List : Viewport
 		}
 
 		if (listItem.Child is not Label label)
-        {
-            return;
-        }
+		{
+			return;
+		}
 
-        if (listItem.Item is not SequencedAudio_List userData)
-        {
-            return;
-        }
+		if (listItem.Item is not SequencedAudio_List userData)
+		{
+			return;
+		}
 
-        if (userData.PlaylistName is not null && userData.PlaylistName.GetString != null)
+		if (userData.PlaylistName is not null && userData.PlaylistName.GetString != null)
 		{
 			label.SetText(userData.PlaylistName.GetString()!);
 		}
@@ -408,21 +415,21 @@ internal class SequencedAudio_List : Viewport
 		}
 
 		if (listItem.Child is not Label label)
-        {
-            return;
-        }
+		{
+			return;
+		}
 
-        if (listItem.Item is not SequencedAudio_List userData)
-        {
-            return;
-        }
+		if (listItem.Item is not SequencedAudio_List userData)
+		{
+			return;
+		}
 
-        if (userData.SongTableOffset is not null && userData.SongTableOffset.GetString != null)
+		if (userData.SongTableOffset is not null && userData.SongTableOffset.GetString != null)
 		{
 			label.SetText(userData.SongTableOffset.GetString()!);
 		}
 	}
-	
+
 	private void OnBindSeqOffsetText(SignalListItemFactory sender, BindSignalArgs args)
 	{
 		if (args.Object is not ListItem listItem)
@@ -431,16 +438,16 @@ internal class SequencedAudio_List : Viewport
 		}
 
 		if (listItem.Child is not Label label)
-        {
-            return;
-        }
+		{
+			return;
+		}
 
-        if (listItem.Item is not SequencedAudio_List userData)
-        {
-            return;
-        }
+		if (listItem.Item is not SequencedAudio_List userData)
+		{
+			return;
+		}
 
-        if (userData.SequenceOffset is not null && userData.SequenceOffset.GetString != null)
+		if (userData.SequenceOffset is not null && userData.SequenceOffset.GetString != null)
 		{
 			label.SetText(userData.SequenceOffset.GetString()!);
 		}
