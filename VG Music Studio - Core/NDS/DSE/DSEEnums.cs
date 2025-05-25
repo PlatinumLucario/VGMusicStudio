@@ -2,15 +2,15 @@
 
 internal enum EnvelopeState : byte
 {
-	Zero = 0,
-	One = 1,
-	Two = 2,
+	Initialize = 0,
+	PlayNote = 1,
+	Attack = 2,
 	Hold = 3,
 	Decay = 4,
 	Fade = 5,
-	Six = 6,
-	Seven = 7,
-	Eight = 8,
+	Sustain = 6,
+	End = 7,
+	Release = 8,
 }
 
 internal enum SampleFormat : ushort

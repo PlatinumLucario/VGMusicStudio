@@ -5,30 +5,25 @@ public sealed class SDATEngine : Engine
 	public static SDATEngine? SDATInstance { get; private set; }
 
 	public override SDATConfig Config { get; }
-	public override SDATMixer? Mixer { get; }
-	public override SDATMixer_NAudio? Mixer_NAudio { get; }
+	public override SDATMixer Mixer { get; }
 	public override SDATPlayer Player { get; }
-	public override bool UseNewMixer { get; }
 
-	public SDATEngine(SDAT sdat, bool useNewMixer = false)
+	public SDATEngine(SDAT sdat)
 	{
-		UseNewMixer = useNewMixer;
 		Config = new SDATConfig(sdat);
-		if (UseNewMixer)
-		{
-			Mixer = new SDATMixer();
-			Player = new SDATPlayer(Config, Mixer);
-		}
-		else
-		{
-			Mixer_NAudio = new SDATMixer_NAudio();
-			Player = new SDATPlayer(Config, Mixer_NAudio);
-		}
+		Mixer = new SDATMixer();
+		Player = new SDATPlayer(Config, Mixer);
 
 		SDATInstance = this;
 		Instance = this;
 	}
 
+	public override void Reload()
+	{
+		var config = Config;
+		Dispose();
+		_ = new SDATEngine(config.SDAT);
+	}
 	public override void Dispose()
 	{
 		base.Dispose();

@@ -4,19 +4,25 @@ using System.Runtime.InteropServices;
 using Kermalis.EndianBinaryIO;
 using Kermalis.VGMusicStudio.Core.Formats;
 using Stream = PortAudio.Stream;
+using NAudio.Wave;
+using NAudio.CoreAudioApi;
+using NAudio.CoreAudioApi.Interfaces;
 
 namespace Kermalis.VGMusicStudio.Core;
 
-public abstract class Mixer : IDisposable
+public abstract class Mixer : IAudioSessionEventsHandler, IDisposable
 {
-    public Wave? WaveData;
     public readonly bool[] Mutes;
+
+    #region PortAudio Fields
+    // PortAudio Fields
+    public Wave? WaveData;
     internal abstract int SamplesPerBuffer { get; }
     private float Vol = 1;
 
-    public readonly object CountLock = new object();
+    public readonly object CountLock = new();
 
-    protected Wave? _waveWriter;
+    protected Wave? _waveWriterPortAudio;
 
     public StreamParameters OParams;
     public StreamParameters DefaultOutputParams { get; private set; }
@@ -24,72 +30,109 @@ public abstract class Mixer : IDisposable
     public Stream? Stream;
     public bool IsDisposing = false;
     private bool IsDisposed = false;
+    #endregion
+
+    #region NAudio Fields
+    // NAudio Fields
+    public static event Action<float>? VolumeChanged;
+    private WasapiOut? _out;
+    private AudioSessionControl? _appVolume;
+
+    private bool _shouldSendVolUpdateEvent = true;
+
+    protected WaveFileWriter? _waveWriterNAudio;
+    protected abstract WaveFormat? WaveFormat { get; }
+    #endregion
+
+    // Audio Backend
+    public static AudioBackend PlaybackBackend { get; set; }
+
+    public enum AudioBackend
+    {
+        PortAudio,
+        MiniAudio,
+        NAudio
+    }
 
     protected Mixer()
     {
         Mutes = new bool[SongState.MAX_TRACKS];
-    }
-
-    protected void Init(Wave waveData, SampleFormat sampleFormat = SampleFormat.Float32)
-    {
-        // First, check if the instance contains something
-        if (WaveData == null)
+        if (PlaybackBackend is AudioBackend.NAudio)
         {
-            IsDisposed = false;
-
-            Pa.Initialize();
-            WaveData = waveData;
-
-            // Try setting up an output device
-            OParams.Device = Pa.DefaultOutputDevice;
-            if (OParams.Device == Pa.NoDevice)
-                throw new Exception("No default audio output device is available.");
-
-            OParams.Channels = 2;
-            OParams.SampleFormat = sampleFormat;
-            OParams.SuggestedLatency = Pa.GetDeviceInfo(OParams.Device).defaultLowOutputLatency;
-            OParams.HostApiSpecificStreamInfo = IntPtr.Zero;
-
-            // Set it as a the default
-            DefaultOutputParams = OParams;
+            _out = null!;
+            _appVolume = null!;
         }
-
-        Stream = new Stream(
-            null,
-            OParams,
-            WaveData!.SampleRate,
-            (uint)SamplesPerBuffer,
-            StreamFlags.NoFlag,
-            Player.PlayCallback,
-            waveData
-        );
-
-        var hostApiInfo = Pa.GetHostApiInfo(Pa.DefaultHostApi);
-
-        Stream!.Start();
     }
 
-    // private int ProcessFrame(Span<float> output, Span<float> buffer, int framesPerBuffer)
-    // {
-    //     float counter = 0;
+    protected void Init(Wave waveData = null!, SampleFormat sampleFormat = SampleFormat.Float32, IWaveProvider waveProvider = null!)
+    {
+        switch (PlaybackBackend)
+        {
+            case AudioBackend.PortAudio:
+                {
+                    // First, check if the instance contains something
+                    if (WaveData == null)
+                    {
+                        IsDisposed = false;
 
-    //     counter += framesPerBuffer;
-    //     while (counter >= Instance!.FramesPerBuffer)
-    //     {
-    //         counter -= Instance.FramesPerBuffer;
-    //     }
+                        Pa.Initialize();
+                        WaveData = waveData;
 
-    //     framesPerBuffer = (int)(Instance.FramesPerBuffer * 2);
-    //     float[] outBuffer = buffer.ToArray();
-        
-    //     float[] outBuf = output.ToArray();
-    //     for (int i = 0; i < framesPerBuffer; i++)
-    //     {
-    //         outBuf[i] = outBuffer[i];
-    //     }
+                        // Try setting up an output device
+                        OParams.Device = Pa.DefaultOutputDevice;
+                        if (OParams.Device == Pa.NoDevice)
+                        {
+                            throw new Exception("No default audio output device is available.");
+                        }
 
-    //     return 1;
-    // }
+                        OParams.Channels = 2;
+                        OParams.SampleFormat = sampleFormat;
+                        OParams.SuggestedLatency = Pa.GetDeviceInfo(OParams.Device).defaultLowOutputLatency;
+                        OParams.HostApiSpecificStreamInfo = IntPtr.Zero;
+
+                        // Set it as the default
+                        DefaultOutputParams = OParams;
+                    }
+
+                    Stream = new Stream(
+                        null,
+                        OParams,
+                        WaveData!.SampleRate,
+                        (uint)SamplesPerBuffer,
+                        StreamFlags.NoFlag,
+                        Player.PlayCallback,
+                        waveData
+                    );
+
+                    var hostApiInfo = Pa.GetHostApiInfo(Pa.DefaultHostApi);
+
+                    Stream!.Start();
+                    break;
+                }
+            case AudioBackend.NAudio:
+                {
+                    _out = new WasapiOut();
+                    _out.Init(waveProvider);
+                    using (var en = new MMDeviceEnumerator())
+                    {
+                        SessionCollection sessions = en.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia).AudioSessionManager.Sessions;
+                        int id = Environment.ProcessId;
+                        for (int i = 0; i < sessions.Count; i++)
+                        {
+                            AudioSessionControl session = sessions[i];
+                            if (session.GetProcessID == id)
+                            {
+                                _appVolume = session;
+                                _appVolume.RegisterEventClient(this);
+                                break;
+                            }
+                        }
+                    }
+                    _out.Play();
+                    break;
+                }
+        }
+    }
 
     public float Volume
     {
@@ -104,29 +147,125 @@ public abstract class Mixer : IDisposable
 
     public void SetVolume(float volume)
     {
-        if (!Engine.Instance!.UseNewMixer)
-            Engine.Instance.Mixer_NAudio!.SetVolume(volume);
-        else
-            Vol = Math.Clamp(volume, 0, 1);
+        switch (PlaybackBackend)
+        {
+            case AudioBackend.PortAudio:
+                {
+                    Vol = Math.Clamp(volume, 0, 1);
+                    break;
+                }
+            case AudioBackend.NAudio:
+                {
+                    _shouldSendVolUpdateEvent = false;
+                    _appVolume!.SimpleAudioVolume.Volume = volume;
+                    break;
+                }
+        }
     }
+
+    #region NAudio Functions
+    public void OnVolumeChanged(float volume, bool isMuted)
+    {
+        if (_shouldSendVolUpdateEvent)
+        {
+            VolumeChanged?.Invoke(volume);
+        }
+        _shouldSendVolUpdateEvent = true;
+    }
+    public void OnDisplayNameChanged(string displayName)
+    {
+        throw new NotImplementedException();
+    }
+    public void OnIconPathChanged(string iconPath)
+    {
+        throw new NotImplementedException();
+    }
+    public void OnChannelVolumeChanged(uint channelCount, IntPtr newVolumes, uint channelIndex)
+    {
+        throw new NotImplementedException();
+    }
+    public void OnGroupingParamChanged(ref Guid groupingId)
+    {
+        throw new NotImplementedException();
+    }
+    // Fires on @out.Play() and @out.Stop()
+    public void OnStateChanged(AudioSessionState state)
+    {
+        if (state == AudioSessionState.AudioSessionStateActive)
+        {
+            OnVolumeChanged(_appVolume!.SimpleAudioVolume.Volume, _appVolume.SimpleAudioVolume.Mute);
+        }
+    }
+    public void OnSessionDisconnected(AudioSessionDisconnectReason disconnectReason)
+    {
+        throw new NotImplementedException();
+    }
+    #endregion
 
     public void CreateWaveWriter(string fileName)
     {
-        //_waveWriter = new Wave(fileName);
+        switch (PlaybackBackend)
+        {
+            case AudioBackend.PortAudio:
+                {
+                    _waveWriterPortAudio = WaveData;
+                    _waveWriterPortAudio!.CreateFileStream(fileName);
+                    break;
+                }
+            case AudioBackend.NAudio:
+                {
+                    _waveWriterNAudio = new WaveFileWriter(fileName, WaveFormat);
+                    break;
+                }
+        }
     }
     public void CloseWaveWriter()
     {
-
+        switch (PlaybackBackend)
+        {
+            case AudioBackend.PortAudio:
+                {
+                    _waveWriterPortAudio!.Dispose(true);
+                    _waveWriterPortAudio = null;
+                    break;
+                }
+            case AudioBackend.NAudio:
+                {
+                    _waveWriterNAudio!.Dispose();
+                    _waveWriterNAudio = null;
+                    break;
+                }
+        }
     }
 
     public virtual void Dispose()
     {
-        if (IsDisposed || Stream is null) return;
+        switch (PlaybackBackend)
+        {
+            case AudioBackend.PortAudio:
+                {
+                    if (IsDisposed || Stream is null)
+                    {
+                        return;
+                    }
 
-        IsDisposing = true;
-        Stream!.Stop();
+                    IsDisposing = true;
+                    Stream!.Stop();
 
-        Stream!.Dispose();
+                    Stream!.Dispose();
+                    break;
+                }
+            case AudioBackend.NAudio:
+                {
+                    if (_out is not null)
+                    {
+                        _out!.Stop();
+                        _out.Dispose();
+                        _appVolume!.Dispose();
+                    }
+                    break;
+                }
+        }
         GC.SuppressFinalize(this);
 
         IsDisposed = true;

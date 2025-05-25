@@ -22,8 +22,8 @@ internal sealed class SWD
 		public byte[]? Unknown1 { get; set; }
 		public uint Length { get; set; }
 		public ushort Version { get; set; }
-		public byte BankLo { get; set; }
-		public byte BankHi { get; set; }
+		public byte BankID { get; set; }
+		public byte WaveID { get; set; }
 		public byte[]? Padding { get; set; }
 		public ushort Year { get; set; }
 		public byte Month { get; set; }
@@ -59,8 +59,8 @@ internal sealed class SWD
 			r.ReadBytes(Unknown1);
 			Length = r.ReadUInt32();
 			Version = r.ReadUInt16();
-			BankLo = r.ReadByte();
-			BankHi = r.ReadByte();
+			BankID = r.ReadByte();
+			WaveID = r.ReadByte();
 
 			// Timestamp metadata - The time the SWD was published
 			r.Endianness = Endianness.LittleEndian; // Timestamp is always Little Endian, regardless of version or type, so it must be set to Little Endian to be read

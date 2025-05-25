@@ -19,6 +19,12 @@ public enum PlayerState : byte
 	Recording,
 	ShutDown,
 }
+public enum CallbackState
+{
+	Stop,
+	Start,
+	Pause
+}
 
 public interface ILoadedSong
 {
@@ -30,7 +36,6 @@ public abstract class Player(double ticksPerSecond) : IDisposable
 {
 	protected abstract string Name { get; }
 	protected abstract Mixer Mixer { get; }
-	protected abstract Mixer_NAudio Mixer_NAudio { get; }
 
 	public abstract ILoadedSong? LoadedSong { get; }
 	public abstract ushort Tempo { get; set; }
@@ -40,10 +45,12 @@ public abstract class Player(double ticksPerSecond) : IDisposable
 
 	public long ElapsedTicks { get; internal set; }
 	public PlayerState State { get; protected set; }
-	public event Action? SongEnded;
+	public CallbackState? CallbackState { get; protected set; }
+    public Exception? ErrorDetails { get; set; }
+
+    public event Action? SongEnded;
 
 	private readonly BetterTimer _timer = new(ticksPerSecond);
-	// private readonly TimeBarrier _time = new(ticksPerSecond);
 	private Thread? _thread;
 	private double? _deltaTimeElapsed;
 	public bool IsStreamStopped = true;
@@ -96,7 +103,7 @@ public abstract class Player(double ticksPerSecond) : IDisposable
 		// in this callback, otherwise it will cause an OutOfMemoryException.
 		//
 		// The memory is already allocated by the output and userData params by
-		// the native PortAudio library itself.
+		// the PortAudio bindings.
 
 		if (Engine.Instance is null)
 		{
@@ -104,6 +111,12 @@ public abstract class Player(double ticksPerSecond) : IDisposable
 		}
 
 		var player = Engine.Instance!.Player;
+
+		if (Engine.Instance.Mixer.Stream is null)
+		{
+			ReadPos = 0;
+			return StreamCallbackResult.Abort;
+		}
 
 		Wave d = Engine.Instance.Mixer!.Stream!.GetUserData<Wave>(userData);
 		if (d.Buffer is null)
@@ -119,8 +132,28 @@ public abstract class Player(double ticksPerSecond) : IDisposable
 		}
 
 		// RealignBufferPos(d);
-		
+
 		Option1(player, d, output, frameCount);
+
+		while (d.BufferState is BufferState.Writing)
+		{
+			player.CallbackState = Core.CallbackState.Pause;
+			var allocatedReadPos = ReadPos + frameCount;
+			var allocatedWritePos = d.WritePosition + player.Mixer.SamplesPerBuffer;
+			if (allocatedReadPos >= d.WritePosition && allocatedReadPos < allocatedWritePos)
+			{
+				if ((ReadPos + player.Mixer.SamplesPerBuffer) > d.BufferLength)
+				{
+					ReadPos = d.WritePosition - player.Mixer.SamplesPerBuffer;
+				}
+				else
+				{
+					ReadPos = d.WritePosition + player.Mixer.SamplesPerBuffer;
+				}
+			}
+		}
+
+		player.CallbackState = Core.CallbackState.Start;
 
 		if (!Engine.Instance!.Mixer!.IsDisposing)
 		{
@@ -137,9 +170,9 @@ public abstract class Player(double ticksPerSecond) : IDisposable
 		}
 	}
 
-    private static void Option1(Player player, Wave d, nint output, uint frameCount)
-    {
-        
+	private static void Option1(Player player, Wave d, nint output, uint frameCount)
+	{
+
 		switch (Engine.Instance!.Mixer!.OParams.SampleFormat)
 		{
 			case SampleFormat.UInt8:
@@ -158,6 +191,10 @@ public abstract class Player(double ticksPerSecond) : IDisposable
 					{
 						for (int i = 0; i < buffer.Length; i++)
 						{
+							if (ReadPos + i >= buffer.Length)
+							{
+								break;
+							}
 							buffer[i] = (byte)(d.Buffer[ReadPos + i] * Engine.Instance.Mixer.Volume);
 						}
 					}
@@ -172,7 +209,7 @@ public abstract class Player(double ticksPerSecond) : IDisposable
 					{
 						ReadPos = 0;
 					}
-					
+
 					if (Engine.Instance!.Mixer!.IsDisposing)
 					{
 						buffer.Clear();
@@ -197,6 +234,10 @@ public abstract class Player(double ticksPerSecond) : IDisposable
 					{
 						for (int i = 0; i < buffer.Length; i++)
 						{
+							if (ReadPos + i >= waveBuffer.Length)
+							{
+								break;
+							}
 							buffer[i] = (sbyte)(waveBuffer[ReadPos + i] * Engine.Instance.Mixer.Volume);
 						}
 					}
@@ -211,7 +252,7 @@ public abstract class Player(double ticksPerSecond) : IDisposable
 					{
 						ReadPos = 0;
 					}
-					
+
 					if (Engine.Instance!.Mixer!.IsDisposing)
 					{
 						buffer.Clear();
@@ -236,6 +277,10 @@ public abstract class Player(double ticksPerSecond) : IDisposable
 					{
 						for (int i = 0; i < buffer.Length; i++)
 						{
+							if (ReadPos + i >= waveBuffer.Length)
+							{
+								break;
+							}
 							buffer[i] = (short)(waveBuffer[ReadPos + i] * Engine.Instance.Mixer.Volume);
 						}
 					}
@@ -250,7 +295,7 @@ public abstract class Player(double ticksPerSecond) : IDisposable
 					{
 						ReadPos = 0;
 					}
-					
+
 					if (Engine.Instance!.Mixer!.IsDisposing)
 					{
 						buffer.Clear();
@@ -275,6 +320,10 @@ public abstract class Player(double ticksPerSecond) : IDisposable
 					{
 						for (int i = 0; i < buffer.Length; i++)
 						{
+							if (ReadPos + i >= waveBuffer.Length)
+							{
+								break;
+							}
 							buffer[i] = (Int24)(waveBuffer[ReadPos + i] * Engine.Instance.Mixer.Volume);
 						}
 					}
@@ -289,7 +338,7 @@ public abstract class Player(double ticksPerSecond) : IDisposable
 					{
 						ReadPos = 0;
 					}
-					
+
 					if (Engine.Instance!.Mixer!.IsDisposing)
 					{
 						buffer.Clear();
@@ -314,6 +363,10 @@ public abstract class Player(double ticksPerSecond) : IDisposable
 					{
 						for (int i = 0; i < buffer.Length; i++)
 						{
+							if (ReadPos + i >= waveBuffer.Length)
+							{
+								break;
+							}
 							buffer[i] = (int)(waveBuffer[ReadPos + i] * Engine.Instance.Mixer.Volume);
 						}
 					}
@@ -328,7 +381,7 @@ public abstract class Player(double ticksPerSecond) : IDisposable
 					{
 						ReadPos = 0;
 					}
-					
+
 					if (Engine.Instance!.Mixer!.IsDisposing)
 					{
 						buffer.Clear();
@@ -353,6 +406,10 @@ public abstract class Player(double ticksPerSecond) : IDisposable
 					{
 						for (int i = 0; i < buffer.Length; i++)
 						{
+							if (ReadPos + i >= waveBuffer.Length)
+							{
+								break;
+							}
 							buffer[i] = (float)(waveBuffer[ReadPos + i] * Engine.Instance.Mixer.Volume);
 						}
 					}
@@ -367,7 +424,7 @@ public abstract class Player(double ticksPerSecond) : IDisposable
 					{
 						ReadPos = 0;
 					}
-					
+
 					if (Engine.Instance!.Mixer!.IsDisposing)
 					{
 						buffer.Clear();
@@ -376,80 +433,80 @@ public abstract class Player(double ticksPerSecond) : IDisposable
 					break;
 				}
 		}
-    }
+	}
 
-    // // Experimental realignment func to prevent reading from buffers being written to
-    // protected static void RealignBufferPos(Wave waveData)
-    // {
-    // 	var count = waveData.Count / 4;
-    // 	var writePos = waveData.WritePosition / 4;
+	// // Experimental realignment func to prevent reading from buffers being written to
+	// protected static void RealignBufferPos(Wave waveData)
+	// {
+	// 	var count = waveData.Count / 4;
+	// 	var writePos = waveData.WritePosition / 4;
 
-    // 	if (writePos - count < 0)
-    // 	{
-    // 		if (ReadPos.Equals((writePos - count + (waveData.BufferLength / 4))..^(waveData.BufferLength / 4)))
-    // 		{
-    // 			if (ReadPos < writePos)
-    // 			{
-    // 				ReadPos -= count;
-    // 				if (ReadPos <= 0)
-    // 				{
-    // 					ReadPos += waveData.BufferLength / 4;
-    // 				}
-    // 			}
-    // 			else
-    // 			{
-    // 				ReadPos += count;
-    // 				if (ReadPos + count >= (waveData.BufferLength / 4))
-    // 				{
-    // 					ReadPos -= waveData.BufferLength / 4;
-    // 				}
-    // 			}
-    // 		}
-    // 		else if (ReadPos.Equals(writePos..^(writePos + count)))
-    // 		{
-    // 			if (ReadPos < writePos)
-    // 			{
-    // 				ReadPos -= count;
-    // 				if (ReadPos <= 0)
-    // 				{
-    // 					ReadPos += waveData.BufferLength / 4;
-    // 				}
-    // 			}
-    // 			else
-    // 			{
-    // 				ReadPos += count;
-    // 				if (ReadPos + count >= (waveData.BufferLength / 4))
-    // 				{
-    // 					ReadPos -= waveData.BufferLength / 4;
-    // 				}
-    // 			}
-    // 		}
-    // 	}
-    // 	if (writePos > count && writePos < (waveData.BufferLength / 4))
-    // 	{
-    // 		if (ReadPos.Equals((writePos - count)..^(writePos + count)))
-    // 		{
-    // 			if (ReadPos < writePos)
-    // 			{
-    // 				ReadPos -= count;
-    // 				if (ReadPos <= 0)
-    // 				{
-    // 					ReadPos += waveData.BufferLength / 4;
-    // 				}
-    // 			}
-    // 			else
-    // 			{
-    // 				ReadPos += count;
-    // 				if (ReadPos + count >= (waveData.BufferLength / 4))
-    // 				{
-    // 					ReadPos -= waveData.BufferLength / 4;
-    // 				}
-    // 			}
-    // 		}
-    // 	}
-    // }
+	// 	if (writePos - count < 0)
+	// 	{
+	// 		if (ReadPos.Equals((writePos - count + (waveData.BufferLength / 4))..^(waveData.BufferLength / 4)))
+	// 		{
+	// 			if (ReadPos < writePos)
+	// 			{
+	// 				ReadPos -= count;
+	// 				if (ReadPos <= 0)
+	// 				{
+	// 					ReadPos += waveData.BufferLength / 4;
+	// 				}
+	// 			}
+	// 			else
+	// 			{
+	// 				ReadPos += count;
+	// 				if (ReadPos + count >= (waveData.BufferLength / 4))
+	// 				{
+	// 					ReadPos -= waveData.BufferLength / 4;
+	// 				}
+	// 			}
+	// 		}
+	// 		else if (ReadPos.Equals(writePos..^(writePos + count)))
+	// 		{
+	// 			if (ReadPos < writePos)
+	// 			{
+	// 				ReadPos -= count;
+	// 				if (ReadPos <= 0)
+	// 				{
+	// 					ReadPos += waveData.BufferLength / 4;
+	// 				}
+	// 			}
+	// 			else
+	// 			{
+	// 				ReadPos += count;
+	// 				if (ReadPos + count >= (waveData.BufferLength / 4))
+	// 				{
+	// 					ReadPos -= waveData.BufferLength / 4;
+	// 				}
+	// 			}
+	// 		}
+	// 	}
+	// 	if (writePos > count && writePos < (waveData.BufferLength / 4))
+	// 	{
+	// 		if (ReadPos.Equals((writePos - count)..^(writePos + count)))
+	// 		{
+	// 			if (ReadPos < writePos)
+	// 			{
+	// 				ReadPos -= count;
+	// 				if (ReadPos <= 0)
+	// 				{
+	// 					ReadPos += waveData.BufferLength / 4;
+	// 				}
+	// 			}
+	// 			else
+	// 			{
+	// 				ReadPos += count;
+	// 				if (ReadPos + count >= (waveData.BufferLength / 4))
+	// 				{
+	// 					ReadPos -= waveData.BufferLength / 4;
+	// 				}
+	// 			}
+	// 		}
+	// 	}
+	// }
 
-    protected void CreateThread()
+	protected void CreateThread()
 	{
 		_thread = new Thread(TimerTick) { Name = Name + " Tick" };
 		_thread.Start();
@@ -580,17 +637,24 @@ public abstract class Player(double ticksPerSecond) : IDisposable
 			while (_deltaTimeElapsed >= _timer.GetDeltaTick())
 			{
 				_deltaTimeElapsed -= _timer.GetDeltaTick();
-				bool allDone = Tick(playing, recording);
-				if (Info is not null)
+				try
 				{
-					UpdateSongState(Info);
+					bool allDone = Tick(playing, recording);
+					if (Info is not null)
+					{
+						UpdateSongState(Info);
+					}
+					if (allDone)
+					{
+						// TODO: lock state
+						_timer.Stop(); // TODO: Don't need timer if recording
+						SongEnded?.Invoke();
+						return;
+					}
 				}
-				if (allDone)
+				catch (Exception ex)
 				{
-					// TODO: lock state
-					_timer.Stop(); // TODO: Don't need timer if recording
-					SongEnded?.Invoke();
-					return;
+					ErrorDetails = ex;
 				}
 			}
 		}

@@ -24,6 +24,8 @@ internal sealed class DSETrack(byte i, int startOffset)
 	public byte RandomNoteRangeMax;
 	public ushort DetuneRange;
 	public byte NoteVolume;
+	public byte BankHi;
+	public byte BankLo;
 	public bool FlagEnded;
 	public byte FlagValue; // Unsure as to what value it's referring to
 	public byte ChannelPanpot;
@@ -53,8 +55,10 @@ internal sealed class DSETrack(byte i, int startOffset)
 	public byte SweepPitch;
 	public byte SweepVolume;
 	public byte PanpotTarget;
-	public int WaveIndex;
-	public List<SongEvent>? SegnoCommands;
+	public int WaveIDIndex;
+	public int BankIDIndex;
+	public List<SongEvent>? DalSegnoCommands;
+	public SongEvent? ToCodaCommand;
 	public byte Attack;
 	public byte Time;
 	public byte Hold;
@@ -86,8 +90,10 @@ internal sealed class DSETrack(byte i, int startOffset)
 		TickInterval = 0;
 		SweepRate = 0;
 		SweepPitch = 0;
-		WaveIndex = -1;
-		SegnoCommands = [];
+		SweepTuneRate = 0;
+		WaveIDIndex = -1;
+		BankIDIndex = -1;
+		DalSegnoCommands = [];
 
 		Attack = 0;
 		Time = 0;

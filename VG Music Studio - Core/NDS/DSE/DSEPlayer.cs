@@ -9,7 +9,6 @@ public sealed class DSEPlayer : Player
 
 	private readonly DSEConfig _config;
 	internal readonly DSEMixer? DMixer;
-	internal readonly DSEMixer_NAudio? DMixer_NAudio;
 	internal readonly SWD MainSWD;
 	private DSELoadedSong? _loadedSong;
 
@@ -19,23 +18,14 @@ public sealed class DSEPlayer : Player
 
 	public override ILoadedSong? LoadedSong => _loadedSong;
 	protected override Mixer Mixer => DMixer!;
-	protected override Mixer_NAudio Mixer_NAudio => DMixer_NAudio!;
 
-	public DSEPlayer(string mainSWDFile, DSEConfig config, DSEMixer mixer)
+	public DSEPlayer(DSEConfig config, DSEMixer mixer)
 		: base(192)
 	{
 		DMixer = mixer;
 		_config = config;
 
-		MainSWD = new SWD(mainSWDFile);
-	}
-	public DSEPlayer(string mainSWDFile, DSEConfig config, DSEMixer_NAudio mixer)
-		: base(192)
-	{
-		DMixer_NAudio = mixer;
-		_config = config;
-
-		MainSWD = new SWD(mainSWDFile);
+		MainSWD = new SWD(config.MainSWDFile);
 	}
 
 	public override void LoadSong(int index)
@@ -60,10 +50,7 @@ public sealed class DSEPlayer : Player
 		TempoStack = 0;
 		_elapsedLoops = 0;
 		ElapsedTicks = 0;
-		if (Engine.Instance!.UseNewMixer)
-			DMixer!.ResetFade();
-		else
-			DMixer_NAudio!.ResetFade();
+		DMixer!.ResetFade();
 		DSETrack[] tracks = _loadedSong!.Tracks;
 		for (int i = 0; i < tracks.Length; i++)
 		{
@@ -100,19 +87,9 @@ public sealed class DSEPlayer : Player
 						{
 							TickTrack(s, s.Tracks[i], ref allDone);
 						}
-						if (Engine.Instance!.UseNewMixer)
+						if (DMixer!.IsFadeDone())
 						{
-							if (DMixer!.IsFadeDone())
-							{
-								allDone = true;
-							}
-						}
-						else
-						{
-							if (DMixer_NAudio!.IsFadeDone())
-							{
-								allDone = true;
-							}
+							allDone = true;
 						}
 					}
 					break;
@@ -139,16 +116,8 @@ public sealed class DSEPlayer : Player
 		{
 			TempoStack += Tempo;
 		}
-		if (Engine.Instance!.UseNewMixer)
-		{
-			DMixer!.ChannelTick();
-			DMixer.Process(playing, recording);
-		}
-		else
-		{
-			DMixer_NAudio!.ChannelTick();
-			DMixer_NAudio.Process(playing, recording);
-		}
+		DMixer!.ChannelTick();
+		DMixer.Process(playing, recording);
 		return allDone;
 	}
 	private void TickTrack(DSELoadedSong s, DSETrack track, ref bool allDone)
@@ -183,19 +152,9 @@ public sealed class DSEPlayer : Player
 
 		_elapsedLoops++;
 		UpdateElapsedTicksAfterLoop(s.Events[track.Index], track.CurOffset, track.Rest);
-		if (Engine.Instance!.UseNewMixer)
+		if (ShouldFadeOut && _elapsedLoops > NumLoops && !DMixer!.IsFading())
 		{
-			if (ShouldFadeOut && _elapsedLoops > NumLoops && !DMixer!.IsFading())
-			{
-				DMixer.BeginFadeOut();
-			}
-		}
-		else
-		{
-			if (ShouldFadeOut && _elapsedLoops > NumLoops && !DMixer_NAudio!.IsFading())
-			{
-				DMixer_NAudio.BeginFadeOut();
-			}
+			DMixer.BeginFadeOut();
 		}
 	}
 }

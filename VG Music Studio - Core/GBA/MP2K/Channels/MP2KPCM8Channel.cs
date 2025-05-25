@@ -19,11 +19,6 @@ internal sealed class MP2KPCM8Channel : MP2KChannel
 	{
 		//
 	}
-	public MP2KPCM8Channel(MP2KMixer_NAudio mixer)
-		: base(mixer)
-	{
-		//
-	}
 	public void Init(MP2KTrack owner, NoteInfo note, ADSR adsr, int sampleOffset, byte vol, sbyte pan, int instPan, int pitch, bool bFixed, bool bCompressed)
 	{
 		State = EnvelopeState.Initializing;
@@ -36,29 +31,15 @@ internal sealed class MP2KPCM8Channel : MP2KChannel
 		_adsr = adsr;
 		_instPan = instPan;
 		byte[] rom;
-		if (Engine.Instance!.UseNewMixer)
-        {
-            rom = _mixer!.Config.ROM;
-        }
-        else
-        {
-            rom = _mixer_NAudio!.Config.ROM;
-        }
+		rom = _mixer!.Config.ROM;
 
-        _sampleHeader = SampleHeader.Get(rom, sampleOffset, out _sampleOffset);
+		_sampleHeader = SampleHeader.Get(rom, sampleOffset, out _sampleOffset);
 		_bFixed = bFixed;
 		_bCompressed = bCompressed;
 		_decompressedSample = bCompressed ? MP2KUtils.Decompress(rom.AsSpan(_sampleOffset), _sampleHeader.Length) : null;
-		if (Engine.Instance!.UseNewMixer)
-        {
-            _bGoldenSun = _mixer!.Config.HasGoldenSunSynths && _sampleHeader.Length == 0 && _sampleHeader.DoesLoop == SampleHeader.LOOP_TRUE && _sampleHeader.LoopOffset == 0;
-        }
-        else
-        {
-            _bGoldenSun = _mixer_NAudio!.Config.HasGoldenSunSynths && _sampleHeader.Length == 0 && _sampleHeader.DoesLoop == SampleHeader.LOOP_TRUE && _sampleHeader.LoopOffset == 0;
-        }
+		_bGoldenSun = _mixer!.Config.HasGoldenSunSynths && _sampleHeader.Length == 0 && _sampleHeader.DoesLoop == SampleHeader.LOOP_TRUE && _sampleHeader.LoopOffset == 0;
 
-        if (_bGoldenSun)
+		if (_bGoldenSun)
 		{
 			_gsPSG = GoldenSunPSG.Get(rom.AsSpan(_sampleOffset));
 		}
@@ -69,22 +50,11 @@ internal sealed class MP2KPCM8Channel : MP2KChannel
 	public override ChannelVolume GetVolume()
 	{
 		const float MAX = 0x10_000;
-		if (Engine.Instance!.UseNewMixer)
+		return new ChannelVolume
 		{
-			return new ChannelVolume
-			{
-				LeftVol = _leftVol * _velocity / MAX * _mixer!.PCM8MasterVolume,
-				RightVol = _rightVol * _velocity / MAX * _mixer!.PCM8MasterVolume
-			};
-		}
-		else
-		{
-			return new ChannelVolume
-			{
-				LeftVol = _leftVol * _velocity / MAX * _mixer_NAudio!.PCM8MasterVolume,
-				RightVol = _rightVol * _velocity / MAX * _mixer_NAudio!.PCM8MasterVolume
-			};
-		}
+			LeftVol = _leftVol * _velocity / MAX * _mixer!.PCM8MasterVolume,
+			RightVol = _rightVol * _velocity / MAX * _mixer!.PCM8MasterVolume
+		};
 	}
 	public override void SetVolume(byte vol, sbyte pan)
 	{
@@ -115,62 +85,62 @@ internal sealed class MP2KPCM8Channel : MP2KChannel
 		switch (State)
 		{
 			case EnvelopeState.Initializing:
-			{
-				_velocity = _adsr.A;
-				State = EnvelopeState.Rising;
-				break;
-			}
+				{
+					_velocity = _adsr.A;
+					State = EnvelopeState.Rising;
+					break;
+				}
 			case EnvelopeState.Rising:
-			{
-				int nextVel = _velocity + _adsr.A;
-				if (nextVel >= 0xFF)
 				{
-					State = EnvelopeState.Decaying;
-					_velocity = 0xFF;
+					int nextVel = _velocity + _adsr.A;
+					if (nextVel >= 0xFF)
+					{
+						State = EnvelopeState.Decaying;
+						_velocity = 0xFF;
+					}
+					else
+					{
+						_velocity = (byte)nextVel;
+					}
+					break;
 				}
-				else
-				{
-					_velocity = (byte)nextVel;
-				}
-				break;
-			}
 			case EnvelopeState.Decaying:
-			{
-				int nextVel = (_velocity * _adsr.D) >> 8;
-				if (nextVel <= _adsr.S)
 				{
-					State = EnvelopeState.Playing;
-					_velocity = _adsr.S;
+					int nextVel = (_velocity * _adsr.D) >> 8;
+					if (nextVel <= _adsr.S)
+					{
+						State = EnvelopeState.Playing;
+						_velocity = _adsr.S;
+					}
+					else
+					{
+						_velocity = (byte)nextVel;
+					}
+					break;
 				}
-				else
-				{
-					_velocity = (byte)nextVel;
-				}
-				break;
-			}
 			case EnvelopeState.Playing:
-			{
-				break;
-			}
+				{
+					break;
+				}
 			case EnvelopeState.Releasing:
-			{
-				int nextVel = (_velocity * _adsr.R) >> 8;
-				if (nextVel <= 0)
 				{
-					State = EnvelopeState.Dying;
-					_velocity = 0;
+					int nextVel = (_velocity * _adsr.R) >> 8;
+					if (nextVel <= 0)
+					{
+						State = EnvelopeState.Dying;
+						_velocity = 0;
+					}
+					else
+					{
+						_velocity = (byte)nextVel;
+					}
+					break;
 				}
-				else
-				{
-					_velocity = (byte)nextVel;
-				}
-				break;
-			}
 			case EnvelopeState.Dying:
-			{
-				Stop();
-				break;
-			}
+				{
+					Stop();
+					break;
+				}
 		}
 	}
 
@@ -184,16 +154,9 @@ internal sealed class MP2KPCM8Channel : MP2KChannel
 
 		ChannelVolume vol = GetVolume();
 		float interStep;
-		if (Engine.Instance!.UseNewMixer)
-        {
-            interStep = _bFixed && !_bGoldenSun ? _mixer!.SampleRate * _mixer!.SampleRateReciprocal : _frequency * _mixer!.SampleRateReciprocal;
-        }
-        else
-        {
-            interStep = _bFixed && !_bGoldenSun ? _mixer_NAudio!.SampleRate * _mixer_NAudio!.SampleRateReciprocal : _frequency * _mixer_NAudio!.SampleRateReciprocal;
-        }
+		interStep = _bFixed && !_bGoldenSun ? _mixer!.SampleRate * _mixer!.SampleRateReciprocal : _frequency * _mixer!.SampleRateReciprocal;
 
-        if (_bGoldenSun) // Most Golden Sun processing is thanks to ipatix
+		if (_bGoldenSun) // Most Golden Sun processing is thanks to ipatix
 		{
 			Process_GS(buffer, vol, interStep);
 		}
@@ -203,15 +166,8 @@ internal sealed class MP2KPCM8Channel : MP2KChannel
 		}
 		else
 		{
-			if (Engine.Instance!.UseNewMixer)
-            {
-                Process_Standard(buffer, vol, interStep, _mixer!.Config.ROM);
-            }
-            else
-            {
-                Process_Standard(buffer, vol, interStep, _mixer_NAudio!.Config.ROM);
-            }
-        }
+			Process_Standard(buffer, vol, interStep, _mixer!.Config.ROM);
+		}
 	}
 	private void Process_GS(Span<float> buffer, ChannelVolume vol, float interStep)
 	{
@@ -228,16 +184,9 @@ internal sealed class MP2KPCM8Channel : MP2KChannel
 
 					int bufPos = 0;
 					int samplesPerBuffer;
-					if (Engine.Instance!.UseNewMixer)
-                    {
-                        samplesPerBuffer = _mixer!.SamplesPerBuffer;
-                    }
-                    else
-                    {
-                        samplesPerBuffer = _mixer_NAudio!.SamplesPerBuffer;
-                    }
+					samplesPerBuffer = _mixer!.SamplesPerBuffer;
 
-                    do
+					do
 					{
 						float samp = _interPos < threshold ? 0.5f : -0.5f;
 						samp += 0.5f - threshold;
@@ -258,16 +207,9 @@ internal sealed class MP2KPCM8Channel : MP2KChannel
 
 					int bufPos = 0;
 					int samplesPerBuffer;
-					if (Engine.Instance!.UseNewMixer)
-                    {
-                        samplesPerBuffer = _mixer!.SamplesPerBuffer;
-                    }
-                    else
-                    {
-                        samplesPerBuffer = _mixer_NAudio!.SamplesPerBuffer;
-                    }
+					samplesPerBuffer = _mixer!.SamplesPerBuffer;
 
-                    do
+					do
 					{
 						_interPos += interStep;
 						if (_interPos >= 1)
@@ -290,16 +232,9 @@ internal sealed class MP2KPCM8Channel : MP2KChannel
 				{
 					int bufPos = 0;
 					int samplesPerBuffer;
-					if (Engine.Instance!.UseNewMixer)
-                    {
-                        samplesPerBuffer = _mixer!.SamplesPerBuffer;
-                    }
-                    else
-                    {
-                        samplesPerBuffer = _mixer_NAudio!.SamplesPerBuffer;
-                    }
+					samplesPerBuffer = _mixer!.SamplesPerBuffer;
 
-                    do
+					do
 					{
 						_interPos += interStep;
 						if (_interPos >= 1)
@@ -319,16 +254,9 @@ internal sealed class MP2KPCM8Channel : MP2KChannel
 	{
 		int bufPos = 0;
 		int samplesPerBuffer;
-		if (Engine.Instance!.UseNewMixer)
-        {
-            samplesPerBuffer = _mixer!.SamplesPerBuffer;
-        }
-        else
-        {
-            samplesPerBuffer = _mixer_NAudio!.SamplesPerBuffer;
-        }
+		samplesPerBuffer = _mixer!.SamplesPerBuffer;
 
-        do
+		do
 		{
 			float samp = _decompressedSample![_pos] / (float)0x80;
 
@@ -350,16 +278,9 @@ internal sealed class MP2KPCM8Channel : MP2KChannel
 	{
 		int bufPos = 0;
 		int samplesPerBuffer;
-		if (Engine.Instance!.UseNewMixer)
-        {
-            samplesPerBuffer = _mixer!.SamplesPerBuffer;
-        }
-        else
-        {
-            samplesPerBuffer = _mixer_NAudio!.SamplesPerBuffer;
-        }
+		samplesPerBuffer = _mixer!.SamplesPerBuffer;
 
-        do
+		do
 		{
 			float samp = (sbyte)rom[_pos + _sampleOffset] / (float)0x80;
 

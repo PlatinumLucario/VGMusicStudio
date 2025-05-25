@@ -33,11 +33,19 @@ internal class GTK4Utils : DialogUtils
                     {
                         //fe[k] = fe[k].Trim('*', '.');
                         fileFilter.AddPattern(fe[k]);
+                        fileFilter.AddPattern(fe[k].ToLower());
+                        fileFilter.AddPattern(fe[k].ToLowerInvariant());
+                        fileFilter.AddPattern(fe[k].ToUpper());
+                        fileFilter.AddPattern(fe[k].ToUpperInvariant());
                     }
                 }
                 else
                 {
                     fileFilter.AddPattern(fn[1]);
+                    fileFilter.AddPattern(fn[1].ToLower());
+                    fileFilter.AddPattern(fn[1].ToLowerInvariant());
+                    fileFilter.AddPattern(fn[1].ToUpper());
+                    fileFilter.AddPattern(fn[1].ToUpperInvariant());
                 }
             }
         }
@@ -47,6 +55,10 @@ internal class GTK4Utils : DialogUtils
             for (int i = 0; i < fileExtensions.Length; i++)
             {
                 fileFilter.AddPattern(fileExtensions[i]);
+                fileFilter.AddPattern(fileExtensions[i].ToLower());
+                fileFilter.AddPattern(fileExtensions[i].ToLowerInvariant());
+                fileFilter.AddPattern(fileExtensions[i].ToUpper());
+                fileFilter.AddPattern(fileExtensions[i].ToUpperInvariant());
             }
         }
     }
@@ -254,7 +266,7 @@ internal class GTK4Utils : DialogUtils
         {
             var d = FileDialog.New();
             d.SetTitle(title);
-            d.SetInitialName(fileName);
+            d.SetInitialName(fileName + fileExtensions[0].Trim('*'));
             d.SetFilters(filters);
             GTK4Utils.SaveCallback += SaveCallback;
             var p = (Window)parent!;

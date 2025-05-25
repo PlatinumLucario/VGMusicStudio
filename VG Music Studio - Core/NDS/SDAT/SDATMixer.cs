@@ -1,5 +1,6 @@
 ﻿using Kermalis.VGMusicStudio.Core.Formats;
 using Kermalis.VGMusicStudio.Core.Util;
+using NAudio.Wave;
 using System;
 
 namespace Kermalis.VGMusicStudio.Core.NDS.SDAT;
@@ -14,7 +15,17 @@ public sealed class SDATMixer : Mixer
 	private float _fadeStepPerMicroframe;
 
 	internal SDATChannel[] Channels;
-	private readonly Wave _buffer;
+	private readonly AudioBackend SDATPlaybackBackend;
+
+	#region PortAudio Fields
+	// PortAudio Fields
+	private readonly Wave? _bufferPortAudio;
+	#endregion
+
+	#region NAudio Fields
+	private readonly BufferedWaveProvider? _bufferNAudio;
+	protected override WaveFormat? WaveFormat => _bufferNAudio!.WaveFormat;
+	#endregion
 
 	internal SDATMixer()
 	{
@@ -31,14 +42,32 @@ public sealed class SDATMixer : Mixer
 			Channels[i] = new SDATChannel(i);
 		}
 
-		_buffer = new Wave()
+		SDATPlaybackBackend = PlaybackBackend;
+		switch (PlaybackBackend)
 		{
-			DiscardOnBufferOverflow = true,
-			BufferLength = SamplesPerBuffer * 64
-		};
-		_buffer.CreateIeeeFloatWave(sampleRate, 2, 16);
+			case AudioBackend.PortAudio:
+				{
+					_bufferPortAudio = new Wave()
+					{
+						DiscardOnBufferOverflow = true,
+						BufferLength = SamplesPerBuffer * 64
+					};
+					_bufferPortAudio.CreateIeeeFloatWave(sampleRate, 2, 16);
 
-		Init(_buffer, PortAudio.SampleFormat.Int16);
+					Init(waveData: _bufferPortAudio, PortAudio.SampleFormat.Int16);
+					break;
+				}
+			case AudioBackend.NAudio:
+				{
+					_bufferNAudio = new BufferedWaveProvider(new WaveFormat(sampleRate, 16, 2))
+					{
+						DiscardOnBufferOverflow = true,
+						BufferLength = SamplesPerBuffer * 64
+					};
+					Init(waveProvider: _bufferNAudio);
+					break;
+				}
+		}
 	}
 
 	private static readonly int[] _pcmChanOrder = [4, 5, 6, 7, 2, 0, 3, 1, 8, 9, 10, 11, 14, 12, 15, 13];
@@ -233,11 +262,35 @@ public sealed class SDATMixer : Mixer
 			masterLevel += masterStep;
 			if (output)
 			{
-				_buffer.AddSamples(_b, 0, 4);
+				switch (SDATPlaybackBackend)
+				{
+					case AudioBackend.PortAudio:
+						{
+							_bufferPortAudio!.AddSamples(_b, 0, 4);
+							break;
+						}
+					case AudioBackend.NAudio:
+						{
+							_bufferNAudio!.AddSamples(_b, 0, 4);
+							break;
+						}
+				}
 			}
 			if (recording)
 			{
-				_waveWriter!.Write(_b, 0, 4);
+				switch (SDATPlaybackBackend)
+				{
+					case AudioBackend.PortAudio:
+						{
+							_waveWriterPortAudio!.Write(_b, 0, 4);
+							break;
+						}
+					case AudioBackend.NAudio:
+						{
+							_waveWriterNAudio!.Write(_b, 0, 4);
+							break;
+						}
+				}
 			}
 		}
 	}

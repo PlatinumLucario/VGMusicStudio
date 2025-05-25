@@ -60,67 +60,31 @@ internal sealed partial class MP2KLoadedSong
 						{
 							bool bFixed = (v.Type & (int)VoiceFlags.Fixed) != 0;
 							bool bCompressed = _player.Config.HasPokemonCompression && ((v.Type & (int)VoiceFlags.Compressed) != 0);
-							if (Engine.Instance!.UseNewMixer)
-							{
-								_player.MMixer.AllocPCM8Channel(track, v.ADSR, ni,
+							_player.MMixer.AllocPCM8Channel(track, v.ADSR, ni,
 									track.GetVolume(), track.GetPanpot(), instPan, track.GetPitch(),
 									bFixed, bCompressed, v.Int4 - GBAUtils.CARTRIDGE_OFFSET);
-							}
-							else
-							{
-								_player.MMixer_NAudio.AllocPCM8Channel(track, v.ADSR, ni,
-									track.GetVolume(), track.GetPanpot(), instPan, track.GetPitch(),
-									bFixed, bCompressed, v.Int4 - GBAUtils.CARTRIDGE_OFFSET);
-							}
 							return;
 						}
 					case VoiceType.Square1:
 					case VoiceType.Square2:
 						{
-							if (Engine.Instance!.UseNewMixer)
-							{
-								_player.MMixer.AllocPSGChannel(track, v.ADSR, ni,
+							_player.MMixer.AllocPSGChannel(track, v.ADSR, ni,
 									track.GetVolume(), track.GetPanpot(), instPan, track.GetPitch(),
 									type, (SquarePattern)v.Int4);
-							}
-							else
-							{
-								_player.MMixer_NAudio.AllocPSGChannel(track, v.ADSR, ni,
-									track.GetVolume(), track.GetPanpot(), instPan, track.GetPitch(),
-									type, (SquarePattern)v.Int4);
-							}
 							return;
 						}
 					case VoiceType.PCM4:
 						{
-							if (Engine.Instance!.UseNewMixer)
-							{
-								_player.MMixer.AllocPSGChannel(track, v.ADSR, ni,
+							_player.MMixer.AllocPSGChannel(track, v.ADSR, ni,
 									track.GetVolume(), track.GetPanpot(), instPan, track.GetPitch(),
 									type, v.Int4 - GBAUtils.CARTRIDGE_OFFSET);
-							}
-							else
-							{
-								_player.MMixer_NAudio.AllocPSGChannel(track, v.ADSR, ni,
-									track.GetVolume(), track.GetPanpot(), instPan, track.GetPitch(),
-									type, v.Int4 - GBAUtils.CARTRIDGE_OFFSET);
-							}
 							return;
 						}
 					case VoiceType.Noise:
 						{
-							if (Engine.Instance!.UseNewMixer)
-							{
-								_player.MMixer.AllocPSGChannel(track, v.ADSR, ni,
+							_player.MMixer.AllocPSGChannel(track, v.ADSR, ni,
 									track.GetVolume(), track.GetPanpot(), instPan, track.GetPitch(),
 									type, (NoisePattern)v.Int4);
-							}
-							else
-							{
-								_player.MMixer_NAudio.AllocPSGChannel(track, v.ADSR, ni,
-									track.GetVolume(), track.GetPanpot(), instPan, track.GetPitch(),
-									type, (NoisePattern)v.Int4);
-							}
 							return;
 						}
 				}
@@ -205,89 +169,89 @@ internal sealed partial class MP2KLoadedSong
 			switch (track.RunCmd)
 			{
 				case 0xBD:
-				{
-					track.Voice = cmd;
-					//track.Ready = true; // This is unnecessary because if we're in running status of a voice command, then Ready was already set
-					break;
-				}
+					{
+						track.Voice = cmd;
+						//track.Ready = true; // This is unnecessary because if we're in running status of a voice command, then Ready was already set
+						break;
+					}
 				case 0xBE:
-				{
-					track.Volume = cmd;
-					update = true;
-					break;
-				}
+					{
+						track.Volume = cmd;
+						update = true;
+						break;
+					}
 				case 0xBF:
-				{
-					track.Panpot = (sbyte)(cmd - 0x40);
-					update = true;
-					break;
-				}
+					{
+						track.Panpot = (sbyte)(cmd - 0x40);
+						update = true;
+						break;
+					}
 				case 0xC0:
-				{
-					track.PitchBend = (sbyte)(cmd - 0x40);
-					update = true;
-					break;
-				}
+					{
+						track.PitchBend = (sbyte)(cmd - 0x40);
+						update = true;
+						break;
+					}
 				case 0xC1:
-				{
-					track.PitchBendRange = cmd;
-					update = true;
-					break;
-				}
+					{
+						track.PitchBendRange = cmd;
+						update = true;
+						break;
+					}
 				case 0xC2:
-				{
-					track.LFOSpeed = cmd;
-					track.LFOPhase = 0;
-					track.LFODelayCount = 0;
-					update = true;
-					break;
-				}
+					{
+						track.LFOSpeed = cmd;
+						track.LFOPhase = 0;
+						track.LFODelayCount = 0;
+						update = true;
+						break;
+					}
 				case 0xC3:
-				{
-					track.LFODelay = cmd;
-					track.LFOPhase = 0;
-					track.LFODelayCount = 0;
-					update = true;
-					break;
-				}
+					{
+						track.LFODelay = cmd;
+						track.LFOPhase = 0;
+						track.LFODelayCount = 0;
+						update = true;
+						break;
+					}
 				case 0xC4:
-				{
-					track.LFODepth = cmd;
-					update = true;
-					break;
-				}
+					{
+						track.LFODepth = cmd;
+						update = true;
+						break;
+					}
 				case 0xC5:
-				{
-					track.LFOType = (LFOType)cmd;
-					update = true;
-					break;
-				}
+					{
+						track.LFOType = (LFOType)cmd;
+						update = true;
+						break;
+					}
 				case 0xC8:
-				{
-					track.Tune = (sbyte)(cmd - 0x40);
-					update = true;
-					break;
-				}
+					{
+						track.Tune = (sbyte)(cmd - 0x40);
+						update = true;
+						break;
+					}
 				case 0xCD:
-				{
-					track.DataOffset++;
-					break;
-				}
+					{
+						track.DataOffset++;
+						break;
+					}
 				case 0xCE:
-				{
-					track.PrevNote = cmd;
-					int k = cmd + track.Transpose;
-					if (k < 0)
 					{
-						k = 0;
+						track.PrevNote = cmd;
+						int k = cmd + track.Transpose;
+						if (k < 0)
+						{
+							k = 0;
+						}
+						else if (k > 0x7F)
+						{
+							k = 0x7F;
+						}
+						track.ReleaseChannels(k);
+						break;
 					}
-					else if (k > 0x7F)
-					{
-						k = 0x7F;
-					}
-					track.ReleaseChannels(k);
-					break;
-				}
 				default: throw new MP2KInvalidRunningStatusCMDException(track.Index, track.DataOffset - 1, track.RunCmd);
 			}
 		}
@@ -297,38 +261,38 @@ internal sealed partial class MP2KLoadedSong
 			{
 				case 0xB1:
 				case 0xB6:
-				{
-					track.Stopped = true;
-					//track.ReleaseAllTieingChannels(); // Necessary?
-					break;
-				}
+					{
+						track.Stopped = true;
+						//track.ReleaseAllTieingChannels(); // Necessary?
+						break;
+					}
 				case 0xB2:
-				{
-					track.DataOffset = (rom[track.DataOffset++] | (rom[track.DataOffset++] << 8) | (rom[track.DataOffset++] << 16) | (rom[track.DataOffset++] << 24)) - GBAUtils.CARTRIDGE_OFFSET;
-					break;
-				}
+					{
+						track.DataOffset = (rom[track.DataOffset++] | (rom[track.DataOffset++] << 8) | (rom[track.DataOffset++] << 16) | (rom[track.DataOffset++] << 24)) - GBAUtils.CARTRIDGE_OFFSET;
+						break;
+					}
 				case 0xB3:
-				{
-					if (track.CallStackDepth >= 3)
 					{
-						throw new MP2KTooManyNestedCallsException(track.Index);
-					}
+						if (track.CallStackDepth >= 3)
+						{
+							throw new MP2KTooManyNestedCallsException(track.Index);
+						}
 
-					int callOffset = (rom[track.DataOffset++] | (rom[track.DataOffset++] << 8) | (rom[track.DataOffset++] << 16) | (rom[track.DataOffset++] << 24)) - GBAUtils.CARTRIDGE_OFFSET;
-					track.CallStack[track.CallStackDepth] = track.DataOffset;
-					track.CallStackDepth++;
-					track.DataOffset = callOffset;
-					break;
-				}
-				case 0xB4:
-				{
-					if (track.CallStackDepth != 0)
-					{
-						track.CallStackDepth--;
-						track.DataOffset = track.CallStack[track.CallStackDepth];
+						int callOffset = (rom[track.DataOffset++] | (rom[track.DataOffset++] << 8) | (rom[track.DataOffset++] << 16) | (rom[track.DataOffset++] << 24)) - GBAUtils.CARTRIDGE_OFFSET;
+						track.CallStack[track.CallStackDepth] = track.DataOffset;
+						track.CallStackDepth++;
+						track.DataOffset = callOffset;
+						break;
 					}
-					break;
-				}
+				case 0xB4:
+					{
+						if (track.CallStackDepth != 0)
+						{
+							track.CallStackDepth--;
+							track.DataOffset = track.CallStack[track.CallStackDepth];
+						}
+						break;
+					}
 				/*case 0xB5: // TODO: Logic so this isn't an infinite loop
 				{
 					byte times = config.Reader.ReadByte();
@@ -340,119 +304,119 @@ internal sealed partial class MP2KLoadedSong
 					break;
 				}*/
 				case 0xB9:
-				{
-					track.DataOffset += 3;
-					break;
-				}
+					{
+						track.DataOffset += 3;
+						break;
+					}
 				case 0xBA:
-				{
-					track.Priority = rom[track.DataOffset++];
-					break;
-				}
+					{
+						track.Priority = rom[track.DataOffset++];
+						break;
+					}
 				case 0xBB:
-				{
-					_player.Tempo = (ushort)(rom[track.DataOffset++] * 2);
-					break;
-				}
+					{
+						_player.Tempo = (ushort)(rom[track.DataOffset++] * 2);
+						break;
+					}
 				case 0xBC:
-				{
-					track.Transpose = (sbyte)rom[track.DataOffset++];
-					break;
-				}
+					{
+						track.Transpose = (sbyte)rom[track.DataOffset++];
+						break;
+					}
 				// Commands that work within running status:
 				case 0xBD:
-				{
-					track.Voice = rom[track.DataOffset++];
-					track.Ready = true;
-					break;
-				}
+					{
+						track.Voice = rom[track.DataOffset++];
+						track.Ready = true;
+						break;
+					}
 				case 0xBE:
-				{
-					track.Volume = rom[track.DataOffset++];
-					update = true;
-					break;
-				}
+					{
+						track.Volume = rom[track.DataOffset++];
+						update = true;
+						break;
+					}
 				case 0xBF:
-				{
-					track.Panpot = (sbyte)(rom[track.DataOffset++] - 0x40);
-					update = true;
-					break;
-				}
+					{
+						track.Panpot = (sbyte)(rom[track.DataOffset++] - 0x40);
+						update = true;
+						break;
+					}
 				case 0xC0:
-				{
-					track.PitchBend = (sbyte)(rom[track.DataOffset++] - 0x40);
-					update = true;
-					break;
-				}
+					{
+						track.PitchBend = (sbyte)(rom[track.DataOffset++] - 0x40);
+						update = true;
+						break;
+					}
 				case 0xC1:
-				{
-					track.PitchBendRange = rom[track.DataOffset++];
-					update = true;
-					break;
-				}
+					{
+						track.PitchBendRange = rom[track.DataOffset++];
+						update = true;
+						break;
+					}
 				case 0xC2:
-				{
-					track.LFOSpeed = rom[track.DataOffset++];
-					track.LFOPhase = 0;
-					track.LFODelayCount = 0;
-					update = true;
-					break;
-				}
+					{
+						track.LFOSpeed = rom[track.DataOffset++];
+						track.LFOPhase = 0;
+						track.LFODelayCount = 0;
+						update = true;
+						break;
+					}
 				case 0xC3:
-				{
-					track.LFODelay = rom[track.DataOffset++];
-					track.LFOPhase = 0;
-					track.LFODelayCount = 0;
-					update = true;
-					break;
-				}
+					{
+						track.LFODelay = rom[track.DataOffset++];
+						track.LFOPhase = 0;
+						track.LFODelayCount = 0;
+						update = true;
+						break;
+					}
 				case 0xC4:
-				{
-					track.LFODepth = rom[track.DataOffset++];
-					update = true;
-					break;
-				}
+					{
+						track.LFODepth = rom[track.DataOffset++];
+						update = true;
+						break;
+					}
 				case 0xC5:
-				{
-					track.LFOType = (LFOType)rom[track.DataOffset++];
-					update = true;
-					break;
-				}
+					{
+						track.LFOType = (LFOType)rom[track.DataOffset++];
+						update = true;
+						break;
+					}
 				case 0xC8:
-				{
-					track.Tune = (sbyte)(rom[track.DataOffset++] - 0x40);
-					update = true;
-					break;
-				}
+					{
+						track.Tune = (sbyte)(rom[track.DataOffset++] - 0x40);
+						update = true;
+						break;
+					}
 				case 0xCD:
-				{
-					track.DataOffset += 2;
-					break;
-				}
+					{
+						track.DataOffset += 2;
+						break;
+					}
 				case 0xCE:
-				{
-					byte peek = rom[track.DataOffset];
-					if (peek > 0x7F)
 					{
-						track.ReleaseChannels(track.PrevNote);
-					}
-					else
-					{
-						track.DataOffset++;
-						track.PrevNote = peek;
-						int k = peek + track.Transpose;
-						if (k < 0)
+						byte peek = rom[track.DataOffset];
+						if (peek > 0x7F)
 						{
-							k = 0;
+							track.ReleaseChannels(track.PrevNote);
 						}
-						else if (k > 0x7F)
+						else
 						{
-							k = 0x7F;
+							track.DataOffset++;
+							track.PrevNote = peek;
+							int k = peek + track.Transpose;
+							if (k < 0)
+							{
+								k = 0;
+							}
+							else if (k > 0x7F)
+							{
+								k = 0x7F;
+							}
+							track.ReleaseChannels(k);
 						}
-						track.ReleaseChannels(k);
+						break;
 					}
-					break;
-				}
 				default: throw new MP2KInvalidCMDException(track.Index, track.DataOffset - 1, cmd);
 			}
 		}

@@ -7,7 +7,6 @@ internal abstract class MP2KChannel
 	public EnvelopeState State;
 	public MP2KTrack? Owner;
 	protected readonly MP2KMixer? _mixer;
-	protected readonly MP2KMixer_NAudio? _mixer_NAudio;
 
 	public NoteInfo Note;
 	protected ADSR _adsr;
@@ -21,12 +20,6 @@ internal abstract class MP2KChannel
 	protected MP2KChannel(MP2KMixer mixer)
 	{
 		_mixer = mixer;
-		State = EnvelopeState.Dead;
-	}
-
-	protected MP2KChannel(MP2KMixer_NAudio mixer)
-	{
-		_mixer_NAudio = mixer;
 		State = EnvelopeState.Dead;
 	}
 

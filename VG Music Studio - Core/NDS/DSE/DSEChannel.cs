@@ -20,7 +20,7 @@ internal sealed class DSEChannel
 	public ushort Timer;
 	public uint NoteLength;
 	public byte Volume;
-    internal int SweepCounter;
+	internal int SweepCounter;
 	public static readonly float Root12Of2 = MathF.Pow(2, 1f / 12);
 
 	private int _pos;
@@ -32,8 +32,8 @@ internal sealed class DSEChannel
 	private int _velocity; // From 0-0x3FFFFFFF ((128 << 23) - 1)
 	private byte _targetVolume;
 
-	private byte _attackVolume;
 	private byte _attack;
+	private byte _time;
 	private byte _decay;
 	private byte _sustain;
 	private byte _hold;
@@ -54,7 +54,7 @@ internal sealed class DSEChannel
 	private byte _psgDuty;
 	private int _psgCounter;
 
-    public DSEChannel(byte i)
+	public DSEChannel(byte i)
 	{
 		_sample = null!;
 		Index = i;
@@ -136,8 +136,8 @@ internal sealed class DSEChannel
 				//hold = split.Hold == 0 ? sample.WavInfo.Hold : split.Hold;
 				//decay2 = split.Decay2 == 0 ? sample.WavInfo.Decay2 : split.Decay2;
 				//release = split.Release == 0 ? sample.WavInfo.Release : split.Release;
-				_attackVolume = split.AttackVolume == 0 ? _sample.WavInfo.AttackVolume == 0 ? (byte)0x7F : _sample.WavInfo.AttackVolume : split.AttackVolume;
-				_attack = split.Attack == 0 ? _sample.WavInfo.Attack == 0 ? (byte)0x7F : _sample.WavInfo.Attack : split.Attack;
+				_attack = split.AttackVolume == 0 ? _sample.WavInfo.AttackVolume == 0 ? (byte)0x7F : _sample.WavInfo.AttackVolume : split.AttackVolume;
+				_time = split.Attack == 0 ? _sample.WavInfo.Attack == 0 ? (byte)0x7F : _sample.WavInfo.Attack : split.Attack;
 				_decay = split.Decay == 0 ? _sample.WavInfo.Decay == 0 ? (byte)0x7F : _sample.WavInfo.Decay : split.Decay;
 				_sustain = split.Sustain == 0 ? _sample.WavInfo.Sustain == 0 ? (byte)0x7F : _sample.WavInfo.Sustain : split.Sustain;
 				_hold = split.Hold == 0 ? _sample.WavInfo.Hold == 0 ? (byte)0x7F : _sample.WavInfo.Hold : split.Hold;
@@ -178,11 +178,11 @@ internal sealed class DSEChannel
 	{
 		if (Owner!.Attack != 0)
 		{
-			_attackVolume = Owner.Attack;
+			_attack = Owner.Attack;
 		}
 		if (Owner.Time != 0)
 		{
-			_attack = Owner.Time;
+			_time = Owner.Time;
 		}
 		if (Owner.Decay != 0)
 		{
@@ -205,18 +205,20 @@ internal sealed class DSEChannel
 			_release = Owner.Release;
 		}
 	}
-	private bool CMDB1___sub_2074CA0()
+
+	// CMDB1___sub_2074CA0
+	private bool IsValidEnvelope()
 	{
 		bool b = true;
 		bool ge = _sample!.WavInfo!.EnvMulti >= 0x7F;
 		bool ee = _sample.WavInfo.EnvMulti == 0x7F;
 		if (_sample.WavInfo.EnvMulti > 0x7F)
 		{
-			ge = _attackVolume >= 0x7F;
-			ee = _attackVolume == 0x7F;
+			ge = _attack >= 0x7F;
+			ee = _attack == 0x7F;
 		}
 		if (!ee & ge
-			&& _attack > 0x7F
+			&& _time > 0x7F
 			&& _decay > 0x7F
 			&& _sustain > 0x7F
 			&& _hold > 0x7F
@@ -229,15 +231,20 @@ internal sealed class DSEChannel
 	}
 	private void DetermineEnvelopeStartingPoint()
 	{
-		State = EnvelopeState.Two; // This isn't actually placed in this func
-		bool atLeastOneThingIsValid = CMDB1___sub_2074CA0(); // Neither is this
+		State = EnvelopeState.Attack; // This isn't actually placed in this func
+		bool atLeastOneThingIsValid = IsValidEnvelope(); // Neither is this
 		if (atLeastOneThingIsValid)
 		{
-			if (_attack != 0)
+			if (_fade != 0)
 			{
-				_velocity = _attackVolume << 23;
+				UpdateEnvelopePlan(0, _fade);
+				State = EnvelopeState.Attack;
+			}
+			if (_time != 0)
+			{
+				_velocity = _attack << 23;
 				State = EnvelopeState.Hold;
-				UpdateEnvelopePlan(0x7F, _attack);
+				UpdateEnvelopePlan(0x7F, _time);
 			}
 			else
 			{
@@ -255,28 +262,30 @@ internal sealed class DSEChannel
 				else
 				{
 					UpdateEnvelopePlan(0, _release);
-					State = EnvelopeState.Six;
+					State = EnvelopeState.Sustain;
 				}
 			}
 			// Unk1E = 1
 		}
-		else if (State != EnvelopeState.One) // What should it be?
+		else if (State != EnvelopeState.PlayNote) // Need to Initialize before it starts the PlayNote state
 		{
-			State = EnvelopeState.Zero;
+			State = EnvelopeState.Initialize;
 			_velocity = 0x7F << 23;
 		}
 	}
-	public void SetEnvelopePhase7_2074ED8()
+
+	// SetEnvelopePhase7_2074ED8
+	public void SetEnvelopeRelease()
 	{
-		if (State != EnvelopeState.Zero)
+		if (State != EnvelopeState.Initialize)
 		{
 			UpdateEnvelopePlan(0, _release);
-			State = EnvelopeState.Seven;
+			State = EnvelopeState.End;
 		}
 	}
 	public int StepEnvelope()
 	{
-		if (State > EnvelopeState.Two)
+		if (State > EnvelopeState.Attack)
 		{
 			if (_envelopeTimeLeft != 0)
 			{
@@ -335,20 +344,20 @@ internal sealed class DSEChannel
 							else
 							{
 								UpdateEnvelopePlan(0, _fade);
-								State = EnvelopeState.Six;
+								State = EnvelopeState.Sustain;
 							}
 							break;
 						}
-					case EnvelopeState.Six:
+					case EnvelopeState.Sustain:
 					LABEL_11:
 						{
 							UpdateEnvelopePlan(0, 0);
-							State = EnvelopeState.Two;
+							State = EnvelopeState.Attack;
 							break;
 						}
-					case EnvelopeState.Seven:
+					case EnvelopeState.End:
 						{
-							State = EnvelopeState.Eight;
+							State = EnvelopeState.Release;
 							_velocity = 0;
 							_envelopeTimeLeft = 0;
 							break;

@@ -75,299 +75,312 @@ internal sealed partial class DSELoadedSong
 				// Pause processing events for duration of last
 				// pause(include Fixed duration pauses). Doesn't silence the track.
 				case 0x90:
-				{
-					track.Rest = track.LastRest;
-					break;
-				}
+					{
+						track.Rest = track.LastRest;
+						break;
+					}
 
 				// Pause for duration of last pause(include Fixed duration pauses) + a signed nb Ticks
 				// Doesn't silence the track.(seen in bgm0021)
 				case 0x91:
-				{
-					track.LastRest = (uint)(track.LastRest + (sbyte)SMDFile[track.CurOffset++]);
-					track.Rest = track.LastRest;
-					break;
-				}
+					{
+						track.LastRest = (uint)(track.LastRest + (sbyte)SMDFile[track.CurOffset++]);
+						track.Rest = track.LastRest;
+						break;
+					}
 
 				// Pause processing events for nb Ticks
 				// Doesn't silence the track.
 				case 0x92:
-				{
-					track.LastRest = SMDFile[track.CurOffset++];
-					track.Rest = track.LastRest;
-					break;
-				}
+					{
+						track.LastRest = SMDFile[track.CurOffset++];
+						track.Rest = track.LastRest;
+						break;
+					}
 
 				// Pause processing events for specified
 				// amount of ticks. (little endian)
 				// Doesn't silence the track.
 				case 0x93:
-				{
-					track.LastRest = (uint)(SMDFile[track.CurOffset++] | (SMDFile[track.CurOffset++] << 8));
-					track.Rest = track.LastRest;
-					break;
-				}
+					{
+						track.LastRest = (uint)(SMDFile[track.CurOffset++] | (SMDFile[track.CurOffset++] << 8));
+						track.Rest = track.LastRest;
+						break;
+					}
 
 				// Pause processing events for specified
 				// amount of ticks. (little endian)
 				// Doesn't silence the track.
 				case 0x94:
-				{
-					track.LastRest = (uint)(SMDFile[track.CurOffset++] | (SMDFile[track.CurOffset++] << 8) | (SMDFile[track.CurOffset++] << 16));
-					track.Rest = track.LastRest;
-					break;
-				}
+					{
+						track.LastRest = (uint)(SMDFile[track.CurOffset++] | (SMDFile[track.CurOffset++] << 8) | (SMDFile[track.CurOffset++] << 16));
+						track.Rest = track.LastRest;
+						break;
+					}
 
 				// Pause until all notes are released! 
 				// It re-checks at the rate specified as param in ticks!
 				// So it will always pause at least "tick_interval" ticks.
 				// (uint8) tick_interval
 				case 0x95:
-				{
-					for (track.TickInterval = SMDFile[track.CurOffset++]; track.TickInterval > 0; track.TickInterval--)
 					{
-						track.LastNoteDuration = track.TickInterval;
+						for (track.TickInterval = SMDFile[track.CurOffset++]; track.TickInterval > 0; track.TickInterval--)
+						{
+							track.LastNoteDuration = track.TickInterval;
+						}
+						break;
 					}
-					break;
-				}
 
 				// Invalid (Disable track)
 				case 0x96:
 
 				// Invalid (Disable track)
 				case 0x97:
-				{
-					track.Stopped = true;
-					break;
-				}
+					{
+						track.Stopped = true;
+						break;
+					}
 
 				// End of track terminator + Filler
 				// Can have a delta-time prefixed.
 				case 0x98:
-				{
-					if (track.LoopOffset == -1)
 					{
-						track.Stopped = true;
+						if (track.LoopOffset == -1)
+						{
+							track.Stopped = true;
+						}
+						else
+						{
+							track.CurOffset = track.LoopOffset;
+						}
+						break;
 					}
-					else
-					{
-						track.CurOffset = track.LoopOffset;
-					}
-					break;
-				}
 
 				// Sets the looping point for the
 				// track.
 				case 0x99:
-				{
-					track.LoopOffset = track.CurOffset;
-					break;
-				}
+					{
+						track.LoopOffset = track.CurOffset;
+						break;
+					}
 
 				// Invalid (Disable track)
 				case 0x9A:
 
 				// Invalid (Disable track)
 				case 0x9B:
-				{
-					track.Stopped = true;
-					break;
-				}
+					{
+						track.Stopped = true;
+						break;
+					}
 
-				// Repeat mark (Segno): (Seen in bgm0113.smd)
+				// Repeat mark (Dal Segno Al Coda): (Seen in bgm0113.smd)
 				// Start of the segment to repeat, when the next event 0x9D is processed. (confirmed ?)
 				// (uint8) nb_repeats
 				case 0x9C:
-				{
-					track.SegnoCommands!.Add(new SongEvent(track.CurOffset + 1, new SegnoCommand { Command = cmd, Repeats = SMDFile[track.CurOffset++] }));
-					break;
-				}
+					{
+						track.DalSegnoCommands!.Add(new SongEvent(track.CurOffset + 1, new DalSegnoAlCodaCommand { Command = cmd, Repeats = SMDFile[track.CurOffset++] }));
+						break;
+					}
 
-				// Repeat from mark (DalSegno):
+				// Repeat from mark (Dal Segno Al Fine):
 				// Repeats the segment starting at the previous event 0x9C, the amount of times specified in event 0x9C. (confirmed ?)
 				case 0x9D:
-				{
-					var segno = (SegnoCommand)track.SegnoCommands![^1].Command;
-					if (segno.Repeats > 0)
 					{
-						segno.Repeats--;
-						track.CurOffset = (int)track.SegnoCommands[^1].Offset;
+						var segno = (DalSegnoAlCodaCommand)track.DalSegnoCommands![^1].Command;
+						if (segno.Repeats > 0)
+						{
+							segno.Repeats--;
+							track.CurOffset = (int)track.DalSegnoCommands[^1].Offset;
+						}
+						else
+						{
+							track.DalSegnoCommands.Remove(track.DalSegnoCommands[^1]);
+							if (track.ToCodaCommand is not null && track.DalSegnoCommands.Capacity is 0)
+							{
+								track.CurOffset = (int)track.ToCodaCommand!.Offset;
+							}
+						}
+						break;
 					}
-					else
-					{
-						track.SegnoCommands.Remove(track.SegnoCommands[^1]);
-					}
-					break;
-				}
 
-				// After repeat mark (to coda):
-				// After the segment has been repeated enough times, it will then jumps to us from the last 0x9D event.(confirmed ?)
+				// After repeat mark (To Coda):
+				// After the segment has been repeated enough times, it will then jump to this from the last 0x9D event.(confirmed ?)
 				case 0x9E:
-				{
-					break;
-				}
+					{
+						break;
+					}
 
 				// Invalid (Disable track)
 				case 0x9F:
-				{
-					track.Stopped = true;
-					break;
-				}
+					{
+						track.Stopped = true;
+						break;
+					}
 
 				// Reset the current pitch to the octave specified.
 				// ( Ex: To play C6, you'd set this to 6, for C4,
 				// you'd set it to 4, and so on! )
 				case 0xA0:
-				{
-					track.Octave = SMDFile[track.CurOffset++];
-					break;
-				}
+					{
+						track.Octave = SMDFile[track.CurOffset++];
+						break;
+					}
 
 				// Adds the value specified to the current track octave.
 				case 0xA1:
-				{
-					track.Octave = (byte)(track.Octave + (sbyte)SMDFile[track.CurOffset++]);
-					break;
-				}
+					{
+						track.Octave = (byte)(track.Octave + (sbyte)SMDFile[track.CurOffset++]);
+						break;
+					}
 
 				// Invalid (Disable track)
 				case 0xA2:
 
 				// Invalid (Disable track)
 				case 0xA3:
-				{
-					track.Stopped = true;
-					break;
-				}
+					{
+						track.Stopped = true;
+						break;
+					}
 
 				// Sets the tempo in BPM. Only on Track#0
 				case 0xA4:
-				{
-					_player.Tempo = SMDFile[track.CurOffset++];
-					break;
-				}
+					{
+						_player.Tempo = SMDFile[track.CurOffset++];
+						break;
+					}
 
 				// Sets the tempo in BPM. Only on Track#0 ?
 				case 0xA5:
-				{
-					_player.Tempo = SMDFile[track.CurOffset++];
-					break;
-				}
+					{
+						_player.Tempo = SMDFile[track.CurOffset++];
+						break;
+					}
 
 				// Invalid (Disable track)
 				case 0xA6:
 
 				// Invalid (Disable track)
 				case 0xA7:
-				{
-					track.Stopped = true;
-					break;
-				}
+					{
+						track.Stopped = true;
+						break;
+					}
 
 				// SetSwdlAndBank (Seen in ev_e09b.sed)
 				case 0xA8:
-				{
-					track.CurOffset += 2;
-					break;
-				}
+					{
+						track.WaveIDIndex = SMDFile[track.CurOffset++];
+						track.BankIDIndex = SMDFile[track.CurOffset++];
+						break;
+					}
 
 				// SetBankHi Sets the bank id high byte
 				// (Value from the file's header at offset 0xF)
 				case 0xA9:
+					{
+						track.BankHi = SMDFile[track.CurOffset++];
+						break;
+					}
 
 				// SetBankLo Sets the bank id low byte
 				// (Value from the file's header at offset 0xE)
 				case 0xAA:
+					{
+						track.BankLo = SMDFile[track.CurOffset++];
+						break;
+					}
 
 				// Skips processing the next byte.
 				case 0xAB:
-				{
-					track.CurOffset++;
-					break;
-				}
+					{
+						track.CurOffset++;
+						break;
+					}
 
 				// Set the current instrument/program.
 				// Program/Instrument IDs are from the associated SWD file.
 				case 0xAC:
-				{
-					track.Voice = SMDFile[track.CurOffset++];
-					break;
-				}
+					{
+						track.Voice = SMDFile[track.CurOffset++];
+						break;
+					}
 
 				// Invalid (Disable track)
 				case 0xAD:
 
 				// Invalid (Disable track)
 				case 0xAE:
-				{
-					track.Stopped = true;
-					break;
-				}
+					{
+						track.Stopped = true;
+						break;
+					}
 
 				// SweepSongVolume
 				case 0xAF:
-				{
-					track.SweepRate = (ushort)(SMDFile[track.CurOffset++] | (SMDFile[track.CurOffset++] << 8));
-					track.SweepPitch = SMDFile[track.CurOffset++];
-					break;
-				}
+					{
+						track.SweepRate = (ushort)(SMDFile[track.CurOffset++] | (SMDFile[track.CurOffset++] << 8));
+						track.SweepPitch = SMDFile[track.CurOffset++];
+						break;
+					}
 
 				// DisableEnvelope
 				case 0xB0:
-				{
-					track.Attack = 0;
-					track.Time = 0;
-					track.Hold = 0;
-					track.Decay = 0;
-					track.Sustain = 0;
-					track.Fade = 0;
-					track.Release = 0;
-					break;
-				}
+					{
+						track.Attack = 0;
+						track.Time = 0;
+						track.Hold = 0;
+						track.Decay = 0;
+						track.Sustain = 0;
+						track.Fade = 0;
+						track.Release = 0;
+						break;
+					}
 
 				// SetEnvelopeAttack
 				case 0xB1:
-				{
-					track.Attack = SMDFile[track.CurOffset++];
-					break;
-				}
+					{
+						track.Attack = SMDFile[track.CurOffset++];
+						break;
+					}
 
 				// SetEnvelopeAttackTime (Seen in ev_e09b.sed)
 				case 0xB2:
-				{
-					track.Time = SMDFile[track.CurOffset++];
-					break;
-				}
+					{
+						track.Time = SMDFile[track.CurOffset++];
+						break;
+					}
 
 				// SetEnvelopeHold
 				case 0xB3:
-				{
-					track.Hold = SMDFile[track.CurOffset++];
-					break;
-				}
+					{
+						track.Hold = SMDFile[track.CurOffset++];
+						break;
+					}
 
 				// SetEnvelopeDecaySustain (Seen in ev_e09b.sed)
 				// (setting either to 0xFF means it won't change it)
 				case 0xB4:
-				{
-					track.Decay = SMDFile[track.CurOffset++];
-					track.Sustain = SMDFile[track.CurOffset++];
-					break;
-				}
+					{
+						track.Decay = SMDFile[track.CurOffset++];
+						track.Sustain = SMDFile[track.CurOffset++];
+						break;
+					}
 
 				// SetEnvelopeFade (Seen in bgm0100.smd)
 				case 0xB5:
-				{
-					track.Fade = SMDFile[track.CurOffset++];
-					break;
-				}
+					{
+						track.Fade = SMDFile[track.CurOffset++];
+						break;
+					}
 
 				// SetEnvelopeRelease
 				case 0xB6:
-				{
-					track.Release = SMDFile[track.CurOffset++];
-					break;
-				}
+					{
+						track.Release = SMDFile[track.CurOffset++];
+						break;
+					}
 
 				// Invalid (Disable track)
 				case 0xB7:
@@ -383,40 +396,40 @@ internal sealed partial class DSELoadedSong
 
 				// Invalid (Disable track)
 				case 0xBB:
-				{
-					track.Stopped = true;
-					break;
-				}
+					{
+						track.Stopped = true;
+						break;
+					}
 
 				// SetNoteVolume (? Does he means velocity, aftertouch, or something else?)
 				case 0xBC:
-				{
-					track.NoteVolume = SMDFile[track.CurOffset++];
-					break;
-				}
+					{
+						track.NoteVolume = SMDFile[track.CurOffset++];
+						break;
+					}
 
 				// Invalid (Disable track)
 				case 0xBD:
-				{
-					track.Stopped = true;
-					break;
-				}
+					{
+						track.Stopped = true;
+						break;
+					}
 
 				// SetChannelPan: Set the pan at the CHANNEL level.
 				// (seen in last 3 tracks of bgm0048.smd)
 				case 0xBE:
-				{
-					track.ChannelPanpot = SMDFile[track.CurOffset++];
-					break;
-				}
+					{
+						track.ChannelPanpot = SMDFile[track.CurOffset++];
+						break;
+					}
 
 				// SetFlag0 (note by coda : sets or clears flag bit 0)
 				case 0xBF:
-				{
-					track.FlagEnded = false;
-					track.FlagValue = SMDFile[track.CurOffset++];
-					break;
-				}
+					{
+						track.FlagEnded = false;
+						track.FlagValue = SMDFile[track.CurOffset++];
+						break;
+					}
 
 				// SetFlag1 (note by coda: sets flag bit 1)
 				case 0xC0:
@@ -430,17 +443,17 @@ internal sealed partial class DSELoadedSong
 
 				// Invalid (Disable track)
 				case 0xC2:
-				{
-					track.Stopped = true;
-					break;
-				}
+					{
+						track.Stopped = true;
+						break;
+					}
 
 				// SetChannelVolume: Set the volume at the CHANNEL level(used in inazuma eleven a lot)
 				case 0xC3:
-				{
-					track.ChannelVolume = SMDFile[track.CurOffset++];
-					break;
-				}
+					{
+						track.ChannelVolume = SMDFile[track.CurOffset++];
+						break;
+					}
 
 				// Invalid (Disable track)
 				case 0xC4:
@@ -462,17 +475,17 @@ internal sealed partial class DSELoadedSong
 
 				// Invalid (Disable track)
 				case 0xCA:
-				{
-					track.Stopped = true;
-					break;
-				}
+					{
+						track.Stopped = true;
+						break;
+					}
 
 				// Skip Next 2 bytes. Seen in Professor Layton and the Last Specter, BGM_10.SMD
 				case 0xCB:
-				{
-					track.CurOffset += 2;
-					break;
-				}
+					{
+						track.CurOffset += 2;
+						break;
+					}
 
 				// Invalid (Disable track)
 				case 0xCC:
@@ -485,24 +498,24 @@ internal sealed partial class DSELoadedSong
 
 				// Invalid (Disable track)
 				case 0xCF:
-				{
-					track.Stopped = true;
-					break;
-				}
+					{
+						track.Stopped = true;
+						break;
+					}
 
 				// SetFineTune (Seen in bgm0100.smd)
 				case 0xD0:
-				{
-					track.FineTune = SMDFile[track.CurOffset++];
-					break;
-				}
+					{
+						track.FineTune = SMDFile[track.CurOffset++];
+						break;
+					}
 
 				// AddToFineTune (Seen in bgm0113.smd)
 				case 0xD1:
-				{
-					track.FineTuneAdd = SMDFile[track.CurOffset++];
-					break;
-				}
+					{
+						track.FineTuneAdd = SMDFile[track.CurOffset++];
+						break;
+					}
 
 				// SetCoarseTune (Seen in bgm0116.smd)
 				case 0xD2:
@@ -513,59 +526,59 @@ internal sealed partial class DSELoadedSong
 
 				// AddToCoarseTune (Seen in bgm0116.smd) (That seems wrong because setcoarsetune param is smaller than this one)
 				case 0xD3:
-				{
-					track.CoarseTuneAdd = (ushort)(SMDFile[track.CurOffset++] | (SMDFile[track.CurOffset++] << 8));
-					break;
-				}
+					{
+						track.CoarseTuneAdd = (ushort)(SMDFile[track.CurOffset++] | (SMDFile[track.CurOffset++] << 8));
+						break;
+					}
 
 				// SweepTune (Seen in ev_e09b.sed)
 				case 0xD4:
-				{
-					track.SweepRate = (ushort)(SMDFile[track.CurOffset++] | (SMDFile[track.CurOffset++] << 8));
-					track.SweepTuneTarget = SMDFile[track.CurOffset++];
-					break;
-				}
+					{
+						track.SweepTuneRate = (ushort)(SMDFile[track.CurOffset++] | (SMDFile[track.CurOffset++] << 8));
+						track.SweepTuneTarget = SMDFile[track.CurOffset++];
+						break;
+					}
 
 				// SetRandomNoteRange
 				case 0xD5:
-				{
-					track.RandomNoteRangeMin = SMDFile[track.CurOffset++];
-					track.RandomNoteRangeMax = SMDFile[track.CurOffset++];
-					break;
-				}
+					{
+						track.RandomNoteRangeMin = SMDFile[track.CurOffset++];
+						track.RandomNoteRangeMax = SMDFile[track.CurOffset++];
+						break;
+					}
 
 				// SetDetuneRange: random detune (Seen in bgm0101.smd)
 				case 0xD6:
-				{
-					track.DetuneRange = (ushort)(SMDFile[track.CurOffset++] | (SMDFile[track.CurOffset++] << 8));
-					break;
-				}
+					{
+						track.DetuneRange = (ushort)(SMDFile[track.CurOffset++] | (SMDFile[track.CurOffset++] << 8));
+						break;
+					}
 
 				// Pitch bend. Works the same as the MIDI event 0xE0 Pitch Wheel.
 				// The uint16 is stored in big endian order.
 				// 500 == 1 semitone. Negative val, means increase pitch, positive the opposite.
 				case 0xD7:
-				{
-					track.PitchBend = (ushort)(SMDFile[track.CurOffset++] | (SMDFile[track.CurOffset++] << 8));
-					break;
-				}
+					{
+						track.PitchBend = (ushort)(SMDFile[track.CurOffset++] | (SMDFile[track.CurOffset++] << 8));
+						break;
+					}
 
 				// SetParam (note by coda: modifies an unused parameter)
 				case 0xD8:
-				{
-					track.CurOffset += 2;
-					break;
-				}
+					{
+						track.CurOffset += 2;
+						break;
+					}
 
 				// Invalid (Disable track)
 				case 0xD9:
 
 				// Invalid (Disable track)
 				case 0xDA:
-				{
-					track.Stopped = true;
-					break;
-				}
+					{
+						track.Stopped = true;
+						break;
+					}
 
 				// SetPitchBendRange: In semitones (Used in bgm0000, and bgm0134 (Value usually range between 0,2,4,7,12,24))
 				case 0xDB:
@@ -576,24 +589,24 @@ internal sealed partial class DSELoadedSong
 
 				// ReplaceLFO1AsPitch (Seen in ev_e09b.sed)
 				case 0xDC:
-				{
-					track.CurOffset += 5;
-					break;
-				}
+					{
+						track.CurOffset += 5;
+						break;
+					}
 
 				// SetLFO1DelayFade (Seen in ev_e09b.sed)
 				case 0xDD:
-				{
-					track.CurOffset += 4;
-					break;
-				}
+					{
+						track.CurOffset += 4;
+						break;
+					}
 
 				// Invalid (Disable track)
 				case 0xDE:
-				{
-					track.Stopped = true;
-					break;
-				}
+					{
+						track.Stopped = true;
+						break;
+					}
 
 				// SetLFO1ToPitchEnabled: (Used in bgm0000)
 				// If true, turns on LFO1 and connects it to pitch. If false, disables LFO1
@@ -606,10 +619,10 @@ internal sealed partial class DSELoadedSong
 
 				// Track volume, similar to GM CC#7.
 				case 0xE0:
-				{
-					track.Volume = SMDFile[track.CurOffset++];
-					break;
-				}
+					{
+						track.Volume = SMDFile[track.CurOffset++];
+						break;
+					}
 
 				// AddToTrackVol
 				case 0xE1:
@@ -632,31 +645,31 @@ internal sealed partial class DSELoadedSong
 				// dynamic range of instruments
 				// when changing track volume!
 				case 0xE3:
-				{
-					track.Expression = SMDFile[track.CurOffset++];
-					break;
-				}
+					{
+						track.Expression = SMDFile[track.CurOffset++];
+						break;
+					}
 
 				// ReplaceLFO2AsVolume
 				case 0xE4:
-				{
-					track.CurOffset += 5;
-					break;
-				}
+					{
+						track.CurOffset += 5;
+						break;
+					}
 
 				// SetLFO2DelayFade
 				case 0xE5:
-				{
-					track.CurOffset += 4;
-					break;
-				}
+					{
+						track.CurOffset += 4;
+						break;
+					}
 
 				// Invalid (Disable track)
 				case 0xE6:
-				{
-					track.Stopped = true;
-					break;
-				}
+					{
+						track.Stopped = true;
+						break;
+					}
 
 				// SetLFO2ToVolumeEnabled:
 				// If true, turns on LFO2 and connects it to volume. If false, disables LFO2.
@@ -672,10 +685,10 @@ internal sealed partial class DSELoadedSong
 				// 0x40 == Middle
 				// 0x80 == Full Right
 				case 0xE8:
-				{
-					track.Panpot = (sbyte)(SMDFile[track.CurOffset++] - 0x40);
-					break;
-				}
+					{
+						track.Panpot = (sbyte)(SMDFile[track.CurOffset++] - 0x40);
+						break;
+					}
 
 				// AddToPan
 				case 0xE9:
@@ -694,31 +707,31 @@ internal sealed partial class DSELoadedSong
 
 				// Invalid (Disable track)
 				case 0xEB:
-				{
-					track.Stopped = true;
-					break;
-				}
+					{
+						track.Stopped = true;
+						break;
+					}
 
 				// ReplaceLFO3AsPan (Seen in ev_e09b.sed)
 				case 0xEC:
-				{
-					track.CurOffset += 5;
-					break;
-				}
+					{
+						track.CurOffset += 5;
+						break;
+					}
 
 				// SetLFO3DelayFade (Seen in ev_e09b.sed)
 				case 0xED:
-				{
-					track.CurOffset += 4;
-					break;
-				}
+					{
+						track.CurOffset += 4;
+						break;
+					}
 
 				// Invalid (Disable track)
 				case 0xEE:
-				{
-					track.Stopped = true;
-					break;
-				}
+					{
+						track.Stopped = true;
+						break;
+					}
 
 				// SetLFO3ToPanEnabled: (Seen in ev_e09b.sed)
 				// If true, turns on LFO3 and connects it to pan. If false, disables LFO3.
@@ -734,74 +747,74 @@ internal sealed partial class DSELoadedSong
 				// LFO delay and LFO fade time are set to 0.
 				// *For waveform ids see "LFO Waveforms IDs" below
 				case 0xF0:
-				{
-					track.LFORate = (ushort)(SMDFile[track.CurOffset++] | (SMDFile[track.CurOffset++] << 8));
-					track.LFODepth = (ushort)(SMDFile[track.CurOffset++] | (SMDFile[track.CurOffset++] << 8));
-					track.LFOWaveID = SMDFile[track.CurOffset++];
-					break;
-				}
+					{
+						track.LFORate = (ushort)(SMDFile[track.CurOffset++] | (SMDFile[track.CurOffset++] << 8));
+						track.LFODepth = (ushort)(SMDFile[track.CurOffset++] | (SMDFile[track.CurOffset++] << 8));
+						track.LFOWaveID = SMDFile[track.CurOffset++];
+						break;
+					}
 
 				// SetLFODelayFade: (Seen in ev_e09b.sed)
 				case 0xF1:
-				{
-					track.LFODelay = (ushort)(SMDFile[track.CurOffset++] | (SMDFile[track.CurOffset++] << 8));
-					track.LFOFadeTime = (ushort)(SMDFile[track.CurOffset++] | (SMDFile[track.CurOffset++] << 8));
-					break;
-				}
+					{
+						track.LFODelay = (ushort)(SMDFile[track.CurOffset++] | (SMDFile[track.CurOffset++] << 8));
+						track.LFOFadeTime = (ushort)(SMDFile[track.CurOffset++] | (SMDFile[track.CurOffset++] << 8));
+						break;
+					}
 
 				// SetLFOParam: (Seen in ev_e09b.sed)
 				// 
 				// *For parameter ids see "LFO Parameter IDs" below
 				// *For waveform ids see "LFO Waveforms IDs" below
 				case 0xF2:
-				{
-					track.LFOParamID = SMDFile[track.CurOffset++];
-					track.LFOParamWaveID = SMDFile[track.CurOffset++];
-					break;
-				}
+					{
+						track.LFOParamID = SMDFile[track.CurOffset++];
+						track.LFOParamWaveID = SMDFile[track.CurOffset++];
+						break;
+					}
 
 				// SetLFORoute (Seen in ev_e09b.sed)
 				// 
 				// *For target ids see "LFO Target IDs" below
 				case 0xF3:
-				{
-					track.LFOTarget = SMDFile[track.CurOffset++];
-					track.LFOEnabled = SMDFile[track.CurOffset] is 0 || SMDFile[track.CurOffset] is 1;
-					track.CurOffset++;
-					track.LFOTargetID = SMDFile[track.CurOffset++];
-					break;
-				}
+					{
+						track.LFOTarget = SMDFile[track.CurOffset++];
+						track.LFOEnabled = SMDFile[track.CurOffset] is 0 || SMDFile[track.CurOffset] is 1;
+						track.CurOffset++;
+						track.LFOTargetID = SMDFile[track.CurOffset++];
+						break;
+					}
 
 				// Invalid (Disable track)
 				case 0xF4:
 
 				// Invalid (Disable track)
 				case 0xF5:
-				{
-					track.Stopped = true;
-					break;
-				}
+					{
+						track.Stopped = true;
+						break;
+					}
 
 				// Unknown(Seen in bgm0001.smd) param value is usually between 0x0-0xf Seems to be used to sync music and script engine scene!
 				case 0xF6:
-				{
-					track.CurOffset++;
-					break;
-				}
+					{
+						track.CurOffset++;
+						break;
+					}
 
 				// Invalid (Disable track)
 				case 0xF7:
-				{
-					track.Stopped = true;
-					break;
-				}
+					{
+						track.Stopped = true;
+						break;
+					}
 
 				// Skips processing next 2 bytes.
 				case 0xF8:
-				{
-					track.CurOffset += 2;
-					break;
-				}
+					{
+						track.CurOffset += 2;
+						break;
+					}
 
 				// Invalid (Disable track)
 				case 0xF9:
@@ -823,10 +836,10 @@ internal sealed partial class DSELoadedSong
 
 				// Invalid (Disable track)
 				case 0xFF:
-				{
-					track.Stopped = true;
-					break;
-				}
+					{
+						track.Stopped = true;
+						break;
+					}
 
 				default: throw new DSEInvalidCMDException(track.Index, track.CurOffset - 1, cmd);
 			}

@@ -2,6 +2,7 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Text;
 
 namespace Kermalis.VGMusicStudio.Core.Formats;
 
@@ -10,6 +11,15 @@ namespace Kermalis.VGMusicStudio.Core.Formats;
 //      https://github.com/naudio/NAudio/blob/master/NAudio.Core/Wave/WaveProviders/BufferedWaveProvider.cs
 //      https://github.com/naudio/NAudio/blob/master/NAudio.Core/Utils/CircularBuffer.cs
 // NAudio License (MIT) - https://github.com/naudio/NAudio/blob/master/license.txt
+
+
+public enum BufferState
+{
+    Idle,
+    Reading,
+    Writing
+}
+
 public class Wave
 {
     public string? FileName;
@@ -23,6 +33,8 @@ public class Wave
     public uint LoopStart;
     public uint LoopEnd;
 
+    public BufferState BufferState { get; protected set; }
+
     public bool DiscardOnBufferOverflow { get; set; }
     public int BufferLength;
 
@@ -35,8 +47,10 @@ public class Wave
     private long DataChunkSize;
     private long DataChunkLength;
     private long DataChunkPosition;
-    private readonly Stream? InStream;
-    private readonly Stream? OutStream;
+    private Stream? InStream;
+    private Stream? OutStream;
+    private EndianBinaryReader? Reader;
+    private EndianBinaryWriter? Writer;
 
     public long Position
     {
@@ -80,16 +94,26 @@ public class Wave
         }
     }
 
-    public Wave()
+    public void CreateStream()
     {
         InStream = new MemoryStream();
         OutStream = new MemoryStream();
     }
-    public Wave(string fileName)
+
+    public void CreateInStream()
     {
         InStream = new MemoryStream();
+    }
+
+    public void CreateOutStream()
+    {
         OutStream = new MemoryStream();
-        FileName = fileName;
+    }
+
+    public void CreateFileStream(string fileName)
+    {
+        OutStream = new FileStream(fileName, FileMode.Create, FileAccess.Write, FileShare.Read);
+        Writer = new EndianBinaryWriter(OutStream, ascii: true);
     }
 
     public Wave CreateFormat(uint sampleRate, ushort channels, ushort blockAlign, uint averageBytesPerSecond, ushort bitsPerSample)
@@ -108,12 +132,14 @@ public class Wave
     {
         if (Engine.Instance!.Player.State == PlayerState.Playing)
         {
+            BufferState = BufferState.Writing;
             Buffer ??= new byte[BufferLength];
 
             if (WriteBuffer(buffer, offset, count) < count && !DiscardOnBufferOverflow)
             {
                 throw new InvalidOperationException("The buffer is full and cannot be written to.");
             }
+            BufferState = BufferState.Idle;
         }
     }
 
@@ -440,5 +466,53 @@ public class Wave
 
             return waveData;
         }
+    }
+    protected virtual void WriteHeader(EndianBinaryWriter writer)
+    {
+        // Make sure the stream is at position 0 before writing the header
+        Writer!.Stream.Position = 0;
+
+        // Creating the RIFF Wave headers
+        writer.WriteChars("RIFF");
+        writer.WriteUInt32((uint)(DataChunkSize + 44));
+        writer.WriteChars("WAVE");
+        writer.WriteChars("fmt ");
+        writer.WriteUInt32((uint)(18 + ExtraSize));
+        writer.WriteInt16((short)WaveEncoding.Pcm16);
+        writer.WriteInt16((short)Channels);
+        writer.WriteUInt32(SampleRate);
+        writer.WriteUInt32(AverageBytesPerSecond);
+        writer.WriteInt16((short)BlockAlign);
+        writer.WriteInt16((short)BitsPerSample);
+        writer.WriteUInt16(ExtraSize);
+        writer.WriteChars("data");
+        writer.WriteUInt32((uint)DataChunkSize);
+    }
+
+    internal void Dispose(bool disposing)
+    {
+        if (disposing && OutStream != null)
+        {
+            try
+            {
+                WriteHeader(Writer!);
+            }
+            finally
+            {
+                Writer = null!;
+                OutStream.Dispose();
+                OutStream = null;
+            }
+        }
+        if (disposing && InStream != null)
+        {
+            InStream.Dispose();
+            InStream = null;
+        }
+    }
+
+    ~Wave()
+    {
+        Dispose(disposing: false);
     }
 }

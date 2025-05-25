@@ -8,12 +8,14 @@ namespace Kermalis.VGMusicStudio.Core.NDS.DSE;
 
 public sealed class DSEConfig : Config
 {
+	public readonly string MainSWDFile;
 	public readonly string SMDPath;
 	public readonly string[] SMDFiles;
 	internal SMD.Header? Header;
 
-	internal DSEConfig(string smdPath, bool useNewUI)
+	internal DSEConfig(string mainSWDFile, string smdPath, bool useNewUI)
 	{
+		MainSWDFile = mainSWDFile;
 		SMDPath = smdPath;
 		SMDFiles = Directory.GetFiles(smdPath, "*.smd", SearchOption.TopDirectoryOnly);
 		Array.Sort(SMDFiles);
@@ -66,6 +68,12 @@ public sealed class DSEConfig : Config
 		return "DSE";
 	}
 	public override string GetSongName(int index)
+	{
+		return index < 0 || index >= SMDFiles.Length
+			? index.ToString()
+			: SMDFiles[index].Split("/")[^1].Remove(SMDFiles[index].Split("/")[^1].LastIndexOf('.'));
+	}
+	public string GetSongPath(int index)
 	{
 		return index < 0 || index >= SMDFiles.Length
 			? index.ToString()

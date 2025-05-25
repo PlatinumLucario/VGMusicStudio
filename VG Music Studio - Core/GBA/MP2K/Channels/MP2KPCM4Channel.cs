@@ -11,23 +11,11 @@ internal sealed class MP2KPCM4Channel : MP2KPSGChannel
 	{
 		_sample = new float[0x20];
 	}
-	public MP2KPCM4Channel(MP2KMixer_NAudio mixer)
-		: base(mixer)
-	{
-		_sample = new float[0x20];
-	}
 	public void Init(MP2KTrack owner, NoteInfo note, ADSR env, int instPan, int sampleOffset)
 	{
 		Init(owner, note, env, instPan);
-		if (Engine.Instance!.UseNewMixer)
-        {
-            MP2KUtils.PCM4ToFloat(_mixer!.Config.ROM.AsSpan(sampleOffset), _sample);
-        }
-        else
-        {
-            MP2KUtils.PCM4ToFloat(_mixer_NAudio!.Config.ROM.AsSpan(sampleOffset), _sample);
-        }
-    }
+		MP2KUtils.PCM4ToFloat(_mixer!.Config.ROM.AsSpan(sampleOffset), _sample);
+	}
 
 	public override void SetPitch(int pitch)
 	{
@@ -47,16 +35,8 @@ internal sealed class MP2KPCM4Channel : MP2KPSGChannel
 
 		int bufPos = 0;
 		int samplesPerBuffer;
-		if (Engine.Instance!.UseNewMixer)
-		{
-			interStep = _frequency * _mixer!.SampleRateReciprocal;
-			samplesPerBuffer = _mixer!.SamplesPerBuffer;
-		}
-		else
-		{
-			interStep = _frequency * _mixer_NAudio!.SampleRateReciprocal;
-			samplesPerBuffer = _mixer_NAudio!.SamplesPerBuffer;
-		}
+		interStep = _frequency * _mixer!.SampleRateReciprocal;
+		samplesPerBuffer = _mixer!.SamplesPerBuffer;
 		do
 		{
 			float samp = _sample[_pos];

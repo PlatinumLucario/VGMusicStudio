@@ -57,6 +57,7 @@ internal sealed class MainForm : ThemedForm
 
 	private MainForm()
 	{
+		Mixer.PlaybackBackend = Mixer.AudioBackend.NAudio;
 		PianoTracks = new bool[SongState.MAX_TRACKS];
 		for (int i = 0; i < SongState.MAX_TRACKS; i++)
 		{
@@ -334,7 +335,7 @@ internal sealed class MainForm : ThemedForm
 		DisposeEngine();
 		try
 		{
-			_ = new MP2KEngine(File.ReadAllBytes(inFile), false);
+			_ = new MP2KEngine(File.ReadAllBytes(inFile));
 		}
 		catch (Exception ex)
 		{
@@ -752,7 +753,7 @@ internal sealed class MainForm : ThemedForm
 	}
 	private void VolumeBar_ValueChanged(object? sender, EventArgs e)
 	{
-		Engine.Instance!.Mixer_NAudio!.SetVolume(_volumeBar.Value / (float)_volumeBar.Maximum);
+		Engine.Instance!.Mixer.SetVolume(_volumeBar.Value / (float)_volumeBar.Maximum);
 	}
 	private void PositionBar_MouseUp(object? sender, MouseEventArgs e)
 	{

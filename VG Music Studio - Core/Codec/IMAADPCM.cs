@@ -55,6 +55,10 @@ internal struct IMAADPCM
 
 	public short GetSample()
 	{
+		if (DataOffset >= _data.Length)
+		{
+			return 0;
+		}
 		int val = (_data[DataOffset] >> (OnSecondNibble ? 4 : 0)) & 0xF;
 		short step = StepTable[StepIndex];
 		int diff =

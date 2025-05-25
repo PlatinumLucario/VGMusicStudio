@@ -1,6 +1,7 @@
 ﻿using Kermalis.VGMusicStudio.Core.Util;
 using Kermalis.VGMusicStudio.Core.Formats;
 using System;
+using NAudio.Wave;
 
 namespace Kermalis.VGMusicStudio.Core.GBA.AlphaDream;
 
@@ -15,9 +16,22 @@ public sealed class AlphaDreamMixer : Mixer
 	private float _fadeStepPerMicroframe;
 
 	public readonly AlphaDreamConfig Config;
-	private readonly Audio _audio;
 	private readonly float[][] _trackBuffers = new float[AlphaDreamPlayer.NUM_TRACKS][];
-	private readonly Wave _buffer;
+	private readonly AudioBackend AlphaDreamPlaybackBackend;
+
+	#region PortAudio Fields
+	// PortAudio Fields
+	private readonly Audio? _audioPortAudio;
+	private readonly Wave? _bufferPortAudio;
+	#endregion
+
+	#region NAudio Fields
+	// NAudio Fields
+	private readonly WaveBuffer? _audioNAudio;
+	private readonly BufferedWaveProvider? _bufferNAudio;
+	#endregion
+
+	protected override WaveFormat WaveFormat => _bufferNAudio!.WaveFormat;
 
 	internal AlphaDreamMixer(AlphaDreamConfig config)
 	{
@@ -28,19 +42,42 @@ public sealed class AlphaDreamMixer : Mixer
 		_samplesReciprocal = 1f / SamplesPerBuffer;
 
 		int amt = SamplesPerBuffer * 2;
-		_audio = new Audio(amt * sizeof(float)) { Float32BufferCount = amt };
 		for (int i = 0; i < AlphaDreamPlayer.NUM_TRACKS; i++)
 		{
 			_trackBuffers[i] = new float[amt];
 		}
-		_buffer = new Wave()
+		AlphaDreamPlaybackBackend = PlaybackBackend;
+		switch (PlaybackBackend)
 		{
-			DiscardOnBufferOverflow = true,
-			BufferLength = SamplesPerBuffer * 64
-		};
-		_buffer.CreateIeeeFloatWave(sampleRate, 2); // TODO
+			case AudioBackend.PortAudio:
+				{
+					_audioPortAudio = new Audio(amt * sizeof(float)) { Float32BufferCount = amt };
+					_bufferPortAudio = new Wave()
+					{
+						DiscardOnBufferOverflow = true,
+						BufferLength = SamplesPerBuffer * 64
+					};
+					_bufferPortAudio.CreateIeeeFloatWave(sampleRate, 2); // TODO
 
-		Init(_buffer);
+					Init(waveData: _bufferPortAudio);
+					break;
+				}
+			case AudioBackend.NAudio:
+				{
+					_audioNAudio = new WaveBuffer(amt * sizeof(float)) { FloatBufferCount = amt };
+					for (int i = 0; i < AlphaDreamPlayer.NUM_TRACKS; i++)
+					{
+						_trackBuffers[i] = new float[amt];
+					}
+					_bufferNAudio = new BufferedWaveProvider(WaveFormat.CreateIeeeFloatWaveFormat(sampleRate, 2)) // TODO
+					{
+						DiscardOnBufferOverflow = true,
+						BufferLength = SamplesPerBuffer * 64
+					};
+					Init(waveProvider: _bufferNAudio);
+					break;
+				}
+		}
 	}
 
 	internal void BeginFadeIn()
@@ -73,7 +110,19 @@ public sealed class AlphaDreamMixer : Mixer
 
 	internal void Process(AlphaDreamTrack[] tracks, bool output, bool recording)
 	{
-		_audio.Clear();
+		switch (AlphaDreamPlaybackBackend)
+		{
+			case AudioBackend.PortAudio:
+				{
+					_audioPortAudio!.Clear();
+					break;
+				}
+			case AudioBackend.NAudio:
+				{
+					_audioNAudio!.Clear();
+					break;
+				}
+		}
 		float masterStep;
 		float masterLevel;
 		if (_isFading && _fadeMicroFramesLeft == 0)
@@ -110,18 +159,55 @@ public sealed class AlphaDreamMixer : Mixer
 			track.Channel.Process(buf);
 			for (int j = 0; j < SamplesPerBuffer; j++)
 			{
-				_audio.Float32Buffer![j * 2] += buf[j * 2] * level;
-				_audio.Float32Buffer[(j * 2) + 1] += buf[(j * 2) + 1] * level;
+				switch (AlphaDreamPlaybackBackend)
+				{
+					case AudioBackend.PortAudio:
+						{
+							_audioPortAudio!.Float32Buffer![j * 2] += buf[j * 2] * level;
+							_audioPortAudio.Float32Buffer[(j * 2) + 1] += buf[(j * 2) + 1] * level;
+							break;
+						}
+					case AudioBackend.NAudio:
+						{
+							_audioNAudio!.FloatBuffer![j * 2] += buf[j * 2] * level;
+							_audioNAudio.FloatBuffer[(j * 2) + 1] += buf[(j * 2) + 1] * level;
+							break;
+						}
+				}
 				level += masterStep;
 			}
 		}
 		if (output)
 		{
-			_buffer.AddSamples(_audio.ByteBuffer, 0, _audio.ByteBufferCount);
+			switch (AlphaDreamPlaybackBackend)
+			{
+				case AudioBackend.PortAudio:
+					{
+						_bufferPortAudio!.AddSamples(_audioPortAudio!.ByteBuffer, 0, _audioPortAudio.ByteBufferCount);
+						break;
+					}
+				case AudioBackend.NAudio:
+					{
+						_bufferNAudio!.AddSamples(_audioNAudio!.ByteBuffer, 0, _audioNAudio.ByteBufferCount);
+						break;
+					}
+			}
 		}
 		if (recording)
 		{
-			_waveWriter!.Write(_audio.ByteBuffer, 0, _audio.ByteBufferCount);
+			switch (AlphaDreamPlaybackBackend)
+			{
+				case AudioBackend.PortAudio:
+					{
+						_waveWriterPortAudio!.Write(_audioPortAudio!.ByteBuffer, 0, _audioPortAudio.ByteBufferCount);
+						break;
+					}
+				case AudioBackend.NAudio:
+					{
+						_waveWriterNAudio!.Write(_audioNAudio!.ByteBuffer, 0, _audioNAudio.ByteBufferCount);
+						break;
+					}
+			}
 		}
 	}
 }

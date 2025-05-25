@@ -133,6 +133,12 @@
   <data name="FilterSaveMIDI" xml:space="preserve">
     <value>MIDI Format (*.mid, *.midi)</value>
   </data>
+  <data name="MenuEdit" xml:space="preserve">
+    <value>Edit</value>
+  </data>
+  <data name="MenuPreferences" xml:space="preserve">
+    <value>Preferences</value>
+  </data>
   <data name="MenuData" xml:space="preserve">
     <value>Data</value>
   </data>

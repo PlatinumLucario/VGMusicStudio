@@ -11,11 +11,6 @@ internal sealed class MP2KSquareChannel : MP2KPSGChannel
 	{
 		_pat = null!;
 	}
-	public MP2KSquareChannel(MP2KMixer_NAudio mixer)
-		: base(mixer)
-	{
-		_pat = null!;
-	}
 	public void Init(MP2KTrack owner, NoteInfo note, ADSR env, int instPan, SquarePattern pattern)
 	{
 		Init(owner, note, env, instPan);
@@ -46,16 +41,8 @@ internal sealed class MP2KSquareChannel : MP2KPSGChannel
 
 		int bufPos = 0;
 		int samplesPerBuffer;
-		if (Engine.Instance!.UseNewMixer)
-		{
-			interStep = _frequency * _mixer!.SampleRateReciprocal;
-			samplesPerBuffer = _mixer!.SamplesPerBuffer;
-		}
-		else
-		{
-			interStep = _frequency * _mixer_NAudio!.SampleRateReciprocal;
-			samplesPerBuffer = _mixer_NAudio!.SamplesPerBuffer;
-		}
+		interStep = _frequency * _mixer!.SampleRateReciprocal;
+		samplesPerBuffer = _mixer!.SamplesPerBuffer;
 		do
 		{
 			float samp = _pat[_pos];

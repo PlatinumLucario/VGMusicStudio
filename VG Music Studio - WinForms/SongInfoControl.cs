@@ -116,10 +116,7 @@ internal sealed class SongInfoControl : Control
 			{
 				if (_mutes[i] == check)
 				{
-					if (Engine.Instance!.UseNewMixer)
-						Engine.Instance!.Mixer.Mutes[i] = !check.Checked;
-					else
-						Engine.Instance!.Mixer_NAudio.Mutes[i] = !check.Checked;
+					Engine.Instance!.Mixer.Mutes[i] = !check.Checked;
 				}
 				if (_mutes[i].Checked)
 				{

@@ -181,7 +181,7 @@ internal sealed partial class DSELoadedSong
 							byte repeats = r.ReadByte();
 							if (!EventExists(trackIndex, cmdOffset))
 							{
-								AddEvent(trackIndex, cmdOffset, new SegnoCommand { Command = cmd, Repeats = repeats });
+								AddEvent(trackIndex, cmdOffset, new DalSegnoAlCodaCommand { Command = cmd, Repeats = repeats });
 							}
 							break;
 						}
@@ -189,7 +189,7 @@ internal sealed partial class DSELoadedSong
 						{
 							if (!EventExists(trackIndex, cmdOffset))
 							{
-								AddEvent(trackIndex, cmdOffset, new DalSegnoCommand { Command = cmd });
+								AddEvent(trackIndex, cmdOffset, new DalSegnoAlFineCommand { Command = cmd });
 							}
 							break;
 						}
@@ -197,7 +197,8 @@ internal sealed partial class DSELoadedSong
 						{
 							if (!EventExists(trackIndex, cmdOffset))
 							{
-								AddEvent(trackIndex, cmdOffset, new UnknownCommand { Command = cmd });
+								AddEvent(trackIndex, cmdOffset, new ToCodaCommand { Command = cmd });
+								Tracks[trackIndex].ToCodaCommand = new SongEvent(cmdOffset, new ToCodaCommand { Command = cmd });
 							}
 							break;
 						}

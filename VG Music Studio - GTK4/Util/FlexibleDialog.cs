@@ -85,9 +85,9 @@ internal sealed class FlexibleDialog
 		ru
 	}
 
-	public static void Show(Exception ex, string caption)
+	public static void Show(Exception ex, string heading)
 	{
-		Show(string.Empty, caption, ButtonsType.OK, Gtk.MessageType.Other, DefaultButton.Third, ex);
+		Show(string.Empty, heading, ButtonsType.OK, Gtk.MessageType.Other, DefaultButton.Third, ex);
 	}
 	public static void Show(string text, string heading = "", ButtonsType buttonsType = ButtonsType.OK, Gtk.MessageType icon = Gtk.MessageType.Other, DefaultButton defaultButton = DefaultButton.First, Exception ex = null!, Window? parent = null)
 	{

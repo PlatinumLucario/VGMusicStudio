@@ -20,11 +20,6 @@ internal abstract class MP2KPSGChannel : MP2KChannel
 	{
 		//
 	}
-	public MP2KPSGChannel(MP2KMixer_NAudio mixer)
-		: base(mixer)
-	{
-		//
-	}
 	protected void Init(MP2KTrack owner, NoteInfo note, ADSR env, int instPan)
 	{
 		State = EnvelopeState.Initializing;
@@ -161,127 +156,127 @@ internal abstract class MP2KPSGChannel : MP2KChannel
 		switch (State)
 		{
 			case EnvelopeState.Initializing:
-			{
-				_nextState = EnvelopeState.Rising;
-				_processStep = 0;
-				if ((_adsr.A | _adsr.D) == 0 || (_sustainVelocity == 0 && _peakVelocity == 0))
 				{
-					State = EnvelopeState.Playing;
-					_velocity = _sustainVelocity;
-					return;
-				}
-				else if (_adsr.A == 0 && _adsr.S < 0xF)
-				{
-					State = EnvelopeState.Decaying;
-					int next = _peakVelocity - 1;
-					if (next < 0)
-					{
-						next = 0;
-					}
-					_velocity = (byte)next;
-					if (_velocity < _sustainVelocity)
-					{
-						_velocity = _sustainVelocity;
-					}
-					return;
-				}
-				else if (_adsr.A == 0)
-				{
-					State = EnvelopeState.Playing;
-					_velocity = _sustainVelocity;
-					return;
-				}
-				else
-				{
-					State = EnvelopeState.Rising;
-					_velocity = 1;
-					return;
-				}
-			}
-			case EnvelopeState.Rising:
-			{
-				if (++_processStep >= _adsr.A)
-				{
-					if (_nextState == EnvelopeState.Decaying)
-					{
-						State = EnvelopeState.Decaying;
-						dec(); return;
-					}
-					if (_nextState == EnvelopeState.Playing)
-					{
-						State = EnvelopeState.Playing;
-						sus(); return;
-					}
-					if (_nextState == EnvelopeState.Releasing)
-					{
-						State = EnvelopeState.Releasing;
-						rel(); return;
-					}
+					_nextState = EnvelopeState.Rising;
 					_processStep = 0;
-					if (++_velocity >= _peakVelocity)
-					{
-						if (_adsr.D == 0)
-						{
-							_nextState = EnvelopeState.Playing;
-						}
-						else if (_peakVelocity == _sustainVelocity)
-						{
-							_nextState = EnvelopeState.Playing;
-							_velocity = _peakVelocity;
-						}
-						else
-						{
-							_velocity = _peakVelocity;
-							_nextState = EnvelopeState.Decaying;
-						}
-					}
-				}
-				break;
-			}
-			case EnvelopeState.Decaying:
-			{
-				if (++_processStep >= _adsr.D)
-				{
-					if (_nextState == EnvelopeState.Playing)
+					if ((_adsr.A | _adsr.D) == 0 || (_sustainVelocity == 0 && _peakVelocity == 0))
 					{
 						State = EnvelopeState.Playing;
-						sus(); return;
-					}
-					if (_nextState == EnvelopeState.Releasing)
-					{
-						State = EnvelopeState.Releasing;
-						rel(); return;
-					}
-					dec();
-				}
-				break;
-			}
-			case EnvelopeState.Playing:
-			{
-				if (++_processStep >= 1)
-				{
-					if (_nextState == EnvelopeState.Releasing)
-					{
-						State = EnvelopeState.Releasing;
-						rel(); return;
-					}
-					sus();
-				}
-				break;
-			}
-			case EnvelopeState.Releasing:
-			{
-				if (++_processStep >= _adsr.R)
-				{
-					if (_nextState == EnvelopeState.Dying)
-					{
-						Stop();
+						_velocity = _sustainVelocity;
 						return;
 					}
-					rel();
+					else if (_adsr.A == 0 && _adsr.S < 0xF)
+					{
+						State = EnvelopeState.Decaying;
+						int next = _peakVelocity - 1;
+						if (next < 0)
+						{
+							next = 0;
+						}
+						_velocity = (byte)next;
+						if (_velocity < _sustainVelocity)
+						{
+							_velocity = _sustainVelocity;
+						}
+						return;
+					}
+					else if (_adsr.A == 0)
+					{
+						State = EnvelopeState.Playing;
+						_velocity = _sustainVelocity;
+						return;
+					}
+					else
+					{
+						State = EnvelopeState.Rising;
+						_velocity = 1;
+						return;
+					}
 				}
-				break;
-			}
+			case EnvelopeState.Rising:
+				{
+					if (++_processStep >= _adsr.A)
+					{
+						if (_nextState == EnvelopeState.Decaying)
+						{
+							State = EnvelopeState.Decaying;
+							dec(); return;
+						}
+						if (_nextState == EnvelopeState.Playing)
+						{
+							State = EnvelopeState.Playing;
+							sus(); return;
+						}
+						if (_nextState == EnvelopeState.Releasing)
+						{
+							State = EnvelopeState.Releasing;
+							rel(); return;
+						}
+						_processStep = 0;
+						if (++_velocity >= _peakVelocity)
+						{
+							if (_adsr.D == 0)
+							{
+								_nextState = EnvelopeState.Playing;
+							}
+							else if (_peakVelocity == _sustainVelocity)
+							{
+								_nextState = EnvelopeState.Playing;
+								_velocity = _peakVelocity;
+							}
+							else
+							{
+								_velocity = _peakVelocity;
+								_nextState = EnvelopeState.Decaying;
+							}
+						}
+					}
+					break;
+				}
+			case EnvelopeState.Decaying:
+				{
+					if (++_processStep >= _adsr.D)
+					{
+						if (_nextState == EnvelopeState.Playing)
+						{
+							State = EnvelopeState.Playing;
+							sus(); return;
+						}
+						if (_nextState == EnvelopeState.Releasing)
+						{
+							State = EnvelopeState.Releasing;
+							rel(); return;
+						}
+						dec();
+					}
+					break;
+				}
+			case EnvelopeState.Playing:
+				{
+					if (++_processStep >= 1)
+					{
+						if (_nextState == EnvelopeState.Releasing)
+						{
+							State = EnvelopeState.Releasing;
+							rel(); return;
+						}
+						sus();
+					}
+					break;
+				}
+			case EnvelopeState.Releasing:
+				{
+					if (++_processStep >= _adsr.R)
+					{
+						if (_nextState == EnvelopeState.Dying)
+						{
+							Stop();
+							return;
+						}
+						rel();
+					}
+					break;
+				}
 		}
 	}
 }

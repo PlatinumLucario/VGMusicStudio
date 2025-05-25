@@ -6,20 +6,12 @@ using Kermalis.VGMusicStudio.Core.NDS.SDAT;
 using Kermalis.VGMusicStudio.Core.Properties;
 using Kermalis.VGMusicStudio.Core.Util;
 using Kermalis.VGMusicStudio.GTK4.Util;
-using GObject;
 using Adw;
-using Gtk;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.IO;
-using System.Linq;
-using System.Timers;
 using System.Runtime.InteropServices;
 using System.Diagnostics;
-
-using Application = Adw.Application;
-using Window = Adw.Window;
 
 namespace Kermalis.VGMusicStudio.GTK4;
 
@@ -39,42 +31,42 @@ internal sealed class MainWindow : Window
     #region Widgets
 
     // The Windows
-    private WidgetWindow? _playlistWindow, _seqAudioPianoWindow, _sequencedAudioTrackInfoWindow, _sequencedAudioListWindow;
+    private Preferences? _preferences;
     private TrackViewer? _trackViewer;
+    private WidgetWindow? _playlistWindow, _seqAudioPianoWindow, _sequencedAudioTrackInfoWindow, _sequencedAudioListWindow;
 
     // Buttons
-    private readonly Button _buttonPlay, _buttonStop, _buttonRecord;
-    private readonly ToggleButton _buttonPause;
+    private readonly Gtk.Button _buttonPlay, _buttonStop, _buttonRecord;
+    private readonly Gtk.ToggleButton _buttonPause;
 
     // Spin Button for the numbered tracks
-    private readonly SpinButton _sequenceNumberSpinButton;
+    private readonly Gtk.SpinButton _sequenceNumberSpinButton;
 
     // Timer
     private readonly GLib.Timer _timer;
 
     // Popover Menu Bar
-    private readonly PopoverMenuBar _popoverMenuBar;
+    private readonly Gtk.PopoverMenuBar _popoverMenuBar;
 
     // LibAdwaita Header Bar
-    private readonly Adw.HeaderBar _headerBar;
+    private readonly HeaderBar _headerBar;
 
     // LibAdwaita Application
     private readonly Application _app;
 
-    // Menu Model
-    //private readonly Gio.MenuModel _mainMenu;
-
     // Menus
-    private readonly Gio.Menu _mainMenu, _fileMenu, _dataMenu, _playlistMenu,
-        _widgetMenu, _playlistWidgetMenu, _seqAudioPianoWidgetMenu, _seqAudioTrackInfoWidgetMenu, _seqAudioListWidgetMenu;
+    private readonly Gio.Menu _mainMenu, _fileMenu, _editMenu, _dataMenu, _playlistMenu, _widgetMenu, _playlistWidgetMenu,
+        _seqAudioPianoWidgetMenu, _seqAudioTrackInfoWidgetMenu, _seqAudioListWidgetMenu;
 
     // Menu Labels
-    private readonly Label _fileLabel, _dataLabel, _playlistLabel, _widgetLabel;
+    private readonly Gtk.Label _fileLabel, _editLabel, _dataLabel, _playlistLabel, _widgetLabel;
 
     // Menu Items
     private readonly Gio.MenuItem
         _fileItem,
         _openDSEItem, _openAlphaDreamItem, _openMP2KItem, _openSDATItem,
+        _editItem,
+        _preferencesItem,
         _dataItem,
         _trackViewerItem, _exportDLSItem, _exportSF2Item, _exportMIDIItem, _exportWAVItem,
         _playlistItem,
@@ -88,6 +80,7 @@ internal sealed class MainWindow : Window
     // Menu Actions
     private readonly Gio.SimpleAction
         _openDSEAction, _openAlphaDreamAction, _openMP2KAction, _openSDATAction,
+        _preferencesAction,
         _trackViewerAction, _exportDLSAction, _exportSF2Action, _exportMIDIAction, _exportWAVAction,
         _endPlaylistAction,
         _playlistWidgetTiledAction, _playlistWidgetWindowedAction, _playlistWidgetHideAction,
@@ -96,15 +89,15 @@ internal sealed class MainWindow : Window
         _seqAudioListWidgetTiledAction, _seqAudioListWidgetWindowedAction, _seqAudioListWidgetHideAction;
 
     // Boxes
-    private readonly Box _mainBox, _configButtonBox, _configPlayerButtonBox, _configSpinButtonBox, _configBarBox,
+    private readonly Gtk.Box _mainBox, _configButtonBox, _configPlayerButtonBox, _configSpinButtonBox, _configBarBox,
         _playlistBox, _pianoBox, _sequencedAudioTrackInfoBox, _sequencedAudioListBox;
 
     // One Scale controling volume and one Scale for the sequenced track
-    private readonly Scale _volumeBar, _positionBar;
+    private readonly Gtk.Scale _volumeBar, _positionBar;
 
     // Mouse Click and Drag Gestures
-    private readonly GestureClick _positionGestureClick, _sequenceNumberSpinButtonGestureClick;
-    private readonly GestureDrag _positionGestureDrag;
+    private readonly Gtk.GestureClick _positionGestureClick, _sequenceNumberSpinButtonGestureClick;
+    private readonly Gtk.GestureDrag _positionGestureDrag;
 
     // Playlist
     private readonly PlaylistSelector _playlistSelector;
@@ -144,14 +137,14 @@ internal sealed class MainWindow : Window
         _mainMenu = Gio.Menu.New();
 
         // Popover Menu Bar
-        _popoverMenuBar = PopoverMenuBar.NewFromModel(_mainMenu); // This will ensure that the menu model is used inside of the PopoverMenuBar widget
+        _popoverMenuBar = Gtk.PopoverMenuBar.NewFromModel(_mainMenu); // This will ensure that the menu model is used inside of the PopoverMenuBar widget
         _popoverMenuBar.MenuModel = _mainMenu;
         _popoverMenuBar.MnemonicActivate(true);
 
         // File Menu
         _fileMenu = Gio.Menu.New();
 
-        _fileLabel = Label.NewWithMnemonic(Strings.MenuFile);
+        _fileLabel = Gtk.Label.NewWithMnemonic(Strings.MenuFile);
         _fileLabel.GetMnemonicKeyval();
         _fileLabel.SetUseUnderline(true);
         _fileItem = Gio.MenuItem.New(_fileLabel.GetLabel(), null);
@@ -192,10 +185,30 @@ internal sealed class MainWindow : Window
         _mainMenu.AppendItem(_fileItem); // Note: It must append the menu item variable (_fileItem), not the file menu variable (_fileMenu) itself
         _fileItem.Unref();
 
+        // Edit Menu
+        _editMenu = Gio.Menu.New();
+
+        _editLabel = Gtk.Label.NewWithMnemonic(Strings.MenuEdit);
+        _editLabel.GetMnemonicKeyval();
+        _editLabel.SetUseUnderline(true);
+        _editItem = Gio.MenuItem.New(_editLabel.GetLabel(), null);
+        _popoverMenuBar.AddMnemonicLabel(_editLabel);
+        _editItem.SetSubmenu(_editMenu);
+
+        _preferencesItem = Gio.MenuItem.New(Strings.MenuPreferences, "app.preferences");
+        _preferencesAction = Gio.SimpleAction.New("preferences", null);
+        _app.AddAction(_preferencesAction);
+        _preferencesAction.OnActivate += OpenPreferences;
+        _editMenu.AppendItem(_preferencesItem);
+        _preferencesItem.Unref();
+
+        _mainMenu.AppendItem(_editItem);
+        _editItem.Unref();
+
         // Data Menu
         _dataMenu = Gio.Menu.New();
 
-        _dataLabel = Label.NewWithMnemonic(Strings.MenuData);
+        _dataLabel = Gtk.Label.NewWithMnemonic(Strings.MenuData);
         _dataLabel.GetMnemonicKeyval();
         _dataLabel.SetUseUnderline(true);
         _dataItem = Gio.MenuItem.New(_dataLabel.GetLabel(), null);
@@ -248,7 +261,7 @@ internal sealed class MainWindow : Window
         // Playlist Menu
         _playlistMenu = Gio.Menu.New();
 
-        _playlistLabel = Label.NewWithMnemonic(Strings.MenuPlaylist);
+        _playlistLabel = Gtk.Label.NewWithMnemonic(Strings.MenuPlaylist);
         _playlistLabel.GetMnemonicKeyval();
         _playlistLabel.SetUseUnderline(true);
         _playlistItem = Gio.MenuItem.New(_playlistLabel.GetLabel(), null);
@@ -269,7 +282,7 @@ internal sealed class MainWindow : Window
         // Widget Menu
         _widgetMenu = Gio.Menu.New();
 
-        _widgetLabel = Label.NewWithMnemonic("Widgets");
+        _widgetLabel = Gtk.Label.NewWithMnemonic("Widgets");
         _widgetLabel.GetMnemonicKeyval();
         _widgetLabel.SetUseUnderline(true);
         _widgetItem = Gio.MenuItem.New(_widgetLabel.GetLabel(), null);
@@ -389,19 +402,19 @@ internal sealed class MainWindow : Window
         _widgetItem.Unref();
 
         // Buttons
-        _buttonPlay = new Button() { Sensitive = false, TooltipText = Strings.PlayerPlay, IconName = "media-playback-start-symbolic" };
+        _buttonPlay = new Gtk.Button() { Sensitive = false, TooltipText = Strings.PlayerPlay, IconName = "media-playback-start-symbolic" };
         _buttonPlay.OnClicked += ButtonPlay_Clicked;
-        _buttonPause = new ToggleButton() { Sensitive = false, TooltipText = Strings.PlayerPause, IconName = "media-playback-pause-symbolic" };
+        _buttonPause = new Gtk.ToggleButton() { Sensitive = false, TooltipText = Strings.PlayerPause, IconName = "media-playback-pause-symbolic" };
         _buttonPause.OnClicked += ButtonPause_Clicked;
-        _buttonStop = new Button() { Sensitive = false, TooltipText = Strings.PlayerStop, IconName = "media-playback-stop-symbolic" };
+        _buttonStop = new Gtk.Button() { Sensitive = false, TooltipText = Strings.PlayerStop, IconName = "media-playback-stop-symbolic" };
         _buttonStop.OnClicked += ButtonStop_Clicked;
 
-        _buttonRecord = new Button() { Sensitive = false, TooltipText = Strings.PlayerRecord, IconName = "media-record-symbolic" };
+        _buttonRecord = new Gtk.Button() { Sensitive = false, TooltipText = Strings.PlayerRecord, IconName = "media-record-symbolic" };
         _buttonRecord.OnClicked += ExportWAV;
 
         // Spin Button
-        _sequenceNumberSpinButton = SpinButton.New(Adjustment.New(0, 0, -1, 1, 10, 0), 0, 0);
-        _sequenceNumberSpinButtonGestureClick = GestureClick.New();
+        _sequenceNumberSpinButton = Gtk.SpinButton.New(Gtk.Adjustment.New(0, 0, -1, 1, 10, 0), 0, 0);
+        _sequenceNumberSpinButtonGestureClick = Gtk.GestureClick.New();
         _sequenceNumberSpinButton.AddController(_sequenceNumberSpinButtonGestureClick);
         _sequenceNumberSpinButton.Sensitive = false;
         _sequenceNumberSpinButton.SetNumeric(true);
@@ -413,7 +426,7 @@ internal sealed class MainWindow : Window
         _timer = GLib.Timer.New();
 
         // Volume Bar
-        _volumeBar = Scale.New(Orientation.Horizontal, Gtk.Adjustment.New(0, 0, 100, 1, 10, 0));
+        _volumeBar = Gtk.Scale.New(Gtk.Orientation.Horizontal, Gtk.Adjustment.New(0, 0, 100, 1, 10, 0));
         _volumeBar.OnValueChanged += VolumeBar_ValueChanged;
         _volumeBar.Sensitive = false;
         _volumeBar.ShowFillLevel = true;
@@ -421,9 +434,9 @@ internal sealed class MainWindow : Window
         _volumeBar.WidthRequest = 250;
 
         // Position Bar
-        _positionBar = Scale.New(Orientation.Horizontal, Gtk.Adjustment.New(0, 0, 100, 1, 10, 0)); // The Upper value property must contain a value of 1 or higher for the widget to show upon startup
-        _positionGestureClick = GestureClick.New();
-        _positionGestureDrag = GestureDrag.New();
+        _positionBar = Gtk.Scale.New(Gtk.Orientation.Horizontal, Gtk.Adjustment.New(0, 0, 100, 1, 10, 0)); // The Upper value property must contain a value of 1 or higher for the widget to show upon startup
+        _positionGestureClick = Gtk.GestureClick.New();
+        _positionGestureDrag = Gtk.GestureDrag.New();
         _positionBar.AddController(_positionGestureClick);
         _positionBar.AddController(_positionGestureDrag);
         _positionBar.Sensitive = false;
@@ -449,38 +462,38 @@ internal sealed class MainWindow : Window
         _playlistSelector = new PlaylistSelector();
         _playlistSelector.ButtonPrevPlistSong.OnClicked += PlayPreviousSong;
         _playlistSelector.ButtonNextPlistSong.OnClicked += PlayNextSong;
-        _playlistBox = Box.New(Orientation.Vertical, 0);
+        _playlistBox = Gtk.Box.New(Gtk.Orientation.Vertical, 0);
         _playlistBox.SetVexpand(true);
 
         // Sequenced Audio Piano
         _piano = new();
-        _pianoBox = Box.New(Orientation.Vertical, 0);
+        _pianoBox = Gtk.Box.New(Gtk.Orientation.Vertical, 0);
         _pianoBox.SetVexpand(false);
 
         // Sequenced Audio Track Info
         _sequencedAudioTrackInfo = new();
-        _sequencedAudioTrackInfoBox = Box.New(Orientation.Vertical, 0);
+        _sequencedAudioTrackInfoBox = Gtk.Box.New(Gtk.Orientation.Vertical, 0);
         _sequencedAudioTrackInfoBox.SetVexpand(true);
 
         // Sequenced Audio List
         _sequencedAudioList = new();
         _sequencedAudioList.Init();
-        _sequencedAudioListBox = Box.New(Orientation.Vertical, 0);
+        _sequencedAudioListBox = Gtk.Box.New(Gtk.Orientation.Vertical, 0);
         _sequencedAudioListBox.SetVexpand(true);
         _sequencedAudioListBox.Append(_sequencedAudioList);
 
         // Main display
-        _mainBox = Box.New(Orientation.Vertical, 4);
+        _mainBox = Gtk.Box.New(Gtk.Orientation.Vertical, 4);
 
-        _configButtonBox = Box.New(Orientation.Horizontal, 2);
-        _configButtonBox.Halign = Align.Center;
-        _configPlayerButtonBox = Box.New(Orientation.Horizontal, 3);
-        _configPlayerButtonBox.Halign = Align.Center;
-        _configSpinButtonBox = Box.New(Orientation.Horizontal, 1);
-        _configSpinButtonBox.Halign = Align.Center;
+        _configButtonBox = Gtk.Box.New(Gtk.Orientation.Horizontal, 2);
+        _configButtonBox.Halign = Gtk.Align.Center;
+        _configPlayerButtonBox = Gtk.Box.New(Gtk.Orientation.Horizontal, 3);
+        _configPlayerButtonBox.Halign = Gtk.Align.Center;
+        _configSpinButtonBox = Gtk.Box.New(Gtk.Orientation.Horizontal, 1);
+        _configSpinButtonBox.Halign = Gtk.Align.Center;
         _configSpinButtonBox.WidthRequest = 100;
-        _configBarBox = Box.New(Orientation.Horizontal, 2);
-        _configBarBox.Halign = Align.Center;
+        _configBarBox = Gtk.Box.New(Gtk.Orientation.Horizontal, 2);
+        _configBarBox.Halign = Gtk.Align.Center;
 
         _configPlayerButtonBox.MarginStart = 40;
         _configPlayerButtonBox.MarginEnd = 40;
@@ -915,17 +928,23 @@ internal sealed class MainWindow : Window
     #endregion
     #endregion
 
+    private void OpenPreferences(Gio.SimpleAction sender, Gio.SimpleAction.ActivateSignalArgs args)
+    {
+        _preferences = null;
+        _preferences = new Preferences();
+        SetSensitive(false);
+        SetModal(false);
+        SetFocus(_preferences);
+        _preferences.SetModal(true);
+        _preferences.SetSensitive(true);
+
+        _preferences.Present();
+    }
+
     // When the value is changed on the volume scale
     private void VolumeBar_ValueChanged(object sender, EventArgs e)
     {
-        if (Engine.Instance!.UseNewMixer)
-        {
-            Engine.Instance!.Mixer!.SetVolume((float)(_volumeBar.Adjustment!.Value / _volumeBar.Adjustment.Upper));
-        }
-        else
-        {
-            Engine.Instance!.Mixer_NAudio!.SetVolume((float)(_volumeBar.Adjustment!.Value / _volumeBar.Adjustment.Upper));
-        }
+        Engine.Instance!.Mixer!.SetVolume((float)(_volumeBar.Adjustment!.Value / _volumeBar.Adjustment.Upper));
     }
 
     // Sets the volume scale to the specified position
@@ -1036,7 +1055,7 @@ internal sealed class MainWindow : Window
         _sequenceNumberSpinButton.OnValueChanged += SequenceNumberSpinButton_ValueChanged;
     }
 
-    private void SequenceNumberSpinButton_ChangeValue(SpinButton sender, SpinButton.ChangeValueSignalArgs args)
+    private void SequenceNumberSpinButton_ChangeValue(Gtk.SpinButton sender, Gtk.SpinButton.ChangeValueSignalArgs args)
     {
         _sequenceNumberSpinButton.OnChangeValue -= SequenceNumberSpinButton_ChangeValue;
         int index = (int)_sequenceNumberSpinButton.Adjustment!.Value;
@@ -1053,7 +1072,7 @@ internal sealed class MainWindow : Window
 
     private void CheckIfChangedManually(int index)
     {
-        if (index == _curSong)
+        if (index == _curSong || Engine.Instance is null)
         {
             return;
         }
@@ -1066,7 +1085,7 @@ internal sealed class MainWindow : Window
                         PlaylistSongStringChanged(index);
                     }
                     _sequencedAudioList.SelectRow(index);
-                    _sequencedAudioList.ColumnView!.ScrollTo((uint)index, null, ListScrollFlags.Select, ScrollInfo.New());
+                    _sequencedAudioList.ColumnView!.ScrollTo((uint)index, null, Gtk.ListScrollFlags.Select, Gtk.ScrollInfo.New());
                     _sequenceNumberSpinButton.Value = index;
                     SetAndLoadSong(index);
                     break;
@@ -1074,7 +1093,7 @@ internal sealed class MainWindow : Window
             case ManuallyChanged.SpinButton:
                 {
                     _sequencedAudioList.SelectRow(index);
-                    _sequencedAudioList.ColumnView!.ScrollTo((uint)index, null, ListScrollFlags.Select, ScrollInfo.New());
+                    _sequencedAudioList.ColumnView!.ScrollTo((uint)index, null, Gtk.ListScrollFlags.Select, Gtk.ScrollInfo.New());
                     if (Engine.Instance!.Config.Playlists is not null)
                     {
                         PlaylistSongStringChanged(index);
@@ -1087,7 +1106,7 @@ internal sealed class MainWindow : Window
                     _sequencedAudioList.SelectRow(index);
                     if (!_playlistChanged)
                     {
-                        _sequencedAudioList.ColumnView!.ScrollTo((uint)index, null, ListScrollFlags.Select, ScrollInfo.New());
+                        _sequencedAudioList.ColumnView!.ScrollTo((uint)index, null, Gtk.ListScrollFlags.Select, Gtk.ScrollInfo.New());
                     }
 
                     _sequenceNumberSpinButton.Value = index;
@@ -1193,7 +1212,7 @@ internal sealed class MainWindow : Window
             if (_playlistSelector.PlaylistSongDropDown.Selected != _playlistSelector.SelectedSong)
             {
                 CheckPlaylistItem();
-                var selectedItem = (StringObject)_playlistSelector.PlaylistSongDropDown.SelectedItem;
+                var selectedItem = (Gtk.StringObject)_playlistSelector.PlaylistSongDropDown.SelectedItem;
                 var selectedItemName = selectedItem.String;
                 foreach (var song in _playlistSelector.Songs!)
                 {
@@ -1251,6 +1270,12 @@ internal sealed class MainWindow : Window
         {
             player.LoadSong(index);
             success = Engine.Instance.Player.LoadedSong is not null; // TODO: Make sure loadedsong is null when there are no tracks (for each engine, only mp2k guarantees it rn)
+
+            // Ensures a GlobalConfig Instance is created if one doesn't exist
+            if (GlobalConfig.Instance == null)
+            {
+                GlobalConfig.Init(); // A new instance needs to be initialized before it can do anything
+            }
         }
         catch (Exception ex)
         {
@@ -1261,7 +1286,7 @@ internal sealed class MainWindow : Window
             else if (ex is DSEInvalidNoteException)
             {
                 var dseEx = ex as DSEInvalidNoteException;
-                FlexibleDialog.Show($"Attempted to read a note that was out of range.\n\nTrack Index: {dseEx.TrackIndex}\nCommand Offset: {string.Format("0x{0:X}", dseEx.Offset)}\nAttempted note: {ConfigUtils.GetKeyName(dseEx.Note)} ({dseEx.Note})", "Unable to load song.");
+                FlexibleDialog.Show($"Attempted to read a note that was out of range.\n\nTrack Index: {dseEx!.TrackIndex}\nCommand Offset: {string.Format("0x{0:X}", dseEx.Offset)}\nAttempted note value: {dseEx.Note} ({string.Format("0x{0:X}", dseEx.Note)})", "Unable to load song.");
             }
             else
             {
@@ -1325,7 +1350,7 @@ internal sealed class MainWindow : Window
         }
         _curSong = -1;
         _endPlaylistAction.Enabled = false;
-        _sequenceNumberSpinButton.Sensitive = /* _sequencedAudioListBox.Sensitive = */ spinButtonAndListBoxEnabled;
+        _sequenceNumberSpinButton.Sensitive = _playlistSelector.Sensitive = spinButtonAndListBoxEnabled;
     }
     private void EndCurrentPlaylist(object sender, EventArgs e)
     {
@@ -1370,7 +1395,7 @@ internal sealed class MainWindow : Window
                 }
                 try
                 {
-                    _ = new DSEEngine(swdPath, smdPath, true, true);
+                    _ = new DSEEngine(swdPath, smdPath, true);
                 }
                 catch (Exception ex)
                 {
@@ -1382,6 +1407,11 @@ internal sealed class MainWindow : Window
                 FinishLoading(config.SMDFiles.Length);
                 _sequenceNumberSpinButton.Visible = false;
                 _sequenceNumberSpinButton.Hide();
+                _buttonRecord.Sensitive = true;
+                _playlistSelector.PlaylistDropDown!.Sensitive =
+                    _playlistSelector.ButtonPrevPlistSong.Sensitive =
+                    _playlistSelector.PlaylistSongDropDown!.Sensitive =
+                    _playlistSelector.ButtonNextPlistSong.Sensitive = false;
                 _trackViewerAction.Enabled = true;
                 _exportDLSAction.Enabled = false;
                 _exportMIDIAction.Enabled = false;
@@ -1412,7 +1442,7 @@ internal sealed class MainWindow : Window
             try
             {
                 using FileStream stream = File.OpenRead(path);
-                _ = new SDATEngine(new SDAT(stream), true);
+                _ = new SDATEngine(new SDAT(stream));
             }
             catch (Exception ex)
             {
@@ -1423,8 +1453,13 @@ internal sealed class MainWindow : Window
             SDATConfig config = SDATEngine.SDATInstance!.Config;
             _sequencedAudioList.ChangeColumns();
             FinishLoading(config.SDAT.INFOBlock.SequenceInfos.NumEntries);
-            _sequenceNumberSpinButton.Visible = true;
-            _sequenceNumberSpinButton.Show();
+            _sequenceNumberSpinButton.Visible = false;
+            _sequenceNumberSpinButton.Hide();
+            _buttonRecord.Sensitive = true;
+            _playlistSelector.PlaylistDropDown!.Sensitive =
+                _playlistSelector.ButtonPrevPlistSong.Sensitive =
+                _playlistSelector.PlaylistSongDropDown!.Sensitive =
+                _playlistSelector.ButtonNextPlistSong.Sensitive = false;
             _trackViewerAction.Enabled = true;
             _exportDLSAction.Enabled = false;
             _exportMIDIAction.Enabled = false;
@@ -1466,6 +1501,11 @@ internal sealed class MainWindow : Window
             FinishLoading(config.SongTableSizes[0]);
             _sequenceNumberSpinButton.Visible = true;
             _sequenceNumberSpinButton.Show();
+            _buttonRecord.Sensitive = true;
+            _playlistSelector.PlaylistDropDown!.Sensitive =
+                _playlistSelector.ButtonPrevPlistSong.Sensitive =
+                _playlistSelector.PlaylistSongDropDown!.Sensitive =
+                _playlistSelector.ButtonNextPlistSong.Sensitive = true;
             _trackViewerAction.Enabled = true;
             _exportDLSAction.Enabled = true;
             _exportMIDIAction.Enabled = false;
@@ -1492,7 +1532,7 @@ internal sealed class MainWindow : Window
 
             try
             {
-                _ = new MP2KEngine(File.ReadAllBytes(path), true, false);
+                _ = new MP2KEngine(File.ReadAllBytes(path), false);
             }
             catch (Exception ex)
             {
@@ -1506,8 +1546,8 @@ internal sealed class MainWindow : Window
             FinishLoading(config.SongTableSizes[0]);
             _sequenceNumberSpinButton.Visible = true;
             _sequenceNumberSpinButton.Show();
-            _buttonRecord.Sensitive =
-                _playlistSelector.PlaylistDropDown!.Sensitive =
+            _buttonRecord.Sensitive = true;
+            _playlistSelector.PlaylistDropDown!.Sensitive =
                 _playlistSelector.ButtonPrevPlistSong.Sensitive =
                 _playlistSelector.PlaylistSongDropDown!.Sensitive =
                 _playlistSelector.ButtonNextPlistSong.Sensitive = true;
@@ -1646,11 +1686,6 @@ internal sealed class MainWindow : Window
             return;
         }
 
-        // Ensures a GlobalConfig Instance is created if one doesn't exist
-        if (GlobalConfig.Instance == null)
-        {
-            GlobalConfig.Init(); // A new instance needs to be initialized before it can do anything
-        }
         // _sequencedAudioTrackInfo.AddEntries();
 
         // Configures the buttons when player is playing a sequenced track
@@ -1727,17 +1762,17 @@ internal sealed class MainWindow : Window
             case PlayerState.Playing: Pause(); break;
         }
     }
-    private void ButtonPlay_Clicked(Button sender, EventArgs args)
+    private void ButtonPlay_Clicked(Gtk.Button sender, EventArgs args)
     {
         Play();
     }
 
-    private void ButtonPause_Clicked(Button sender, EventArgs args)
+    private void ButtonPause_Clicked(Gtk.Button sender, EventArgs args)
     {
         Pause();
     }
 
-    private void ButtonStop_Clicked(Button sender, EventArgs args)
+    private void ButtonStop_Clicked(Gtk.Button sender, EventArgs args)
     {
         Stop();
     }
@@ -1840,6 +1875,16 @@ internal sealed class MainWindow : Window
         _manuallyChanged = ManuallyChanged.None;
         _volumeBar.SetValue(100);
     }
+    public void ReloadEngine()
+    {
+        if (Engine.Instance is not null)
+        {
+            Stop();
+            Engine.Instance.Reload();
+            ResetPlaylistStuff(true);
+            UpdatePositionIndicators(0L);
+        }
+    }
     private void DisposeEngine()
     {
         if (Engine.Instance is not null)
@@ -1884,6 +1929,12 @@ internal sealed class MainWindow : Window
             {
                 Player player = Engine.Instance!.Player;
                 player.Info = _sequencedAudioTrackInfo.Info!;
+                if (player.ErrorDetails is not null)
+                {
+                    FlexibleDialog.Show(player.ErrorDetails, player.ErrorDetails.Message);
+                    Stop();
+                    player.ErrorDetails = null;
+                }
                 _piano.UpdateKeys(player.Info.Tracks, _sequencedAudioTrackInfo.NumTracks!);
                 if (player.State is PlayerState.Stopped)
                 {

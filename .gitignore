@@ -286,3 +286,13 @@ __pycache__/
 /VG Music Studio - MIDI
 /.vscode
 /ObjectListView
+
+# Native libraries copied from VCPKG while building Native NuGet packages
+*.a
+*.so
+*.lib
+*.dll
+*.dylib
+*.csproj
+/CreateNugets/Adwaita/lib
+/CreateNugets/PortAudio/lib

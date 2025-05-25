@@ -7,7 +7,6 @@ public sealed partial class MP2KPlayer : Player
 	private readonly string?[] _voiceTypeCache;
 	internal readonly MP2KConfig Config;
 	internal readonly MP2KMixer MMixer;
-	internal readonly MP2KMixer_NAudio MMixer_NAudio;
 	private MP2KLoadedSong? _loadedSong;
 
 	public override ushort Tempo { get; set; }
@@ -18,21 +17,12 @@ public sealed partial class MP2KPlayer : Player
 
 	public override ILoadedSong? LoadedSong => _loadedSong;
 	protected override Mixer Mixer => MMixer;
-	protected override Mixer_NAudio Mixer_NAudio => MMixer_NAudio;
-	
+
 	internal MP2KPlayer(MP2KConfig config, MP2KMixer mixer)
 		: base(GBAUtils.AGB_FPS)
 	{
 		Config = config;
 		MMixer = mixer;
-
-		_voiceTypeCache = new string[256];
-	}
-	internal MP2KPlayer(MP2KConfig config, MP2KMixer_NAudio mixer)
-		: base(GBAUtils.AGB_FPS)
-	{
-		Config = config;
-		MMixer_NAudio = mixer;
 
 		_voiceTypeCache = new string[256];
 	}
@@ -66,10 +56,7 @@ public sealed partial class MP2KPlayer : Player
 		TempoStack = 0;
 		_elapsedLoops = 0;
 		ElapsedTicks = 0;
-		if (Engine.Instance!.UseNewMixer)
-			MMixer.ResetFade();
-		else
-			MMixer_NAudio.ResetFade();
+		MMixer.ResetFade();
 		MP2KTrack[] tracks = _loadedSong!.Tracks;
 		for (int i = 0; i < tracks.Length; i++)
 		{
@@ -94,48 +81,24 @@ public sealed partial class MP2KPlayer : Player
 		MP2KLoadedSong s = _loadedSong!;
 
 		bool allDone = false;
-		if (Engine.Instance!.UseNewMixer)
+		while (!allDone && TempoStack >= 150)
 		{
-			while (!allDone && TempoStack >= 150)
+			TempoStack -= 150;
+			allDone = true;
+			for (int i = 0; i < s.Tracks.Length; i++)
 			{
-				TempoStack -= 150;
+				TickTrack(s, s.Tracks[i], ref allDone);
+			}
+			if (MMixer.IsFadeDone())
+			{
 				allDone = true;
-				for (int i = 0; i < s.Tracks.Length; i++)
-				{
-					TickTrack(s, s.Tracks[i], ref allDone);
-				}
-				if (MMixer.IsFadeDone())
-				{
-					allDone = true;
-				}
 			}
-			if (!allDone)
-			{
-				TempoStack += Tempo;
-			}
-			MMixer.Process(playing, recording);
 		}
-		else
+		if (!allDone)
 		{
-			while (!allDone && TempoStack >= 150)
-			{
-				TempoStack -= 150;
-				allDone = true;
-				for (int i = 0; i < s.Tracks.Length; i++)
-				{
-					TickTrack(s, s.Tracks[i], ref allDone);
-				}
-				if (MMixer_NAudio.IsFadeDone())
-				{
-					allDone = true;
-				}
-			}
-			if (!allDone)
-			{
-				TempoStack += Tempo;
-			}
-			MMixer_NAudio.Process(playing, recording);
+			TempoStack += Tempo;
 		}
+		MMixer.Process(playing, recording);
 		return allDone;
 	}
 	private void TickTrack(MP2KLoadedSong s, MP2KTrack track, ref bool allDone)
@@ -179,19 +142,9 @@ public sealed partial class MP2KPlayer : Player
 
 		_elapsedLoops++;
 		UpdateElapsedTicksAfterLoop(s.Events[track.Index], track.DataOffset, track.Rest);
-		if (Engine.Instance!.UseNewMixer)
+		if (ShouldFadeOut && _elapsedLoops > NumLoops && !MMixer.IsFading())
 		{
-			if (ShouldFadeOut && _elapsedLoops > NumLoops && !MMixer.IsFading())
-			{
-				MMixer.BeginFadeOut();
-			}
-		}
-		else
-		{
-			if (ShouldFadeOut && _elapsedLoops > NumLoops && !MMixer_NAudio.IsFading())
-			{
-				MMixer_NAudio.BeginFadeOut();
-			}
+			MMixer.BeginFadeOut();
 		}
 	}
 

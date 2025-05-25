@@ -1,6 +1,7 @@
 ﻿using Kermalis.VGMusicStudio.Core.Formats;
 using Kermalis.VGMusicStudio.Core.NDS.SDAT;
 using Kermalis.VGMusicStudio.Core.Util;
+using NAudio.Wave;
 using System;
 
 namespace Kermalis.VGMusicStudio.Core.NDS.DSE;
@@ -17,7 +18,18 @@ public sealed class DSEMixer : Mixer
 	private float _fadeStepPerMicroframe;
 
 	private readonly DSEChannel[] _channels;
-	private readonly Wave _buffer;
+	private readonly AudioBackend DSEPlaybackBackend;
+
+	#region PortAudio Fields
+	// PortAudio Fields
+	private readonly Wave? _bufferPortAudio;
+	#endregion
+
+	#region NAudio Fields
+	// NAudio Fields
+	private readonly BufferedWaveProvider? _bufferNAudio;
+	protected override WaveFormat? WaveFormat => _bufferNAudio!.WaveFormat;
+	#endregion
 
 	public DSEMixer()
 	{
@@ -34,13 +46,31 @@ public sealed class DSEMixer : Mixer
 			_channels[i] = new DSEChannel(i);
 		}
 
-		_buffer = new Wave()
+		DSEPlaybackBackend = PlaybackBackend;
+		switch (PlaybackBackend)
 		{
-			DiscardOnBufferOverflow = true,
-			BufferLength = SamplesPerBuffer * 64,
-		};
-		_buffer.CreateIeeeFloatWave(sampleRate, 2, 16);
-		Init(_buffer, PortAudio.SampleFormat.Int16);
+			case AudioBackend.PortAudio:
+				{
+					_bufferPortAudio = new Wave()
+					{
+						DiscardOnBufferOverflow = true,
+						BufferLength = SamplesPerBuffer * 64,
+					};
+					_bufferPortAudio.CreateIeeeFloatWave(sampleRate, 2, 16);
+					Init(waveData: _bufferPortAudio, PortAudio.SampleFormat.Int16);
+					break;
+				}
+			case AudioBackend.NAudio:
+				{
+					_bufferNAudio = new BufferedWaveProvider(new WaveFormat(sampleRate, 16, 2))
+					{
+						DiscardOnBufferOverflow = true,
+						BufferLength = SamplesPerBuffer * 64,
+					};
+					Init(waveProvider: _bufferNAudio);
+					break;
+				}
+		}
 	}
 
 	internal DSEChannel? AllocateChannel()
@@ -84,9 +114,9 @@ public sealed class DSEMixer : Mixer
 			chan.Volume = (byte)chan.StepEnvelope();
 			if (chan.NoteLength == 0 && !DSEUtils.IsStateRemovable(chan.State))
 			{
-				chan.SetEnvelopePhase7_2074ED8();
+				chan.SetEnvelopeRelease();
 			}
-			int vol = SDATUtils.SustainTable[chan.NoteVelocity] + SDATUtils.SustainTable[chan.Volume] + SDATUtils.SustainTable[chan.Owner.Volume] + SDATUtils.SustainTable[chan.Owner.Expression];
+			int vol = DSEUtils.SustainTable[chan.NoteVelocity] + DSEUtils.SustainTable[chan.Volume] + DSEUtils.SustainTable[chan.Owner.Volume] + DSEUtils.SustainTable[chan.Owner.Expression];
 			//int pitch = ((chan.Key - chan.BaseKey) << 6) + chan.SweepMain() + chan.Owner.GetPitch(); // "<< 6" is "* 0x40"
 			int pitch = ((chan.Key - chan.RootKey) << 6) + chan.SweepMain(); // "<< 6" is "* 0x40"
 			if (DSEUtils.IsStateRemovable(chan.State) && vol <= -92544)
@@ -95,7 +125,7 @@ public sealed class DSEMixer : Mixer
 			}
 			else
 			{
-				chan.Volume = SDATUtils.GetChannelVolume(vol);
+				chan.Volume = DSEUtils.GetChannelVolume(vol);
 				chan.Panpot = chan.Owner.Panpot;
 				chan.Timer = DSEUtils.GetChannelTimer(chan.BaseTimer, pitch);
 			}
@@ -202,11 +232,35 @@ public sealed class DSEMixer : Mixer
 			masterLevel += masterStep;
 			if (output)
 			{
-				_buffer.AddSamples(_b, 0, 4);
+				switch (DSEPlaybackBackend)
+				{
+					case AudioBackend.PortAudio:
+						{
+							_bufferPortAudio!.AddSamples(_b, 0, 4);
+							break;
+						}
+					case AudioBackend.NAudio:
+						{
+							_bufferNAudio!.AddSamples(_b, 0, 4);
+							break;
+						}
+				}
 			}
 			if (recording)
 			{
-				_waveWriter!.Write(_b, 0, 4);
+				switch (DSEPlaybackBackend)
+				{
+					case AudioBackend.PortAudio:
+						{
+							_waveWriterPortAudio!.Write(_b, 0, 4);
+							break;
+						}
+					case AudioBackend.NAudio:
+						{
+							_waveWriterNAudio!.Write(_b, 0, 4);
+							break;
+						}
+				}
 			}
 		}
 	}
