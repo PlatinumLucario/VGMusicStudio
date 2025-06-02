@@ -464,6 +464,7 @@ internal class SequencedAudio_TrackInfo : Box
 
         var typeLabelHeader = Label.New(Strings.PlayerType);
         typeLabelHeader.SetMaxWidthChars(1);
+        typeLabelHeader.SetEllipsize(Pango.EllipsizeMode.End);
         typeLabelHeader.SetHalign(Align.End);
         typeLabelHeader.WidthRequest = 60;
         typeLabelHeader.SetHexpand(true);
@@ -640,6 +641,8 @@ internal class SequencedAudio_TrackInfo : Box
             columns.Append(Velocity[i]);
 
             TypeLabel[i] = Label.New("");
+            TypeLabel[i].SetEllipsize(Pango.EllipsizeMode.End);
+            TypeLabel[i].SetMaxWidthChars(1);
             TypeLabel[i].SetHalign(Align.End);
             TypeLabel[i].WidthRequest = 60;
             TypeLabel[i].SetHexpand(true);

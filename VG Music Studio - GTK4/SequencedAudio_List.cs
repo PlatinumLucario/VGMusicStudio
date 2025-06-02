@@ -28,7 +28,10 @@ internal class SequencedAudio_List : Viewport
 	private SingleSelection? SelectionModel { get; set; }
 	// private SortListModel? SortModel { get; set; }
 	private ColumnViewSorter? ColumnSorter { get; set; }
-	internal ColumnView? ColumnView { get; set; }
+
+    private GestureClick? ColumnViewGestureClick { get; set; }
+
+    internal ColumnView? ColumnView { get; set; }
 
 	ColumnViewColumn PlistColumn = null!;
 	ColumnViewColumn SongTableOffsetColumn = null!;
@@ -129,9 +132,15 @@ internal class SequencedAudio_List : Viewport
 		scrolledWindow.SetHexpand(true);
 
 		SelectionModel = SingleSelection.New(Model);
+		SelectionModel.OnNotify += SelectionModel_Notified;
+
+		ColumnViewGestureClick = GestureClick.New();
+		ColumnViewGestureClick.Button = 1;
+		ColumnViewGestureClick.OnPressed += ColumnViewGestureClick_LeftClick;
 
 		ColumnView = ColumnView.New(SelectionModel);
 		ColumnView.AddCssClass("data-table");
+		ColumnView.AddController(ColumnViewGestureClick);
 		ColumnView.SetShowColumnSeparators(true);
 		ColumnView.SetShowRowSeparators(true);
 		ColumnView.SetReorderable(false);
@@ -149,7 +158,26 @@ internal class SequencedAudio_List : Viewport
 		SetHexpand(true);
 	}
 
-	internal void Init()
+    private void ColumnViewGestureClick_LeftClick(GestureClick sender, GestureClick.PressedSignalArgs args)
+    {
+        if (SelectionModel?.GetSelectedItem() is SequencedAudio_List list)
+		{
+			if (list.Id is not null)
+			{
+				if (IsInitialized)
+				{
+					MainWindow.Instance!.ChangeIndex(list.Id.GetInt());
+				}
+			}
+		}
+    }
+
+    private void SelectionModel_Notified(GObject.Object sender, NotifySignalArgs args)
+    {
+		var name = args.Pspec.GetName();
+    }
+
+    internal void Init()
 	{
 		IsInitialized = false;
 
@@ -266,7 +294,7 @@ internal class SequencedAudio_List : Viewport
 			{
 				if (IsInitialized)
 				{
-					MainWindow.ChangeIndex(list.Id.GetInt());
+					MainWindow.Instance!.CheckIndex(list.Id.GetInt());
 				}
 			}
 		}

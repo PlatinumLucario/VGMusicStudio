@@ -201,6 +201,9 @@
   <data name="FilterOpenSDAT" xml:space="preserve">
     <value>File SDAT</value>
   </data>
+  <data name="MenuPlayPlaylist" xml:space="preserve">
+    <value>Play la Playlist Attuale</value>
+  </data>
   <data name="MenuEndPlaylist" xml:space="preserve">
     <value>Termina la Playlist Attuale</value>
   </data>

@@ -160,7 +160,7 @@
     <value>Position</value>
   </data>
   <data name="PlayerStop" xml:space="preserve">
-    <value>Stop</value>
+    <value>Arrêt</value>
   </data>
   <data name="PlayerRecord" xml:space="preserve">
     <value>Enregistrer une Chanson</value>
@@ -200,6 +200,9 @@
   </data>
   <data name="FilterOpenSDAT" xml:space="preserve">
     <value>Fichiers SDAT</value>
+  </data>
+  <data name="MenuPlayPlaylist" xml:space="preserve">
+    <value>Lecture la playlist en cours</value>
   </data>
   <data name="MenuEndPlaylist" xml:space="preserve">
     <value>Arrêter la playlist en cours</value>

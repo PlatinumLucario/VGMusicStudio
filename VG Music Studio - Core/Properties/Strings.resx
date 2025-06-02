@@ -210,6 +210,9 @@
   <data name="FilterOpenSDAT" xml:space="preserve">
     <value>Nitro Soundmaker Sound Data (*.sdat)</value>
   </data>
+  <data name="MenuPlayPlaylist" xml:space="preserve">
+    <value>Play Current Playlist</value>
+  </data>
   <data name="MenuEndPlaylist" xml:space="preserve">
     <value>End Current Playlist</value>
   </data>

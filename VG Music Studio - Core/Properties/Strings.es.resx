@@ -150,6 +150,9 @@
   <data name="MenuData" xml:space="preserve">
     <value>Datos</value>
   </data>
+  <data name="MenuPlayPlaylist" xml:space="preserve">
+    <value>Reproducir Lista de Reproducción Actual</value>
+  </data>
   <data name="MenuEndPlaylist" xml:space="preserve">
     <value>Detener Lista de Reproducción Actual</value>
   </data>

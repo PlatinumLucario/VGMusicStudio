@@ -466,6 +466,15 @@ namespace Kermalis.VGMusicStudio.Core.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Play Current Playlist.
+        /// </summary>
+        public static string MenuPlayPlaylist {
+            get {
+                return ResourceManager.GetString("MenuPlayPlaylist", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to End Current Playlist.
         /// </summary>
         public static string MenuEndPlaylist {

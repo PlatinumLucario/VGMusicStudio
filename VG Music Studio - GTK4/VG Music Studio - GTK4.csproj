@@ -31,4 +31,10 @@
 		</ContentWithTargetPath>
 	</ItemGroup>
 
+	<Target Name="PostBuild" Condition="$([MSBuild]::IsOSPlatform('Linux')) And ('$(Platform)' == 'x64' Or '$(Platform)' == 'AnyCPU')" AfterTargets="PostBuildEvent">
+		<Exec Command="glib-compile-resources --target=org.Kermalis.VGMusicStudio.GTK4.gresource org.Kermalis.VGMusicStudio.GTK4.gresource.xml" WorkingDirectory="./Properties" />
+		<Exec Condition="!Exists('$(OutDir)share/org.Kermalis.VGMusicStudio.GTK4/')" Command="mkdir -p $(OutDir)share/org.Kermalis.VGMusicStudio.GTK4/" WorkingDirectory="./" />
+		<Exec Command="mv org.Kermalis.VGMusicStudio.GTK4.gresource ../$(OutDir)share/org.Kermalis.VGMusicStudio.GTK4/org.Kermalis.VGMusicStudio.GTK4.gresource" WorkingDirectory="./Properties" />
+	</Target>
+
 </Project>

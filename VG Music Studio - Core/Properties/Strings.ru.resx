@@ -201,6 +201,9 @@
   <data name="FilterOpenSDAT" xml:space="preserve">
     <value>SDAT-файлы</value>
   </data>
+  <data name="MenuPlayPlaylist" xml:space="preserve">
+    <value>Проиграть плейлист</value>
+  </data>
   <data name="MenuEndPlaylist" xml:space="preserve">
     <value>Отключить плейлист</value>
   </data>

@@ -233,12 +233,12 @@ public sealed class MP2KMixer : Mixer
 		{
 			case AudioBackend.PortAudio:
 				{
-					_audioNAudio!.Clear();
+					_audioPortAudio!.Clear();
 					break;
 				}
 			case AudioBackend.NAudio:
 				{
-					_audioPortAudio!.Clear();
+					_audioNAudio!.Clear();
 					break;
 				}
 		}

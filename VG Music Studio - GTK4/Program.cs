@@ -46,6 +46,7 @@ namespace Kermalis.VGMusicStudio.GTK4
 			else
 			{
 				var prefixes = new List<string> {
+					Path.GetFullPath(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!),
 					Directory.GetParent(Directory.GetParent(Path.GetFullPath(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!))!.FullName)!.FullName,
 					Directory.GetParent(Path.GetFullPath(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!))!.FullName,
 					"/usr"
