@@ -2044,7 +2044,7 @@ internal sealed class MainWindow : Window
         _autoplay = false;
         _sequenceNumberSpinButton.Sensitive = _buttonPlay.Sensitive = _volumeBar.Sensitive = true;
         int index = Engine.Instance.Config.InternalSongNames[0].Songs.Count == 0 ? 0 : Engine.Instance.Config.InternalSongNames[0].Songs[0].Index;
-        if (Engine.Instance!.Config.Playlists is not null)
+        if (Engine.Instance!.Config.Playlists is not null && Engine.Instance!.Config.Playlists.Capacity > 0)
         {
             index = Engine.Instance.Config.Playlists[^1].Songs.Count == 0 ? 0 : Engine.Instance.Config.Playlists[^1].Songs[0].Index;
             PlaylistSongStringChanged(index);
