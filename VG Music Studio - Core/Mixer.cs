@@ -1,18 +1,35 @@
 ﻿using PortAudio;
 using System;
 using System.Runtime.InteropServices;
+using System.Linq;
+using System.IO;
 using Kermalis.EndianBinaryIO;
 using Kermalis.VGMusicStudio.Core.Formats;
 using Stream = PortAudio.Stream;
 using NAudio.Wave;
 using NAudio.CoreAudioApi;
 using NAudio.CoreAudioApi.Interfaces;
+using SoundFlow.Abstracts;
+using SoundFlow.Backends.MiniAudio;
+using SoundFlow.Components;
+using SoundFlow.Enums;
+using SoundFlow.Providers;
+using SoundFlow.Structs;
+using SoundFlow.Abstracts.Devices;
+using SoundFlow.Interfaces;
 
 namespace Kermalis.VGMusicStudio.Core;
 
 public abstract class Mixer : IAudioSessionEventsHandler, IDisposable
 {
     public readonly bool[] Mutes;
+
+    #region MiniAudio Fields
+    // MiniAudio Fields
+    private AudioPlaybackDevice? _playbackDevice;
+    internal SoundPlayer? MiniAudioPlayer;
+    internal QueueDataProvider? DataProvider;
+    #endregion
 
     #region PortAudio Fields
     // PortAudio Fields
@@ -29,7 +46,7 @@ public abstract class Mixer : IAudioSessionEventsHandler, IDisposable
 
     public Stream? Stream;
     public bool IsDisposing = false;
-    private bool IsDisposed = false;
+    private bool _isDisposed = false;
     #endregion
 
     #region NAudio Fields
@@ -64,7 +81,45 @@ public abstract class Mixer : IAudioSessionEventsHandler, IDisposable
         }
     }
 
-    protected void Init(Wave waveData = null!, SampleFormat sampleFormat = SampleFormat.Float32, IWaveProvider waveProvider = null!)
+    public class MiniAudioBuffer : ISoundDataProvider, IDisposable
+    {
+        public int Position { get; set; }
+
+        public int Length { get; }
+
+        public bool CanSeek { get; }
+
+        public SoundFlow.Enums.SampleFormat SampleFormat { get; }
+
+        public int SampleRate { get; set; }
+
+        public bool IsDisposed { get; private set; }
+
+        public event EventHandler<EventArgs> EndOfStreamReached;
+        public event EventHandler<PositionChangedEventArgs> PositionChanged;
+
+        public void Dispose()
+        {
+            if (!IsDisposed)
+            {
+                GC.SuppressFinalize(this);
+            }
+        }
+
+        public int ReadBytes(Span<float> buffer)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Seek(int offset)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    protected void Init(Wave waveData = null!, PortAudio.SampleFormat sampleFormat = PortAudio.SampleFormat.Float32,
+    int sampleRate = 48000, byte[] stream = null!,
+    IWaveProvider waveProvider = null!)
     {
         switch (PlaybackBackend)
         {
@@ -73,7 +128,7 @@ public abstract class Mixer : IAudioSessionEventsHandler, IDisposable
                     // First, check if the instance contains something
                     if (WaveData == null)
                     {
-                        IsDisposed = false;
+                        _isDisposed = false;
 
                         Pa.Initialize();
                         WaveData = waveData;
@@ -100,13 +155,31 @@ public abstract class Mixer : IAudioSessionEventsHandler, IDisposable
                         WaveData!.SampleRate,
                         (uint)SamplesPerBuffer,
                         StreamFlags.NoFlag,
-                        Player.PlayCallback,
+                        PortAudioPlayer.Play,
                         waveData
                     );
 
                     var hostApiInfo = Pa.GetHostApiInfo(Pa.DefaultHostApi);
 
                     Stream!.Start();
+                    break;
+                }
+            case AudioBackend.MiniAudio:
+                {
+                    var engine = new MiniAudioEngine();
+                    var format = new AudioFormat
+                    {
+                        SampleRate = sampleRate,
+                        Channels = 2,
+                        Format = SoundFlow.Enums.SampleFormat.F32
+                    };
+                    var defaultDevice = engine.PlaybackDevices.FirstOrDefault(x => x.IsDefault);
+                    _playbackDevice = engine.InitializePlaybackDevice(defaultDevice, format);
+                    DataProvider = new QueueDataProvider(format);
+                    MiniAudioPlayer = new SoundPlayer(engine, format, DataProvider);
+                    _playbackDevice.MasterMixer.AddComponent(MiniAudioPlayer);
+                    _playbackDevice.Start();
+                    MiniAudioPlayer.IsLooping = true;
                     break;
                 }
             case AudioBackend.NAudio:
@@ -134,6 +207,14 @@ public abstract class Mixer : IAudioSessionEventsHandler, IDisposable
         }
     }
 
+    internal void UpdateStream(Span<byte> stream, int sampleRate)
+    {
+        if (MiniAudioPlayer.State != SoundFlow.Enums.PlaybackState.Playing)
+        {
+            MiniAudioPlayer.Play();
+        }
+    }
+
     public float Volume
     {
         get => Vol;
@@ -152,6 +233,11 @@ public abstract class Mixer : IAudioSessionEventsHandler, IDisposable
             case AudioBackend.PortAudio:
                 {
                     Vol = Math.Clamp(volume, 0, 1);
+                    break;
+                }
+            case AudioBackend.MiniAudio:
+                {
+                    _playbackDevice!.MasterMixer.Volume = volume;
                     break;
                 }
             case AudioBackend.NAudio:
@@ -244,7 +330,7 @@ public abstract class Mixer : IAudioSessionEventsHandler, IDisposable
         {
             case AudioBackend.PortAudio:
                 {
-                    if (IsDisposed || Stream is null)
+                    if (_isDisposed || Stream is null)
                     {
                         return;
                     }
@@ -253,6 +339,16 @@ public abstract class Mixer : IAudioSessionEventsHandler, IDisposable
                     Stream!.Stop();
 
                     Stream!.Dispose();
+                    break;
+                }
+            case AudioBackend.MiniAudio:
+                {
+                    if (MiniAudioPlayer is not null && _playbackDevice is not null)
+                    {
+                        MiniAudioPlayer.Stop();
+                        _playbackDevice.Stop();
+                        _playbackDevice.MasterMixer.RemoveComponent(MiniAudioPlayer);
+                    }
                     break;
                 }
             case AudioBackend.NAudio:
@@ -268,7 +364,7 @@ public abstract class Mixer : IAudioSessionEventsHandler, IDisposable
         }
         GC.SuppressFinalize(this);
 
-        IsDisposed = true;
+        _isDisposed = true;
     }
 
     public interface IAudio

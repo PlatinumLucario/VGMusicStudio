@@ -5,7 +5,7 @@
 [![Releases](https://img.shields.io/github/downloads/Kermalis/VGMusicStudio/total.svg)](https://github.com/Kermalis/VGMusicStudio/releases/latest)
 [![License](https://img.shields.io/badge/License-LGPLv3-blue.svg)](LICENSE.md)
 
-VG Music Studio is a cross-platform music player and visualizer for the most common GBA music format (MP2K), AlphaDream's GBA music format, the most common NDS music format (SDAT), and a more rare NDS/WII music format (DSE) [found in PMD2 among others].
+VG Music Studio is a cross-platform music player and visualizer for the most common GBA music format (MP2K), AlphaDream's GBA music format, the most common NDS music format (SDAT), and a less common PS1/PS2/NDS/Wii music format (DSE) [found in PMD2 among others] (developed by Hidenori Suzuki and used internally at Square as 'Square Digital Sound Elements' and then licensed as 'Procyon Studio Digital Sound Elements' after moving to Procyon Studio).
 
 [![VG Music Studio Preview](https://i.imgur.com/hWJGG83.png)](https://www.youtube.com/watch?v=s1BZ7cRbtBU "VG Music Studio Preview")
 
@@ -31,8 +31,8 @@ If you want to talk or would like a game added to our configs, join our [Discord
 * ADSR
 * Pitch bend
 * LFO
-* Ability to load SMDB and SWDB (Big Endian as opposed to SMDL and SWDL for Little Endian)
-* Some more unknown commands
+* Support for SMDS and WDS (for the earlier PlayStation version, used in Xenogears). The chunks in this version have no labels in them.
+* Support for SMDM and SWDM (for the earlier PlayStation 2 version, used in Xenosaga Episode I). The chunks in this version have no labels in them.
 
 ### MP2K Engine
 * Add Golden Sun 2 reverb effect

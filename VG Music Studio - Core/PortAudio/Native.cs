@@ -155,6 +155,7 @@ internal static partial class Stream
 
 internal static class Config
 {
+    internal static bool IsLoaded = false;
     // Based on the code from the Nickvision Application template https://github.com/NickvisionApps/Application
     // Code reference: https://github.com/NickvisionApps/Application/blob/28e3307b8242b2d335f8f65394a03afaf213363a/NickvisionApplication.GNOME/Program.cs#L50
     internal static void ImportLibrary()
@@ -166,7 +167,9 @@ internal static class Config
         catch
         {
             Debug.WriteLine("PortAudio Library is already loaded.");
+            return;
         }
+        IsLoaded = true;
     }
 
     // Code reference: https://github.com/NickvisionApps/Application/blob/28e3307b8242b2d335f8f65394a03afaf213363a/NickvisionApplication.GNOME/Program.cs#L136

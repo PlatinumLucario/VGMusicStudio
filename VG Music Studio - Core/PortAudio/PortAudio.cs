@@ -246,7 +246,10 @@ public static class Pa
     /// </returns>
     public static void Initialize()
     {
-        Native.Config.ImportLibrary();
+        if (!Native.Config.IsLoaded)
+        {
+            Native.Config.ImportLibrary();
+        }
         
         ErrorCode ec = (ErrorCode)Native.Pa.Pa_Initialize();
         if (ec != ErrorCode.NoError)

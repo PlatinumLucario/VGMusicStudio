@@ -1,7 +1,14 @@
 ﻿using Kermalis.VGMusicStudio.Core.Formats;
 using Kermalis.VGMusicStudio.Core.Util;
 using NAudio.Wave;
+using SoundFlow.Abstracts;
+using SoundFlow.Backends.MiniAudio;
+using SoundFlow.Components;
+using SoundFlow.Enums;
+using SoundFlow.Providers;
+using SoundFlow.Structs;
 using System;
+using System.IO;
 using System.Linq;
 
 namespace Kermalis.VGMusicStudio.Core.GBA.MP2K;
@@ -20,6 +27,12 @@ public sealed class MP2KMixer : Mixer
 
 	internal readonly MP2KConfig Config;
 	private readonly AudioBackend MP2KPlaybackBackend;
+
+	#region MiniAudio Fields
+	private readonly Wave? _bufferMiniAudio;
+	private byte[]? _byteBufferMiniAudio;
+	private float[]? _floatBufferMiniAudio;
+	#endregion
 
 	#region PortAudio Fields
 	// PortAudio Fields
@@ -78,6 +91,22 @@ public sealed class MP2KMixer : Mixer
 					_bufferPortAudio.CreateIeeeFloatWave((uint)SampleRate, 2);
 
 					Init(waveData: _bufferPortAudio);
+					break;
+				}
+			case AudioBackend.MiniAudio:
+				{
+					int sizeInBytes = amt * sizeof(float);
+					int aligned32Bits = sizeInBytes % 4;
+					int sizeToAllocateInBytes = (aligned32Bits == 0) ? sizeInBytes : (sizeInBytes + 4 - aligned32Bits);
+					// _bufferMiniAudio = new Wave()
+					// {
+					// 	DiscardOnBufferOverflow = true,
+					// 	BufferLength = SamplesPerBuffer * 64,
+					// };
+					// _bufferMiniAudio.CreateIeeeFloatWave((uint)SampleRate, 2);
+					_byteBufferMiniAudio = new byte[sizeToAllocateInBytes];
+					_floatBufferMiniAudio = new float[amt];
+					Init(sampleRate: SampleRate, stream: _byteBufferMiniAudio);
 					break;
 				}
 			case AudioBackend.NAudio:
@@ -302,6 +331,12 @@ public sealed class MP2KMixer : Mixer
 							_audioPortAudio.Float32Buffer[(j * 2) + 1] += buf[(j * 2) + 1] * level;
 							break;
 						}
+					case AudioBackend.MiniAudio:
+						{
+							_floatBufferMiniAudio![j * 2] += buf[j * 2] * level;
+							_floatBufferMiniAudio[(j * 2) + 1] += buf[(j * 2) + 1] * level;
+							break;
+						}
 					case AudioBackend.NAudio:
 						{
 							_audioNAudio!.FloatBuffer![j * 2] += buf[j * 2] * level;
@@ -319,6 +354,25 @@ public sealed class MP2KMixer : Mixer
 				case AudioBackend.PortAudio:
 					{
 						_bufferPortAudio!.AddSamples(_audioPortAudio!.ByteBuffer, 0, _audioPortAudio.ByteBufferCount);
+						break;
+					}
+				case AudioBackend.MiniAudio:
+					{
+						for (int i = 0, b = 0; i < _floatBufferMiniAudio!.Length; i++)
+						{
+							// Span<byte> bytes = BitConverter.GetBytes(_floatBufferMiniAudio[i]);
+							// _byteBufferMiniAudio![b++] = bytes[0];
+							// _byteBufferMiniAudio[b++] = bytes[1];
+							// _byteBufferMiniAudio[b++] = bytes[2];
+							// _byteBufferMiniAudio[b++] = bytes[3];
+						}
+						DataProvider.AddSamples(_floatBufferMiniAudio);
+						if (MiniAudioPlayer.State == SoundFlow.Enums.PlaybackState.Stopped)
+						{
+							MiniAudioPlayer.Play();
+						}
+						// _bufferMiniAudio.AddSamples(_byteBufferMiniAudio, 0, _byteBufferMiniAudio.Length);
+						// UpdateStream(_byteBufferMiniAudio, SampleRate);
 						break;
 					}
 				case AudioBackend.NAudio:
