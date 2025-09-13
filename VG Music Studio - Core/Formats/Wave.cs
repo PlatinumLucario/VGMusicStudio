@@ -141,6 +141,11 @@ public class Wave
             }
             BufferState = BufferState.Idle;
         }
+        else
+        {
+            Buffer ??= new byte[BufferLength];
+            Array.Clear(Buffer);
+        }
     }
 
     public int ReadBuffer(Span<byte> data, int offset, int count)

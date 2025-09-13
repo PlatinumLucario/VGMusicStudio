@@ -1,6 +1,5 @@
 using System;
 using System.Runtime.InteropServices;
-using Kermalis.VGMusicStudio.Core;
 using Kermalis.VGMusicStudio.Core.Formats;
 
 namespace PortAudio;
@@ -8,14 +7,76 @@ namespace PortAudio;
 public enum CallbackState
 {
     Stop,
-    Start,
+    Play,
     Pause
 }
 
 public class PortAudioPlayer
 {
     public static CallbackState? CallbackState { get; protected set; }
-    private static int ReadPos = 0;
+    public float Volume = 1;
+    private bool _isDisposed = true;
+    private bool _isDisposing = false;
+    private static int _readPos = 0;
+    private readonly int _samplesPerBuffer;
+    private int? _prevBufferNum = 0;
+    private byte[]? _prevBuffer1;
+    private byte[]? _prevBuffer2;
+    private byte[]? _prevBuffer3;
+    private byte[]? _prevBuffer4;
+    private StreamParameters _oParams;
+    public StreamParameters DefaultOutputParams { get; private set; }
+    public HostApiInfo HostApiInfo { get; private set; }
+    private readonly Stream _stream;
+
+
+    internal PortAudioPlayer(SampleFormat sampleFormat, int samplesPerBuffer, Wave waveData)
+    {
+        _isDisposed = false;
+
+        Pa.Initialize();
+
+        // Try setting up an output device
+        _oParams.Device = Pa.DefaultOutputDevice;
+        if (_oParams.Device == Pa.NoDevice)
+        {
+            throw new Exception("No default audio output device is available.");
+        }
+
+        _oParams.Channels = 2;
+        _oParams.SampleFormat = sampleFormat;
+        _oParams.SuggestedLatency = Pa.GetDeviceInfo(_oParams.Device).defaultLowOutputLatency;
+        _oParams.HostApiSpecificStreamInfo = IntPtr.Zero;
+
+        // Set it as the default
+        DefaultOutputParams = _oParams;
+
+        _samplesPerBuffer = samplesPerBuffer;
+
+        _stream = new Stream(
+            null,
+            _oParams,
+            waveData!.SampleRate,
+            (uint)samplesPerBuffer,
+            StreamFlags.NoFlag,
+            PlayCallback,
+            waveData
+        );
+
+        HostApiInfo = Pa.GetHostApiInfo(Pa.DefaultHostApi);
+    }
+
+    public void Play()
+    {
+        CallbackState = PortAudio.CallbackState.Play;
+        _stream!.Start();
+    }
+
+    public void Stop()
+    {
+        CallbackState = PortAudio.CallbackState.Stop;
+        _stream!.Stop();
+    }
 
     private static Span<sbyte> CastBytesToSBytes(Span<byte> byteMem)
     {
@@ -42,7 +103,7 @@ public class PortAudioPlayer
         return MemoryMarshal.Cast<byte, float>(byteMem);
     }
 
-    internal static StreamCallbackResult Play(
+    internal StreamCallbackResult PlayCallback(
         nint input, nint output,
         uint frameCount,
         ref StreamCallbackTimeInfo timeInfo,
@@ -56,57 +117,90 @@ public class PortAudioPlayer
         // The memory is already allocated by the output and userData params by
         // the PortAudio bindings.
 
-        if (Engine.Instance is null)
+        if (_stream is null)
         {
-            return StreamCallbackResult.Continue;
-        }
-
-        var mixer = Engine.Instance!.Mixer;
-
-        if (Engine.Instance.Mixer.Stream is null)
-        {
-            ReadPos = 0;
+            _readPos = 0;
             return StreamCallbackResult.Abort;
         }
 
-        Wave d = Engine.Instance.Mixer!.Stream!.GetUserData<Wave>(userData);
+        Wave d = _stream!.GetUserData<Wave>(userData);
+        
         if (d.Buffer is null)
         {
-            ReadPos = 0;
+            _readPos = 0;
             return StreamCallbackResult.Continue;
         }
 
-        if (!Engine.Instance.Mixer.Stream.UDHandle.IsAllocated)
+        if (!_stream.UDHandle.IsAllocated)
         {
-            ReadPos = 0;
+            _readPos = 0;
             return StreamCallbackResult.Abort;
         }
 
+        if (_prevBuffer1 is not null || _prevBuffer2 is not null || _prevBuffer3 is not null || _prevBuffer4 is not null)
+        {
+            if (d.Buffer.CompareTo(_prevBuffer1) is 0 && d.Buffer.CompareTo(_prevBuffer2) is 0 && d.Buffer.CompareTo(_prevBuffer3) is 0 && d.Buffer.CompareTo(_prevBuffer4) is 0)
+            {
+                CallbackState = PortAudio.CallbackState.Pause;
+            }
+            else
+            {
+                CallbackState = PortAudio.CallbackState.Play;
+            }
+        }
+        else
+        {
+            _prevBuffer1 = new byte[d.Buffer.Length];
+            _prevBuffer2 = new byte[d.Buffer.Length];
+            _prevBuffer3 = new byte[d.Buffer.Length];
+            _prevBuffer4 = new byte[d.Buffer.Length];
+        }
         // RealignBufferPos(d);
 
-        Option1(Engine.Instance.Player, d, output, frameCount);
+        Option1(d, output, frameCount);
 
         while (d.BufferState is BufferState.Writing)
         {
             CallbackState = PortAudio.CallbackState.Pause;
-            var allocatedReadPos = ReadPos + frameCount;
-            var allocatedWritePos = d.WritePosition + mixer.SamplesPerBuffer;
+            var allocatedReadPos = _readPos + frameCount;
+            var allocatedWritePos = d.WritePosition + _samplesPerBuffer;
             if (allocatedReadPos >= d.WritePosition && allocatedReadPos < allocatedWritePos)
             {
-                if ((ReadPos + mixer.SamplesPerBuffer) > d.BufferLength)
+                if ((_readPos + _samplesPerBuffer) > d.BufferLength)
                 {
-                    ReadPos = d.WritePosition - mixer.SamplesPerBuffer;
+                    _readPos = d.WritePosition - _samplesPerBuffer;
                 }
                 else
                 {
-                    ReadPos = d.WritePosition + mixer.SamplesPerBuffer;
+                    _readPos = d.WritePosition + _samplesPerBuffer;
                 }
             }
         }
 
-        CallbackState = PortAudio.CallbackState.Start;
+        CallbackState = PortAudio.CallbackState.Play;
 
-        if (!Engine.Instance!.Mixer!.IsDisposing)
+        if (_prevBufferNum is 0)
+        {
+            d.Buffer.CopyTo(_prevBuffer1!, 0);
+            _prevBufferNum = 1;
+        }
+        else if (_prevBufferNum is 1)
+        {
+            d.Buffer.CopyTo(_prevBuffer2!, 0);
+            _prevBufferNum = 2;
+        }
+        else if (_prevBufferNum is 2)
+        {
+            d.Buffer.CopyTo(_prevBuffer3!, 0);
+            _prevBufferNum = 3;
+        }
+        else if (_prevBufferNum is 3)
+        {
+            d.Buffer.CopyTo(_prevBuffer4!, 0);
+            _prevBufferNum = 0;
+        }
+
+        if (!_isDisposing)
         {
             // Continue if the mixer isn't being disposed
             return StreamCallbackResult.Continue;
@@ -115,16 +209,16 @@ public class PortAudioPlayer
         {
             // Complete the callback if the mixer is being disposed
             d.ResetBuffer();
-            ReadPos = 0;
-            Engine.Instance!.Mixer!.IsDisposing = false;
+            _readPos = 0;
+            _isDisposing = false;
             return StreamCallbackResult.Complete;
         }
     }
 
-    private static void Option1(Player player, Wave d, nint output, uint frameCount)
+    private void Option1(Wave d, nint output, uint frameCount)
     {
 
-        switch (Engine.Instance!.Mixer!.OParams.SampleFormat)
+        switch (_oParams.SampleFormat)
         {
             case SampleFormat.UInt8:
                 {
@@ -135,18 +229,18 @@ public class PortAudioPlayer
                         buffer = new Span<byte>((byte*)output, (int)(frameCount * 2));
                     }
 
-                    ReadPos %= d.Buffer!.Length;
+                    _readPos %= d.Buffer!.Length;
 
                     // If we're reading data, play it back
-                    if (player.State == PlayerState.Playing)
+                    if (CallbackState == PortAudio.CallbackState.Play)
                     {
                         for (int i = 0; i < buffer.Length; i++)
                         {
-                            if (ReadPos + i >= buffer.Length)
+                            if (_readPos + i >= buffer.Length)
                             {
                                 break;
                             }
-                            buffer[i] = (byte)(d.Buffer[ReadPos + i] * Engine.Instance.Mixer.Volume);
+                            buffer[i] = (byte)(d.Buffer[_readPos + i] * Volume);
                         }
                     }
                     else
@@ -154,14 +248,14 @@ public class PortAudioPlayer
                         buffer.Clear();
                     }
 
-                    ReadPos += buffer.Length;
+                    _readPos += buffer.Length;
 
-                    if (ReadPos >= d.Buffer.Length)
+                    if (_readPos >= d.Buffer.Length)
                     {
-                        ReadPos = 0;
+                        _readPos = 0;
                     }
 
-                    if (Engine.Instance!.Mixer!.IsDisposing)
+                    if (_isDisposing)
                     {
                         buffer.Clear();
                     }
@@ -178,18 +272,18 @@ public class PortAudioPlayer
                         buffer = new Span<sbyte>((sbyte*)output, (int)(frameCount * 2));
                     }
 
-                    ReadPos %= waveBuffer.Length;
+                    _readPos %= waveBuffer.Length;
 
                     // If we're reading data, play it back
-                    if (player.State == PlayerState.Playing)
+                    if (CallbackState == PortAudio.CallbackState.Play)
                     {
                         for (int i = 0; i < buffer.Length; i++)
                         {
-                            if (ReadPos + i >= waveBuffer.Length)
+                            if (_readPos + i >= waveBuffer.Length)
                             {
                                 break;
                             }
-                            buffer[i] = (sbyte)(waveBuffer[ReadPos + i] * Engine.Instance.Mixer.Volume);
+                            buffer[i] = (sbyte)(waveBuffer[_readPos + i] * Volume);
                         }
                     }
                     else
@@ -197,14 +291,14 @@ public class PortAudioPlayer
                         buffer.Clear();
                     }
 
-                    ReadPos += buffer.Length;
+                    _readPos += buffer.Length;
 
-                    if (ReadPos >= waveBuffer.Length)
+                    if (_readPos >= waveBuffer.Length)
                     {
-                        ReadPos = 0;
+                        _readPos = 0;
                     }
 
-                    if (Engine.Instance!.Mixer!.IsDisposing)
+                    if (_isDisposing)
                     {
                         buffer.Clear();
                     }
@@ -221,18 +315,18 @@ public class PortAudioPlayer
                         buffer = new Span<short>((short*)output, (int)(frameCount * 2));
                     }
 
-                    ReadPos %= waveBuffer.Length;
+                    _readPos %= waveBuffer.Length;
 
                     // If we're reading data, play it back
-                    if (player.State == PlayerState.Playing)
+                    if (CallbackState == PortAudio.CallbackState.Play)
                     {
                         for (int i = 0; i < buffer.Length; i++)
                         {
-                            if (ReadPos + i >= waveBuffer.Length)
+                            if (_readPos + i >= waveBuffer.Length)
                             {
                                 break;
                             }
-                            buffer[i] = (short)(waveBuffer[ReadPos + i] * Engine.Instance.Mixer.Volume);
+                            buffer[i] = (short)(waveBuffer[_readPos + i] * Volume);
                         }
                     }
                     else
@@ -240,14 +334,14 @@ public class PortAudioPlayer
                         buffer.Clear();
                     }
 
-                    ReadPos += buffer.Length;
+                    _readPos += buffer.Length;
 
-                    if (ReadPos >= waveBuffer.Length)
+                    if (_readPos >= waveBuffer.Length)
                     {
-                        ReadPos = 0;
+                        _readPos = 0;
                     }
 
-                    if (Engine.Instance!.Mixer!.IsDisposing)
+                    if (_isDisposing)
                     {
                         buffer.Clear();
                     }
@@ -264,18 +358,18 @@ public class PortAudioPlayer
                         buffer = new Span<Int24>((Int24*)output, (int)(frameCount * 2));
                     }
 
-                    ReadPos %= waveBuffer.Length;
+                    _readPos %= waveBuffer.Length;
 
                     // If we're reading data, play it back
-                    if (player.State == PlayerState.Playing)
+                    if (CallbackState == PortAudio.CallbackState.Play)
                     {
                         for (int i = 0; i < buffer.Length; i++)
                         {
-                            if (ReadPos + i >= waveBuffer.Length)
+                            if (_readPos + i >= waveBuffer.Length)
                             {
                                 break;
                             }
-                            buffer[i] = (Int24)(waveBuffer[ReadPos + i] * Engine.Instance.Mixer.Volume);
+                            buffer[i] = (Int24)(waveBuffer[_readPos + i] * Volume);
                         }
                     }
                     else
@@ -283,14 +377,14 @@ public class PortAudioPlayer
                         buffer.Clear();
                     }
 
-                    ReadPos += buffer.Length;
+                    _readPos += buffer.Length;
 
-                    if (ReadPos >= waveBuffer.Length)
+                    if (_readPos >= waveBuffer.Length)
                     {
-                        ReadPos = 0;
+                        _readPos = 0;
                     }
 
-                    if (Engine.Instance!.Mixer!.IsDisposing)
+                    if (_isDisposing)
                     {
                         buffer.Clear();
                     }
@@ -307,18 +401,18 @@ public class PortAudioPlayer
                         buffer = new Span<int>((int*)output, (int)(frameCount * 2));
                     }
 
-                    ReadPos %= waveBuffer.Length;
+                    _readPos %= waveBuffer.Length;
 
                     // If we're reading data, play it back
-                    if (player.State == PlayerState.Playing)
+                    if (CallbackState == PortAudio.CallbackState.Play)
                     {
                         for (int i = 0; i < buffer.Length; i++)
                         {
-                            if (ReadPos + i >= waveBuffer.Length)
+                            if (_readPos + i >= waveBuffer.Length)
                             {
                                 break;
                             }
-                            buffer[i] = (int)(waveBuffer[ReadPos + i] * Engine.Instance.Mixer.Volume);
+                            buffer[i] = (int)(waveBuffer[_readPos + i] * Volume);
                         }
                     }
                     else
@@ -326,14 +420,14 @@ public class PortAudioPlayer
                         buffer.Clear();
                     }
 
-                    ReadPos += buffer.Length;
+                    _readPos += buffer.Length;
 
-                    if (ReadPos >= waveBuffer.Length)
+                    if (_readPos >= waveBuffer.Length)
                     {
-                        ReadPos = 0;
+                        _readPos = 0;
                     }
 
-                    if (Engine.Instance!.Mixer!.IsDisposing)
+                    if (_isDisposing)
                     {
                         buffer.Clear();
                     }
@@ -350,18 +444,18 @@ public class PortAudioPlayer
                         buffer = new Span<float>((float*)output, (int)(frameCount * 2));
                     }
 
-                    ReadPos %= waveBuffer.Length;
+                    _readPos %= waveBuffer.Length;
 
                     // If we're reading data, play it back
-                    if (player.State == PlayerState.Playing)
+                    if (CallbackState == PortAudio.CallbackState.Play)
                     {
                         for (int i = 0; i < buffer.Length; i++)
                         {
-                            if (ReadPos + i >= waveBuffer.Length)
+                            if (_readPos + i >= waveBuffer.Length)
                             {
                                 break;
                             }
-                            buffer[i] = (float)(waveBuffer[ReadPos + i] * Engine.Instance.Mixer.Volume);
+                            buffer[i] = (float)(waveBuffer[_readPos + i] * Volume);
                         }
                     }
                     else
@@ -369,14 +463,14 @@ public class PortAudioPlayer
                         buffer.Clear();
                     }
 
-                    ReadPos += buffer.Length;
+                    _readPos += buffer.Length;
 
-                    if (ReadPos >= waveBuffer.Length)
+                    if (_readPos >= waveBuffer.Length)
                     {
-                        ReadPos = 0;
+                        _readPos = 0;
                     }
 
-                    if (Engine.Instance!.Mixer!.IsDisposing)
+                    if (_isDisposing)
                     {
                         buffer.Clear();
                     }
@@ -384,6 +478,17 @@ public class PortAudioPlayer
                     break;
                 }
         }
+    }
+
+    internal void Dispose()
+    {
+        if (!_isDisposed)
+        {
+            _isDisposing = true;
+            _stream.Dispose();
+            Pa.Terminate();
+        }
+        _isDisposed = true;
     }
 
     // // Experimental realignment func to prevent reading from buffers being written to

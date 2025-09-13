@@ -2,6 +2,8 @@
 using Kermalis.VGMusicStudio.Core.NDS.SDAT;
 using Kermalis.VGMusicStudio.Core.Util;
 using NAudio.Wave;
+using SoundFlow.Structs;
+using SoundFlow.Enums;
 using System;
 
 namespace Kermalis.VGMusicStudio.Core.NDS.DSE;
@@ -23,6 +25,12 @@ public sealed class DSEMixer : Mixer
 	#region PortAudio Fields
 	// PortAudio Fields
 	private readonly Wave? _bufferPortAudio;
+	#endregion
+
+	#region MiniAudio Fields
+	// MiniAudio Fields
+	private readonly AudioFormat _formatSoundFlow;
+	protected override AudioFormat SoundFlowFormat => _formatSoundFlow;
 	#endregion
 
 	#region NAudio Fields
@@ -58,6 +66,17 @@ public sealed class DSEMixer : Mixer
 					};
 					_bufferPortAudio.CreateIeeeFloatWave(sampleRate, 2, 16);
 					Init(waveData: _bufferPortAudio, PortAudio.SampleFormat.Int16);
+					break;
+				}
+			case AudioBackend.MiniAudio:
+				{
+					_formatSoundFlow = new AudioFormat
+					{
+						Channels = 2,
+						SampleRate = sampleRate,
+						Format = SoundFlow.Enums.SampleFormat.F32
+					};
+					Init();
 					break;
 				}
 			case AudioBackend.NAudio:
@@ -161,6 +180,7 @@ public sealed class DSEMixer : Mixer
 	}
 
 	private readonly byte[] _b = new byte[4];
+	private readonly float[] _f = new float[2];
 	internal void Process(bool output, bool recording)
 	{
 		float masterStep;
@@ -217,6 +237,7 @@ public sealed class DSEMixer : Mixer
 			left = (int)f;
 			_b[0] = (byte)left;
 			_b[1] = (byte)(left >> 8);
+			_f[0] = left / (float)short.MaxValue;
 			f = right * masterLevel;
 			if (f < short.MinValue)
 			{
@@ -229,6 +250,7 @@ public sealed class DSEMixer : Mixer
 			right = (int)f;
 			_b[2] = (byte)right;
 			_b[3] = (byte)(right >> 8);
+			_f[1] = right / (float)short.MaxValue;
 			masterLevel += masterStep;
 			if (output)
 			{
@@ -237,6 +259,11 @@ public sealed class DSEMixer : Mixer
 					case AudioBackend.PortAudio:
 						{
 							_bufferPortAudio!.AddSamples(_b, 0, 4);
+							break;
+						}
+					case AudioBackend.MiniAudio:
+						{
+							DataProvider!.AddSamples(_f);
 							break;
 						}
 					case AudioBackend.NAudio:
@@ -253,6 +280,11 @@ public sealed class DSEMixer : Mixer
 					case AudioBackend.PortAudio:
 						{
 							_waveWriterPortAudio!.Write(_b, 0, 4);
+							break;
+						}
+					case AudioBackend.MiniAudio:
+						{
+							_soundFlowEncoder!.Encode(_f);
 							break;
 						}
 					case AudioBackend.NAudio:

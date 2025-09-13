@@ -153,6 +153,7 @@ Currently, .NET has not been ported to FreeBSD or similar operating systems. As 
 * tuku473 - Design suggestions, colors, Spanish translation
 * J. Ritchie Carroll (from Grid Protection Alliance) - Int24 and UInt24 classes and functions
 * Benjamin Summerton (define-private-public) - PortAudio bindings for C#
+* LSXPrime - Developing [the SoundFlow library](https://github.com/LSXPrime/SoundFlow) and helping out with using QueueDataProvider correctly
 
 ### AlphaDream Engine
 * irdkwia - Finding games that used the engine
