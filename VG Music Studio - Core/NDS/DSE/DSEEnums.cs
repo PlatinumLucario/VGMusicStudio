@@ -13,6 +13,28 @@ internal enum EnvelopeState : byte
 	Release = 8,
 }
 
+internal enum ModulationType : byte
+{
+	None = 0,
+	Pitch = 1,
+	Volume = 2,
+	Panpot = 3,
+	FineTune = 4,
+	CoarseTune = 5
+}
+
+internal enum WaveformType : byte
+{
+	None = 0,
+	Square = 1,
+	Triangle = 2,
+	Sine = 3,
+	Pulse = 4,
+	Sawtooth = 5,
+	Noise = 6,
+	Random = 7
+}
+
 internal enum SampleFormat : ushort
 {
 	PCM8 = 0,

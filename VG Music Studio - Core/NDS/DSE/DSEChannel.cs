@@ -12,7 +12,7 @@ internal sealed class DSEChannel
 	public DSETrack? Owner;
 	public string? SWDType;
 	public EnvelopeState State;
-	public byte RootKey;
+	public sbyte RootKey;
 	public byte Key;
 	public byte NoteVelocity;
 	public sbyte Panpot; // Not necessary

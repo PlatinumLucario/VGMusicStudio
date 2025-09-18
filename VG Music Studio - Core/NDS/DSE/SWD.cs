@@ -162,10 +162,10 @@ internal sealed class SWD
 	#region SplitEntry
 	public interface ISplitEntry
 	{
-		byte LowKey { get; }
-		byte HighKey { get; }
+		sbyte LowKey { get; }
+		sbyte HighKey { get; }
 		ushort SampleId { get; }
-		byte SampleRootKey { get; }
+		sbyte SampleRootKey { get; }
 		sbyte SampleTranspose { get; }
 		byte AttackVolume { get; set; }
 		byte AttackTime { get; set; }
@@ -177,25 +177,33 @@ internal sealed class SWD
 	}
 	public class SplitEntry : ISplitEntry // 0x30
 	{
-		public byte Unknown1 { get; set; }
-		public byte Id { get; set; }
-		public byte[] Unknown2 { get; set; }
-		public byte LowKey { get; set; }
-		public byte HighKey { get; set; }
-		public byte LowKey2 { get; set; }
-		public byte HighKey2 { get; set; }
-		public byte LowVelocity { get; set; }
-		public byte HighVelocity { get; set; }
-		public byte LowVelocity2 { get; set; }
-		public byte HighVelocity2 { get; set; }
-		public byte[] Unknown3 { get; set; }
+		public ushort Id { get; set; }
+		public byte BendRange { get; set; }
+		public bool Enabled { get; set; }
+		public sbyte LowKey { get; set; }
+		public sbyte HighKey { get; set; }
+		public sbyte LowKey2 { get; set; }
+		public sbyte HighKey2 { get; set; }
+		public sbyte LowVelocity { get; set; }
+		public sbyte HighVelocity { get; set; }
+		public sbyte LowVelocity2 { get; set; }
+		public sbyte HighVelocity2 { get; set; }
+		public byte[]? Padding { get; set; }
+		public byte[]? Padding2 { get; set; }
+		public byte[]? Unknown3 { get; set; }
 		public ushort SampleId { get; set; }
+		public byte FineTune { get; set; }
+		public sbyte CoarseTune { get; set; }
 		public byte[] Unknown4 { get; set; }
-		public byte SampleRootKey { get; set; }
+		public sbyte SampleRootKey { get; set; }
 		public sbyte SampleTranspose { get; set; }
-		public byte SampleVolume { get; set; }
+		public sbyte SampleVolume { get; set; }
 		public sbyte SamplePanpot { get; set; }
 		public byte KeyGroupId { get; set; }
+		public byte KeyGroupFlag { get; set; }
+		public ushort UnusedValue { get; set; }
+		public byte EnvelopeVolume { get; set; }
+		public byte EnvelopeMultiplier { get; set; }
 		public byte[]? Unknown5 { get; set; }
 		public byte AttackVolume { get; set; }
 		public byte AttackTime { get; set; }
@@ -210,53 +218,64 @@ internal sealed class SWD
 
 		public SplitEntry(EndianBinaryReader r, SWD swd)
 		{
-			Unknown1 = r.ReadByte();
+			Id = r.ReadUInt16();
 
-			Id = r.ReadByte();
+			BendRange = r.ReadByte();
 
-			Unknown2 = new byte[2];
-			r.ReadBytes(Unknown2);
+			Enabled = r.ReadBoolean();
 
-			LowKey = r.ReadByte();
+			LowKey = r.ReadSByte();
 
-			HighKey = r.ReadByte();
+			HighKey = r.ReadSByte();
 
-			LowKey2 = r.ReadByte();
+			LowKey2 = r.ReadSByte();
 
-			HighKey2 = r.ReadByte();
+			HighKey2 = r.ReadSByte();
 
-			LowVelocity = r.ReadByte();
+			LowVelocity = r.ReadSByte();
 
-			HighVelocity = r.ReadByte();
+			HighVelocity = r.ReadSByte();
 
-			LowVelocity2 = r.ReadByte();
+			LowVelocity2 = r.ReadSByte();
 
-			HighVelocity2 = r.ReadByte();
+			HighVelocity2 = r.ReadSByte();
 
 			switch (swd.Version)
 			{
 				case 1026:
 					{
-						Unknown3 = new byte[5];
-						r.ReadBytes(Unknown3);
+						Padding = new byte[5];
+						r.ReadBytes(Padding);
 
 						SampleId = r.ReadByte();
 
-						Unknown4 = new byte[2];
-						r.ReadBytes(Unknown4);
+						FineTune = r.ReadByte();
 
-						SampleRootKey = r.ReadByte();
+						CoarseTune = r.ReadSByte();
+
+						SampleRootKey = r.ReadSByte();
 
 						SampleTranspose = r.ReadSByte();
 
-						SampleVolume = r.ReadByte();
+						SampleVolume = r.ReadSByte();
 
 						SamplePanpot = r.ReadSByte();
 
 						KeyGroupId = r.ReadByte();
 
-						Unknown5 = new byte[15];
-						r.ReadBytes(Unknown5);
+						KeyGroupFlag = r.ReadByte();
+
+						UnusedValue = r.ReadUInt16();
+
+						Padding2 = new byte[4];
+						r.ReadBytes(Padding2);
+
+						EnvelopeVolume = r.ReadByte();
+
+						EnvelopeMultiplier = r.ReadByte();
+
+						Unknown4 = new byte[6];
+						r.ReadBytes(Unknown4);
 
 						AttackVolume = r.ReadByte();
 
@@ -278,25 +297,37 @@ internal sealed class SWD
 					}
 				case 1045:
 					{
-						Unknown2 = new byte[6];
-						r.ReadBytes(Unknown2);
+						Padding = new byte[6];
+						r.ReadBytes(Padding);
 
 						SampleId = r.ReadUInt16();
 
-						Unknown3 = new byte[2];
-						r.ReadBytes(Unknown3);
+						FineTune = r.ReadByte();
 
-						SampleRootKey = r.ReadByte();
+						CoarseTune = r.ReadSByte();
+
+						SampleRootKey = r.ReadSByte();
 
 						SampleTranspose = r.ReadSByte();
 
-						SampleVolume = r.ReadByte();
+						SampleVolume = r.ReadSByte();
 
 						SamplePanpot = r.ReadSByte();
 
 						KeyGroupId = r.ReadByte();
 
-						Unknown4 = new byte[13];
+						KeyGroupFlag = r.ReadByte();
+
+						UnusedValue = r.ReadUInt16();
+
+						Padding2 = new byte[2];
+						r.ReadBytes(Padding2);
+
+						EnvelopeVolume = r.ReadByte();
+
+						EnvelopeMultiplier = r.ReadByte();
+
+						Unknown4 = new byte[6];
 						r.ReadBytes(Unknown4);
 
 						AttackVolume = r.ReadByte();
@@ -323,7 +354,7 @@ internal sealed class SWD
 			}
 		}
 	}
-#endregion
+	#endregion
 
 	#region ProgramInfo
 	public interface IProgramInfo
@@ -333,15 +364,15 @@ internal sealed class SWD
 	public class ProgramInfo : IProgramInfo
 	{
 		public ushort Id { get; set; }
-		public byte NumSplits { get; set; }
-		public byte[] Unknown1 { get; set; }
+		public ushort NumSplits { get; set; }
+		public byte[]? Unknown1 { get; set; }
 		public byte Volume { get; set; }
 		public byte Panpot { get; set; }
 		public byte[] Unknown2 { get; set; }
 		public byte NumLFOs { get; set; }
-		public byte[] Unknown3 { get; set; }
+		public byte[] HeaderPadding { get; set; }
 		public LFOInfo[] LFOInfos { get; set; }
-		public byte[]? Unknown4 { get; set; }
+		public byte[]? LFOPadding { get; set; }
 		public KeyGroup[]? KeyGroups { get; set; }
 		public SplitEntry[] SplitEntries { get; set; }
 
@@ -349,7 +380,7 @@ internal sealed class SWD
 
 		public ProgramInfo(EndianBinaryReader r, SWD swd)
 		{
-			switch(swd.Version)
+			switch (swd.Version)
 			{
 				case 1026:
 					{
@@ -369,8 +400,8 @@ internal sealed class SWD
 
 						NumLFOs = r.ReadByte();
 
-						Unknown3 = new byte[4];
-						r.ReadBytes(Unknown3);
+						HeaderPadding = new byte[4];
+						r.ReadBytes(HeaderPadding);
 
 						KeyGroups = new KeyGroup[16];
 
@@ -378,7 +409,8 @@ internal sealed class SWD
 						for (int i = 0; i < NumLFOs; i++)
 						{
 							LFOInfos[i] = new LFOInfo(r);
-						};
+						}
+						;
 
 						SplitEntries = new SplitEntry[NumSplits];
 
@@ -389,10 +421,7 @@ internal sealed class SWD
 					{
 						Id = r.ReadUInt16();
 
-						NumSplits = r.ReadByte();
-
-						Unknown1 = new byte[1];
-						r.ReadBytes(Unknown1);
+						NumSplits = r.ReadUInt16();
 
 						Volume = r.ReadByte();
 
@@ -403,17 +432,18 @@ internal sealed class SWD
 
 						NumLFOs = r.ReadByte();
 
-						Unknown3 = new byte[4];
-						r.ReadBytes(Unknown3);
+						HeaderPadding = new byte[4];
+						r.ReadBytes(HeaderPadding);
 
 						LFOInfos = new LFOInfo[NumLFOs];
 						for (int i = 0; i < NumLFOs; i++)
 						{
 							LFOInfos[i] = new LFOInfo(r);
-						};
+						}
+						;
 
-						Unknown4 = new byte[16];
-						r.ReadBytes(Unknown4);
+						LFOPadding = new byte[16];
+						r.ReadBytes(LFOPadding);
 
 						SplitEntries = new SplitEntry[NumSplits];
 						for (int i = 0; i < NumSplits; i++)
@@ -492,10 +522,10 @@ internal sealed class SWD
 		public WavInfo(EndianBinaryReader r, SWD swd)
 		{
 			// SWD version format check
-			switch(swd.Version)
+			switch (swd.Version)
 			{
 
-				case 1026: 
+				case 1026:
 					{
 						// The wave table Entry Variable
 						Entry = new byte[1]; // Specify a variable with a byte array before doing EndianBinaryReader.ReadBytes()
@@ -608,7 +638,7 @@ internal sealed class SWD
 						Id = r.ReadUInt16(); // Reads the ID of the wave sample as Little Endian
 						if (swd.Type == "swdb") // Checks if the str string value matches "swdb"
 						{
-						   r.Endianness = Endianness.BigEndian; // Restores the reader back to Big Endian
+							r.Endianness = Endianness.BigEndian; // Restores the reader back to Big Endian
 						}
 
 						// Currently undocumented variable
@@ -719,8 +749,8 @@ internal sealed class SWD
 						break;
 					}
 
-					// In the event that there's a version that hasn't been discovered yet
-					default: throw new NotImplementedException("This version of the SWD specification has not yet been implemented into VG Music Studio.");
+				// In the event that there's a version that hasn't been discovered yet
+				default: throw new NotImplementedException("This version of the SWD specification has not yet been implemented into VG Music Studio.");
 			}
 		}
 	}
@@ -763,41 +793,18 @@ internal sealed class SWD
 			Unknown = r.ReadUInt16();
 		}
 	}
-	public class LFOInfo
+	public class LFOInfo(EndianBinaryReader r)
 	{
-		public byte Unknown1 { get; set; }
-		public byte HasData { get; set; }
-		public byte Type { get; set; } // LFOType enum
-		public byte CallbackType { get; set; }
-		public uint Unknown4 { get; set; }
-		public ushort Unknown8 { get; set; }
-		public ushort UnknownA { get; set; }
-		public ushort UnknownC { get; set; }
-		public byte UnknownE { get; set; }
-		public byte UnknownF { get; set; }
-
-		public LFOInfo(EndianBinaryReader r)
-		{
-			Unknown1 = r.ReadByte();
-
-			HasData = r.ReadByte();
-
-			Type = r.ReadByte();
-
-			CallbackType = r.ReadByte();
-
-			Unknown4 = r.ReadUInt32();
-
-			Unknown8 = r.ReadUInt16();
-
-			UnknownA = r.ReadUInt16();
-
-			UnknownC = r.ReadUInt16();
-
-			UnknownE = r.ReadByte();
-
-			UnknownF = r.ReadByte();
-		}
+		public byte Entry { get; set; } = r.ReadByte();
+		public byte HasData { get; set; } = r.ReadByte();
+		public ModulationType ModulationType { get; set; } = (ModulationType)r.ReadByte();
+		public WaveformType WaveformType { get; set; } = (WaveformType)r.ReadByte();
+		public ushort Rate { get; set; } = r.ReadUInt16();
+		public ushort Unused { get; set; } = r.ReadUInt16();
+		public ushort Depth { get; set; } = r.ReadUInt16();
+		public ushort Delay { get; set; } = r.ReadUInt16();
+		public short Fade { get; set; } = r.ReadInt16();
+		public ushort Break { get; set; } = r.ReadUInt16();
 	}
 
 	public string FileName;
