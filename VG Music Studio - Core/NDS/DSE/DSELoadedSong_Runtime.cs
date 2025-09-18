@@ -268,7 +268,7 @@ internal sealed partial class DSELoadedSong
 						break;
 					}
 
-				// SetSwdlAndBank (Seen in ev_e09b.sed)
+				// SetSWDAndBank (Seen in ev_e09b.sed)
 				case 0xA8:
 					{
 						track.WaveIDIndex = SMDFile[track.CurOffset++];
@@ -328,8 +328,8 @@ internal sealed partial class DSELoadedSong
 				// DisableEnvelope
 				case 0xB0:
 					{
-						track.Attack = 0;
-						track.Time = 0;
+						track.AttackVolume = 0;
+						track.AttackTime = 0;
 						track.Hold = 0;
 						track.Decay = 0;
 						track.Sustain = 0;
@@ -338,17 +338,17 @@ internal sealed partial class DSELoadedSong
 						break;
 					}
 
-				// SetEnvelopeAttack
+				// SetEnvelopeAttackVolume
 				case 0xB1:
 					{
-						track.Attack = SMDFile[track.CurOffset++];
+						track.AttackVolume = SMDFile[track.CurOffset++];
 						break;
 					}
 
 				// SetEnvelopeAttackTime (Seen in ev_e09b.sed)
 				case 0xB2:
 					{
-						track.Time = SMDFile[track.CurOffset++];
+						track.AttackTime = SMDFile[track.CurOffset++];
 						break;
 					}
 
@@ -363,8 +363,22 @@ internal sealed partial class DSELoadedSong
 				// (setting either to 0xFF means it won't change it)
 				case 0xB4:
 					{
-						track.Decay = SMDFile[track.CurOffset++];
-						track.Sustain = SMDFile[track.CurOffset++];
+						if (SMDFile[track.CurOffset] is not 0xFF)
+						{
+							track.Decay = SMDFile[track.CurOffset++];
+						}
+						else
+						{
+							track.CurOffset++;
+						}
+						if (SMDFile[track.CurOffset] is not 0xFF)
+						{
+							track.Sustain = SMDFile[track.CurOffset++];
+						}
+						else
+						{
+							track.CurOffset++;
+						}
 						break;
 					}
 
@@ -415,7 +429,7 @@ internal sealed partial class DSELoadedSong
 						break;
 					}
 
-				// SetChannelPan: Set the pan at the CHANNEL level.
+				// SetChannelPanpot: Set the panpot at the CHANNEL level.
 				// (seen in last 3 tracks of bgm0048.smd)
 				case 0xBE:
 					{
@@ -697,7 +711,7 @@ internal sealed partial class DSELoadedSong
 						break;
 					}
 
-				// SweepPan (Seen in bgm0100.smd)
+				// SweepPanpot (Seen in bgm0100.smd)
 				case 0xEA:
 					{
 						track.SweepRate = (ushort)(SMDFile[track.CurOffset++] | (SMDFile[track.CurOffset++] << 8));
@@ -712,7 +726,7 @@ internal sealed partial class DSELoadedSong
 						break;
 					}
 
-				// ReplaceLFO3AsPan (Seen in ev_e09b.sed)
+				// ReplaceLFO3AsPanpot (Seen in ev_e09b.sed)
 				case 0xEC:
 					{
 						track.CurOffset += 5;
@@ -733,7 +747,7 @@ internal sealed partial class DSELoadedSong
 						break;
 					}
 
-				// SetLFO3ToPanEnabled: (Seen in ev_e09b.sed)
+				// SetLFO3ToPanpotEnabled: (Seen in ev_e09b.sed)
 				// If true, turns on LFO3 and connects it to pan. If false, disables LFO3.
 				case 0xEF:
 					{
@@ -795,7 +809,7 @@ internal sealed partial class DSELoadedSong
 						break;
 					}
 
-				// Unknown(Seen in bgm0001.smd) param value is usually between 0x0-0xf Seems to be used to sync music and script engine scene!
+				// ScenarioSync(Seen in bgm0001.smd) param value is usually between 0x0-0xf Seems to be used to sync music and script engine scene!
 				case 0xF6:
 					{
 						track.CurOffset++;

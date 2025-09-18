@@ -280,31 +280,29 @@ internal sealed partial class DSELoadedSong
 						}
 					case 0xA8:
 						{
-							byte[] args = new byte[2];
-							r.ReadBytes(args);
+							byte waveID = r.ReadByte();
+							byte bankID = r.ReadByte();
 							if (!EventExists(trackIndex, cmdOffset))
 							{
-								AddEvent(trackIndex, cmdOffset, new UnknownCommand { Command = cmd, Args = args });
+								AddEvent(trackIndex, cmdOffset, new SetSWDAndBankCommand { WaveID = waveID, BankID = bankID });
 							}
 							break;
 						}
 					case 0xA9:
 						{
-							byte[] args = new byte[1];
-							r.ReadBytes(args);
+							byte bankHiID = r.ReadByte();
 							if (!EventExists(trackIndex, cmdOffset))
 							{
-								AddEvent(trackIndex, cmdOffset, new UnknownCommand { Command = cmd, Args = args });
+								AddEvent(trackIndex, cmdOffset, new SetBankHiCommand { BankHiID = bankHiID });
 							}
 							break;
 						}
 					case 0xAA:
 						{
-							byte[] args = new byte[1];
-							r.ReadBytes(args);
+							byte bankLoID = r.ReadByte();
 							if (!EventExists(trackIndex, cmdOffset))
 							{
-								AddEvent(trackIndex, cmdOffset, new UnknownCommand { Command = cmd, Args = args });
+								AddEvent(trackIndex, cmdOffset, new SetBankLoCommand { BankLoID = bankLoID });
 							}
 							break;
 						}
@@ -345,11 +343,11 @@ internal sealed partial class DSELoadedSong
 						}
 					case 0xAF:
 						{
-							byte[] args = new byte[3];
-							r.ReadBytes(args);
+							ushort sweepRate = r.ReadUInt16();
+							byte sweepPitch = r.ReadByte();
 							if (!EventExists(trackIndex, cmdOffset))
 							{
-								AddEvent(trackIndex, cmdOffset, new UnknownCommand { Command = cmd, Args = args });
+								AddEvent(trackIndex, cmdOffset, new SweepSongVolumeCommand { SweepRate = sweepRate, SweepPitch = sweepPitch });
 							}
 							break;
 						}
@@ -357,67 +355,62 @@ internal sealed partial class DSELoadedSong
 						{
 							if (!EventExists(trackIndex, cmdOffset))
 							{
-								AddEvent(trackIndex, cmdOffset, new UnknownCommand { Command = cmd });
+								AddEvent(trackIndex, cmdOffset, new DisableEnvelopeCommand { Command = cmd });
 							}
 							break;
 						}
 					case 0xB1:
 						{
-							byte[] args = new byte[1];
-							r.ReadBytes(args);
+							byte attackVolume = r.ReadByte();
 							if (!EventExists(trackIndex, cmdOffset))
 							{
-								AddEvent(trackIndex, cmdOffset, new UnknownCommand { Command = cmd, Args = args });
+								AddEvent(trackIndex, cmdOffset, new SetEnvelopeAttackVolumeCommand { AttackVolume = attackVolume });
 							}
 							break;
 						}
 					case 0xB2:
 						{
-							byte[] args = new byte[1];
-							r.ReadBytes(args);
+							byte attackTime = r.ReadByte();
 							if (!EventExists(trackIndex, cmdOffset))
 							{
-								AddEvent(trackIndex, cmdOffset, new UnknownCommand { Command = cmd, Args = args });
+								AddEvent(trackIndex, cmdOffset, new SetEnvelopeAttackTimeCommand { AttackTime = attackTime });
 							}
 							break;
 						}
 					case 0xB3:
 						{
-							byte[] args = new byte[1];
-							r.ReadBytes(args);
+							byte hold = r.ReadByte();
 							if (!EventExists(trackIndex, cmdOffset))
 							{
-								AddEvent(trackIndex, cmdOffset, new UnknownCommand { Command = cmd, Args = args });
+								AddEvent(trackIndex, cmdOffset, new SetEnvelopeHoldCommand { Hold = hold });
 							}
 							break;
 						}
 					case 0xB4:
 						{
-							byte[] args = new byte[2];
-							r.ReadBytes(args);
+							byte decay = r.ReadByte();
+							byte sustain = r.ReadByte();
 							if (!EventExists(trackIndex, cmdOffset))
 							{
-								AddEvent(trackIndex, cmdOffset, new UnknownCommand { Command = cmd, Args = args });
+								AddEvent(trackIndex, cmdOffset, new SetEnvelopeDecaySustainCommand { Decay = decay, Sustain = sustain });
 							}
 							break;
 						}
 					case 0xB5:
 						{
-							byte[] args = new byte[1];
-							r.ReadBytes(args);
+							byte fade = r.ReadByte();
 							if (!EventExists(trackIndex, cmdOffset))
 							{
-								AddEvent(trackIndex, cmdOffset, new UnknownCommand { Command = cmd, Args = args });
+								AddEvent(trackIndex, cmdOffset, new SetEnvelopeFadeCommand { Fade = fade });
 							}
 							break;
 						}
 					case 0xB6:
 						{
-							byte[] args = new byte[1];
-							r.ReadBytes(args);
+							byte release = r.ReadByte();
 							if (!EventExists(trackIndex, cmdOffset))
 							{
-								AddEvent(trackIndex, cmdOffset, new UnknownCommand { Command = cmd, Args = args });
+								AddEvent(trackIndex, cmdOffset, new SetEnvelopeReleaseCommand { Release = release });
 							}
 							break;
 						}
@@ -463,11 +456,10 @@ internal sealed partial class DSELoadedSong
 						}
 					case 0xBC:
 						{
-							byte[] args = new byte[1];
-							r.ReadBytes(args);
+							byte noteVolume = r.ReadByte();
 							if (!EventExists(trackIndex, cmdOffset))
 							{
-								AddEvent(trackIndex, cmdOffset, new UnknownCommand { Command = cmd, Args = args });
+								AddEvent(trackIndex, cmdOffset, new SetNoteVolumeCommand { NoteVolume = noteVolume });
 							}
 							break;
 						}
@@ -481,21 +473,19 @@ internal sealed partial class DSELoadedSong
 						}
 					case 0xBE:
 						{
-							byte[] args = new byte[1];
-							r.ReadBytes(args);
+							byte channelPanpot = r.ReadByte();
 							if (!EventExists(trackIndex, cmdOffset))
 							{
-								AddEvent(trackIndex, cmdOffset, new UnknownCommand { Command = cmd, Args = args });
+								AddEvent(trackIndex, cmdOffset, new SetChannelPanpotCommand { ChannelPanpot = channelPanpot });
 							}
 							break;
 						}
 					case 0xBF:
 						{
-							byte[] args = new byte[1];
-							r.ReadBytes(args);
+							byte flagValue = r.ReadByte();
 							if (!EventExists(trackIndex, cmdOffset))
 							{
-								AddEvent(trackIndex, cmdOffset, new UnknownCommand { Command = cmd, Args = args });
+								AddEvent(trackIndex, cmdOffset, new FlagBeginCommand { FlagValue = flagValue });
 							}
 							break;
 						}
@@ -503,7 +493,7 @@ internal sealed partial class DSELoadedSong
 						{
 							if (!EventExists(trackIndex, cmdOffset))
 							{
-								AddEvent(trackIndex, cmdOffset, new UnknownCommand { Command = cmd });
+								AddEvent(trackIndex, cmdOffset, new FlagEndCommand { Command = cmd });
 							}
 							break;
 						}
@@ -525,11 +515,10 @@ internal sealed partial class DSELoadedSong
 						}
 					case 0xC3:
 						{
-							byte[] args = new byte[1];
-							r.ReadBytes(args);
+							byte channelVolume = r.ReadByte();
 							if (!EventExists(trackIndex, cmdOffset))
 							{
-								AddEvent(trackIndex, cmdOffset, new UnknownCommand { Command = cmd, Args = args });
+								AddEvent(trackIndex, cmdOffset, new SetChannelVolumeCommand { ChannelVolume = channelVolume });
 							}
 							break;
 						}
@@ -633,71 +622,66 @@ internal sealed partial class DSELoadedSong
 						}
 					case 0xD0:
 						{
-							byte[] args = new byte[1];
-							r.ReadBytes(args);
+							byte fineTune = r.ReadByte();
 							if (!EventExists(trackIndex, cmdOffset))
 							{
-								AddEvent(trackIndex, cmdOffset, new UnknownCommand { Command = cmd, Args = args });
+								AddEvent(trackIndex, cmdOffset, new SetFineTuneCommand { FineTune = fineTune });
 							}
 							break;
 						}
 					case 0xD1:
 						{
-							byte[] args = new byte[1];
-							r.ReadBytes(args);
+							byte fineTuneAddValue = r.ReadByte();
 							if (!EventExists(trackIndex, cmdOffset))
 							{
-								AddEvent(trackIndex, cmdOffset, new UnknownCommand { Command = cmd, Args = args });
+								AddEvent(trackIndex, cmdOffset, new AddToFineTuneCommand { FineTuneAddValue = fineTuneAddValue });
 							}
 							break;
 						}
 					case 0xD2:
 						{
-							byte[] args = new byte[1];
-							r.ReadBytes(args);
+							byte coarseTune = r.ReadByte();
 							if (!EventExists(trackIndex, cmdOffset))
 							{
-								AddEvent(trackIndex, cmdOffset, new UnknownCommand { Command = cmd, Args = args });
+								AddEvent(trackIndex, cmdOffset, new SetCoarseTuneCommand { CoarseTune = coarseTune });
 							}
 							break;
 						}
 					case 0xD3:
 						{
-							byte[] args = new byte[2];
-							r.ReadBytes(args);
+							ushort coarseTuneAddValue = r.ReadUInt16();
 							if (!EventExists(trackIndex, cmdOffset))
 							{
-								AddEvent(trackIndex, cmdOffset, new UnknownCommand { Command = cmd, Args = args });
+								AddEvent(trackIndex, cmdOffset, new AddToCoarseTuneCommand { CoarseTuneAddValue = coarseTuneAddValue });
 							}
 							break;
 						}
 					case 0xD4:
 						{
-							byte[] args = new byte[3];
-							r.ReadBytes(args);
+							ushort sweepTuneRate = r.ReadUInt16();
+							byte sweepTuneTarget = r.ReadByte();
 							if (!EventExists(trackIndex, cmdOffset))
 							{
-								AddEvent(trackIndex, cmdOffset, new UnknownCommand { Command = cmd, Args = args });
+								AddEvent(trackIndex, cmdOffset, new SweepTuneCommand { SweepTuneRate = sweepTuneRate, SweepTuneTarget = sweepTuneTarget });
 							}
 							break;
 						}
 					case 0xD5:
 						{
-							byte[] args = new byte[2];
-							r.ReadBytes(args);
+							byte randomNoteRangeMin = r.ReadByte();
+							byte randomNoteRangeMax = r.ReadByte();
 							if (!EventExists(trackIndex, cmdOffset))
 							{
-								AddEvent(trackIndex, cmdOffset, new UnknownCommand { Command = cmd, Args = args });
+								AddEvent(trackIndex, cmdOffset, new SetRandomNoteRangeCommand { RandomNoteRangeMin = randomNoteRangeMin, RandomNoteRangeMax = randomNoteRangeMax });
 							}
 							break;
 						}
 					case 0xD6:
 						{
-							byte[] args = new byte[2];
-							r.ReadBytes(args);
+							ushort detuneRange = r.ReadUInt16();
 							if (!EventExists(trackIndex, cmdOffset))
 							{
-								AddEvent(trackIndex, cmdOffset, new UnknownCommand { Command = cmd, Args = args });
+								AddEvent(trackIndex, cmdOffset, new SetDetuneRangeCommand { DetuneRange = detuneRange });
 							}
 							break;
 						}
@@ -712,11 +696,11 @@ internal sealed partial class DSELoadedSong
 						}
 					case 0xD8:
 						{
-							byte[] args = new byte[2];
-							r.ReadBytes(args);
+							byte paramValue = r.ReadByte();
+							byte paramTarget = r.ReadByte();
 							if (!EventExists(trackIndex, cmdOffset))
 							{
-								AddEvent(trackIndex, cmdOffset, new UnknownCommand { Command = cmd, Args = args });
+								AddEvent(trackIndex, cmdOffset, new SetParamCommand { ParamValue = paramValue, ParamTarget = paramTarget });
 							}
 							break;
 						}
@@ -738,11 +722,10 @@ internal sealed partial class DSELoadedSong
 						}
 					case 0xDB:
 						{
-							byte[] args = new byte[1];
-							r.ReadBytes(args);
+							byte pitchBendRange = r.ReadByte();
 							if (!EventExists(trackIndex, cmdOffset))
 							{
-								AddEvent(trackIndex, cmdOffset, new UnknownCommand { Command = cmd, Args = args });
+								AddEvent(trackIndex, cmdOffset, new SetPitchBendRangeCommand { PitchBendRange = pitchBendRange });
 							}
 							break;
 						}
@@ -752,7 +735,7 @@ internal sealed partial class DSELoadedSong
 							r.ReadBytes(args);
 							if (!EventExists(trackIndex, cmdOffset))
 							{
-								AddEvent(trackIndex, cmdOffset, new UnknownCommand { Command = cmd, Args = args });
+								AddEvent(trackIndex, cmdOffset, new ReplaceLFO1AsPitchCommand { Args = args });
 							}
 							break;
 						}
@@ -762,7 +745,7 @@ internal sealed partial class DSELoadedSong
 							r.ReadBytes(args);
 							if (!EventExists(trackIndex, cmdOffset))
 							{
-								AddEvent(trackIndex, cmdOffset, new UnknownCommand { Command = cmd, Args = args });
+								AddEvent(trackIndex, cmdOffset, new SetLFO1DelayFade { Args = args });
 							}
 							break;
 						}
@@ -776,11 +759,10 @@ internal sealed partial class DSELoadedSong
 						}
 					case 0xDF:
 						{
-							byte[] args = new byte[1];
-							r.ReadBytes(args);
+							bool pitchEnabled = r.ReadBoolean();
 							if (!EventExists(trackIndex, cmdOffset))
 							{
-								AddEvent(trackIndex, cmdOffset, new UnknownCommand { Command = cmd, Args = args });
+								AddEvent(trackIndex, cmdOffset, new SetLFO1ToPitchEnabledCommand { PitchEnabled = pitchEnabled });
 							}
 							break;
 						}
@@ -795,21 +777,20 @@ internal sealed partial class DSELoadedSong
 						}
 					case 0xE1:
 						{
-							byte[] args = new byte[1];
-							r.ReadBytes(args);
+							byte trackAddVol = r.ReadByte();
 							if (!EventExists(trackIndex, cmdOffset))
 							{
-								AddEvent(trackIndex, cmdOffset, new UnknownCommand { Command = cmd, Args = args });
+								AddEvent(trackIndex, cmdOffset, new AddToTrackVolCommand { TrackVolAdd = trackAddVol });
 							}
 							break;
 						}
 					case 0xE2:
 						{
-							byte[] args = new byte[3];
-							r.ReadBytes(args);
+							ushort sweepRate = r.ReadUInt16();
+							byte sweepVolume = r.ReadByte();
 							if (!EventExists(trackIndex, cmdOffset))
 							{
-								AddEvent(trackIndex, cmdOffset, new UnknownCommand { Command = cmd, Args = args });
+								AddEvent(trackIndex, cmdOffset, new SweepTrackVolCommand { SweepRate = sweepRate, SweepVolume = sweepVolume });
 							}
 							break;
 						}
@@ -828,7 +809,7 @@ internal sealed partial class DSELoadedSong
 							r.ReadBytes(args);
 							if (!EventExists(trackIndex, cmdOffset))
 							{
-								AddEvent(trackIndex, cmdOffset, new UnknownCommand { Command = cmd, Args = args });
+								AddEvent(trackIndex, cmdOffset, new ReplaceLFO2AsVolumeCommand{ Args = args });
 							}
 							break;
 						}
@@ -838,7 +819,7 @@ internal sealed partial class DSELoadedSong
 							r.ReadBytes(args);
 							if (!EventExists(trackIndex, cmdOffset))
 							{
-								AddEvent(trackIndex, cmdOffset, new UnknownCommand { Command = cmd, Args = args });
+								AddEvent(trackIndex, cmdOffset, new SetLFO2DelayFade { Args = args });
 							}
 							break;
 						}
@@ -852,11 +833,10 @@ internal sealed partial class DSELoadedSong
 						}
 					case 0xE7:
 						{
-							byte[] args = new byte[1];
-							r.ReadBytes(args);
+							bool volumeEnabled = r.ReadBoolean();
 							if (!EventExists(trackIndex, cmdOffset))
 							{
-								AddEvent(trackIndex, cmdOffset, new UnknownCommand { Command = cmd, Args = args });
+								AddEvent(trackIndex, cmdOffset, new SetLFO2ToVolumeEnabledCommand { VolumeEnabled = volumeEnabled });
 							}
 							break;
 						}
@@ -871,21 +851,20 @@ internal sealed partial class DSELoadedSong
 						}
 					case 0xE9:
 						{
-							byte[] args = new byte[1];
-							r.ReadBytes(args);
+							byte panArg = r.ReadByte();
 							if (!EventExists(trackIndex, cmdOffset))
 							{
-								AddEvent(trackIndex, cmdOffset, new UnknownCommand { Command = cmd, Args = args });
+								AddEvent(trackIndex, cmdOffset, new AddToPanpotCommand { PanpotAdd = (sbyte)(panArg - 0x40) });
 							}
 							break;
 						}
 					case 0xEA:
 						{
-							byte[] args = new byte[3];
-							r.ReadBytes(args);
+							ushort sweepRate = r.ReadUInt16();
+							byte panpotTarget = r.ReadByte();
 							if (!EventExists(trackIndex, cmdOffset))
 							{
-								AddEvent(trackIndex, cmdOffset, new UnknownCommand { Command = cmd, Args = args });
+								AddEvent(trackIndex, cmdOffset, new SweepPanpotCommand { SweepRate = sweepRate, PanpotTarget = panpotTarget });
 							}
 							break;
 						}
@@ -903,7 +882,7 @@ internal sealed partial class DSELoadedSong
 							r.ReadBytes(args);
 							if (!EventExists(trackIndex, cmdOffset))
 							{
-								AddEvent(trackIndex, cmdOffset, new UnknownCommand { Command = cmd, Args = args });
+								AddEvent(trackIndex, cmdOffset, new ReplaceLFO3AsPanpotCommand { Args = args });
 							}
 							break;
 						}
@@ -913,7 +892,7 @@ internal sealed partial class DSELoadedSong
 							r.ReadBytes(args);
 							if (!EventExists(trackIndex, cmdOffset))
 							{
-								AddEvent(trackIndex, cmdOffset, new UnknownCommand { Command = cmd, Args = args });
+								AddEvent(trackIndex, cmdOffset, new SetLFO3DelayFade { Args = args });
 							}
 							break;
 						}
@@ -927,51 +906,52 @@ internal sealed partial class DSELoadedSong
 						}
 					case 0xEF:
 						{
-							byte[] args = new byte[1];
-							r.ReadBytes(args);
+							bool panpotEnabled = r.ReadBoolean();
 							if (!EventExists(trackIndex, cmdOffset))
 							{
-								AddEvent(trackIndex, cmdOffset, new UnknownCommand { Command = cmd, Args = args });
+								AddEvent(trackIndex, cmdOffset, new SetLFO3ToPanpotEnabledCommand { PanpotEnabled = panpotEnabled });
 							}
 							break;
 						}
 					case 0xF0:
 						{
-							byte[] args = new byte[5];
-							r.ReadBytes(args);
+							ushort rate = r.ReadUInt16();
+							ushort depth = r.ReadUInt16();
+							byte waveID = r.ReadByte();
 							if (!EventExists(trackIndex, cmdOffset))
 							{
-								AddEvent(trackIndex, cmdOffset, new UnknownCommand { Command = cmd, Args = args });
+								AddEvent(trackIndex, cmdOffset, new ReplaceLFOCommand { Rate = rate, Depth = depth, WaveID = waveID });
 							}
 							break;
 						}
 					case 0xF1:
 						{
-							byte[] args = new byte[4];
-							r.ReadBytes(args);
+							ushort delay = r.ReadUInt16();
+							ushort fadeTime = r.ReadUInt16();
 							if (!EventExists(trackIndex, cmdOffset))
 							{
-								AddEvent(trackIndex, cmdOffset, new UnknownCommand { Command = cmd, Args = args });
+								AddEvent(trackIndex, cmdOffset, new SetLFODelayFadeCommand { Delay = delay, FadeTime = fadeTime });
 							}
 							break;
 						}
 					case 0xF2:
 						{
-							byte[] args = new byte[2];
-							r.ReadBytes(args);
+							byte paramID = r.ReadByte();
+							byte waveID = r.ReadByte();
 							if (!EventExists(trackIndex, cmdOffset))
 							{
-								AddEvent(trackIndex, cmdOffset, new UnknownCommand { Command = cmd, Args = args });
+								AddEvent(trackIndex, cmdOffset, new SetLFOParamCommand { ParamID = paramID, WaveID = waveID });
 							}
 							break;
 						}
 					case 0xF3:
 						{
-							byte[] args = new byte[3];
-							r.ReadBytes(args);
+							byte target = r.ReadByte();
+							bool enabled = r.ReadBoolean();
+							byte targetID = r.ReadByte();
 							if (!EventExists(trackIndex, cmdOffset))
 							{
-								AddEvent(trackIndex, cmdOffset, new UnknownCommand { Command = cmd, Args = args });
+								AddEvent(trackIndex, cmdOffset, new SetLFORouteCommand { Target = target, Enabled = enabled, TargetID = targetID });
 							}
 							break;
 						}
@@ -993,11 +973,10 @@ internal sealed partial class DSELoadedSong
 						}
 					case 0xF6:
 						{
-							byte[] args = new byte[1];
-							r.ReadBytes(args);
+							byte checkpoint = r.ReadByte();
 							if (!EventExists(trackIndex, cmdOffset))
 							{
-								AddEvent(trackIndex, cmdOffset, new UnknownCommand { Command = cmd, Args = args });
+								AddEvent(trackIndex, cmdOffset, new ScenarioSyncCommand { Checkpoint = checkpoint });
 							}
 							break;
 						}

@@ -168,7 +168,7 @@ internal sealed class SWD
 		byte SampleRootKey { get; }
 		sbyte SampleTranspose { get; }
 		byte AttackVolume { get; set; }
-		byte Attack { get; set; }
+		byte AttackTime { get; set; }
 		byte Decay { get; set; }
 		byte Sustain { get; set; }
 		byte Hold { get; set; }
@@ -198,7 +198,7 @@ internal sealed class SWD
 		public byte KeyGroupId { get; set; }
 		public byte[]? Unknown5 { get; set; }
 		public byte AttackVolume { get; set; }
-		public byte Attack { get; set; }
+		public byte AttackTime { get; set; }
 		public byte Decay { get; set; }
 		public byte Sustain { get; set; }
 		public byte Hold { get; set; }
@@ -260,7 +260,7 @@ internal sealed class SWD
 
 						AttackVolume = r.ReadByte();
 
-						Attack = r.ReadByte();
+						AttackTime = r.ReadByte();
 
 						Decay = r.ReadByte();
 
@@ -301,7 +301,7 @@ internal sealed class SWD
 
 						AttackVolume = r.ReadByte();
 
-						Attack = r.ReadByte();
+						AttackTime = r.ReadByte();
 
 						Decay = r.ReadByte();
 
@@ -444,7 +444,7 @@ internal sealed class SWD
 		uint SampleOffset { get; }
 		uint LoopStart { get; }
 		uint LoopEnd { get; }
-		byte EnvMulti { get; }
+		byte EnvMult { get; }
 		byte AttackVolume { get; }
 		byte Attack { get; }
 		byte Decay { get; }
@@ -478,7 +478,7 @@ internal sealed class SWD
 		public uint LoopStart { get; set; }
 		public uint LoopEnd { get; set; }
 		public byte EnvOn { get; set; }
-		public byte EnvMulti { get; set; }
+		public byte EnvMult { get; set; }
 		public byte[] Unknown8 { get; set; }
 		public byte AttackVolume { get; set; }
 		public byte Attack { get; set; }
@@ -564,7 +564,7 @@ internal sealed class SWD
 						EnvOn = r.ReadByte();
 
 						// Volume Envelop Multiple
-						EnvMulti = r.ReadByte();
+						EnvMult = r.ReadByte();
 
 						// Undocumented variable(s)
 						Unknown8 = new byte[6];
@@ -686,7 +686,7 @@ internal sealed class SWD
 						EnvOn = r.ReadByte();
 
 						// Volume Envelop Multiple
-						EnvMulti = r.ReadByte();
+						EnvMult = r.ReadByte();
 
 						// Undocumented variable(s)
 						Unknown8 = new byte[6]; // Same as before

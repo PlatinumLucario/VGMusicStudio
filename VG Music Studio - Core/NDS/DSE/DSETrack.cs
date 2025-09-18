@@ -59,8 +59,8 @@ internal sealed class DSETrack(byte i, int startOffset)
 	public int BankIDIndex;
 	public List<SongEvent>? DalSegnoCommands;
 	public SongEvent? ToCodaCommand;
-	public byte Attack;
-	public byte Time;
+	public byte AttackVolume;
+	public byte AttackTime;
 	public byte Hold;
 	public byte Decay;
 	public byte Sustain;
@@ -95,8 +95,8 @@ internal sealed class DSETrack(byte i, int startOffset)
 		BankIDIndex = -1;
 		DalSegnoCommands = [];
 
-		Attack = 0;
-		Time = 0;
+		AttackVolume = 0;
+		AttackTime = 0;
 		Hold = 0;
 		Decay = 0;
 		Sustain = 0;

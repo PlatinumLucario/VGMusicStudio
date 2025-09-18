@@ -39,8 +39,8 @@ public sealed class MP2KMixer : Mixer
 
 	#region NAudio Fields
 	// NAudio Fields
-	private WaveBuffer? _audioNAudio;
-	private BufferedWaveProvider? _bufferNAudio;
+	private readonly WaveBuffer? _audioNAudio;
+	private readonly BufferedWaveProvider? _bufferNAudio;
 
 	protected override WaveFormat WaveFormat => _bufferNAudio!.WaveFormat;
 	#endregion

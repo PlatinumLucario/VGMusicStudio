@@ -32,8 +32,8 @@ internal sealed class DSEChannel
 	private int _velocity; // From 0-0x3FFFFFFF ((128 << 23) - 1)
 	private byte _targetVolume;
 
-	private byte _attack;
-	private byte _time;
+	private byte _attackVolume;
+	private byte _attackTime;
 	private byte _decay;
 	private byte _sustain;
 	private byte _hold;
@@ -136,13 +136,13 @@ internal sealed class DSEChannel
 				//hold = split.Hold == 0 ? sample.WavInfo.Hold : split.Hold;
 				//decay2 = split.Decay2 == 0 ? sample.WavInfo.Decay2 : split.Decay2;
 				//release = split.Release == 0 ? sample.WavInfo.Release : split.Release;
-				_attack = split.AttackVolume == 0 ? _sample.WavInfo.AttackVolume == 0 ? (byte)0x7F : _sample.WavInfo.AttackVolume : split.AttackVolume;
-				_time = split.Attack == 0 ? _sample.WavInfo.Attack == 0 ? (byte)0x7F : _sample.WavInfo.Attack : split.Attack;
-				_decay = split.Decay == 0 ? _sample.WavInfo.Decay == 0 ? (byte)0x7F : _sample.WavInfo.Decay : split.Decay;
-				_sustain = split.Sustain == 0 ? _sample.WavInfo.Sustain == 0 ? (byte)0x7F : _sample.WavInfo.Sustain : split.Sustain;
-				_hold = split.Hold == 0 ? _sample.WavInfo.Hold == 0 ? (byte)0x7F : _sample.WavInfo.Hold : split.Hold;
-				_fade = split.Fade == 0 ? _sample.WavInfo.Fade == 0 ? (byte)0x7F : _sample.WavInfo.Fade : split.Fade;
-				_release = split.Release == 0 ? _sample.WavInfo.Release == 0 ? (byte)0x7F : _sample.WavInfo.Release : split.Release;
+				_attackVolume = split.AttackVolume == 0 ? _sample.WavInfo.AttackVolume == 0 ? _sample.WavInfo.Volume : _sample.WavInfo.AttackVolume : split.AttackVolume;
+				_attackTime = split.AttackTime == 0 ? _sample.WavInfo.Attack == 0 ? _sample.WavInfo.Volume : _sample.WavInfo.Attack : split.AttackTime;
+				_decay = split.Decay == 0 ? _sample.WavInfo.Decay == 0 ? _sample.WavInfo.Volume : _sample.WavInfo.Decay : split.Decay;
+				_sustain = split.Sustain == 0 ? _sample.WavInfo.Sustain == 0 ? _sample.WavInfo.Volume : _sample.WavInfo.Sustain : split.Sustain;
+				_hold = split.Hold == 0 ? _sample.WavInfo.Hold == 0 ? _sample.WavInfo.Volume : _sample.WavInfo.Hold : split.Hold;
+				_fade = split.Fade == 0 ? _sample.WavInfo.Fade == 0 ? _sample.WavInfo.Volume : _sample.WavInfo.Fade : split.Fade;
+				_release = split.Release == 0 ? _sample.WavInfo.Release == 0 ? _sample.WavInfo.Volume : _sample.WavInfo.Release : split.Release;
 				DetermineEnvelopeStartingPoint();
 				_pos = 0;
 				_prevLeft = _prevRight = 0;
@@ -176,13 +176,13 @@ internal sealed class DSEChannel
 	}
 	public void CheckEnvelopeValues()
 	{
-		if (Owner!.Attack != 0)
+		if (Owner!.AttackVolume != 0)
 		{
-			_attack = Owner.Attack;
+			_attackVolume = Owner.AttackVolume;
 		}
-		if (Owner.Time != 0)
+		if (Owner.AttackTime != 0)
 		{
-			_time = Owner.Time;
+			_attackTime = Owner.AttackTime;
 		}
 		if (Owner.Decay != 0)
 		{
@@ -210,20 +210,20 @@ internal sealed class DSEChannel
 	private bool IsValidEnvelope()
 	{
 		bool b = true;
-		bool ge = _sample!.WavInfo!.EnvMulti >= 0x7F;
-		bool ee = _sample.WavInfo.EnvMulti == 0x7F;
-		if (_sample.WavInfo.EnvMulti > 0x7F)
+		bool ge = _sample!.WavInfo!.EnvMult >= _sample.WavInfo.Volume;
+		bool ee = _sample.WavInfo.EnvMult == _sample.WavInfo.Volume;
+		if (_sample.WavInfo.EnvMult > _sample.WavInfo.Volume)
 		{
-			ge = _attack >= 0x7F;
-			ee = _attack == 0x7F;
+			ge = _attackVolume >= _sample.WavInfo.Volume;
+			ee = _attackVolume == _sample.WavInfo.Volume;
 		}
 		if (!ee & ge
-			&& _time > 0x7F
-			&& _decay > 0x7F
-			&& _sustain > 0x7F
-			&& _hold > 0x7F
-			&& _fade > 0x7F
-			&& _release > 0x7F)
+			&& _attackTime > _sample.WavInfo.Volume
+			&& _decay > _sample.WavInfo.Volume
+			&& _sustain > _sample.WavInfo.Volume
+			&& _hold > _sample.WavInfo.Volume
+			&& _fade > _sample.WavInfo.Volume
+			&& _release > _sample.WavInfo.Volume)
 		{
 			b = false;
 		}
@@ -240,18 +240,18 @@ internal sealed class DSEChannel
 				UpdateEnvelopePlan(0, _fade);
 				State = EnvelopeState.Attack;
 			}
-			if (_time != 0)
+			if (_attackTime != 0)
 			{
-				_velocity = _attack << 23;
+				_velocity = _attackVolume << 23;
 				State = EnvelopeState.Hold;
-				UpdateEnvelopePlan(0x7F, _time);
+				UpdateEnvelopePlan(_sample!.WavInfo!.Volume, _attackTime);
 			}
 			else
 			{
-				_velocity = 0x7F << 23;
+				_velocity = _sample!.WavInfo!.Volume << 23;
 				if (_hold != 0)
 				{
-					UpdateEnvelopePlan(0x7F, _hold);
+					UpdateEnvelopePlan(_sample.WavInfo.Volume, _hold);
 					State = EnvelopeState.Decay;
 				}
 				else if (_decay != 0)
@@ -270,7 +270,7 @@ internal sealed class DSEChannel
 		else if (State != EnvelopeState.PlayNote) // Need to Initialize before it starts the PlayNote state
 		{
 			State = EnvelopeState.Initialize;
-			_velocity = 0x7F << 23;
+			_velocity = _sample!.WavInfo!.Volume << 23;
 		}
 	}
 
@@ -314,7 +314,7 @@ internal sealed class DSEChannel
 							}
 							else
 							{
-								UpdateEnvelopePlan(0x7F, _hold);
+								UpdateEnvelopePlan(_sample!.WavInfo!.Volume, _hold);
 								State = EnvelopeState.Decay;
 							}
 							break;
@@ -369,7 +369,7 @@ internal sealed class DSEChannel
 	}
 	private void UpdateEnvelopePlan(byte targetVolume, int envelopeParam)
 	{
-		if (envelopeParam == 0x7F)
+		if (envelopeParam == _sample!.WavInfo!.Volume)
 		{
 			_volumeIncrement = 0;
 			_envelopeTimeLeft = int.MaxValue;
@@ -377,9 +377,9 @@ internal sealed class DSEChannel
 		else
 		{
 			_targetVolume = targetVolume;
-			_envelopeTimeLeft = _sample!.WavInfo!.EnvMulti == 0
+			_envelopeTimeLeft = _sample!.WavInfo!.EnvMult == 0
 				? DSEUtils.Duration32[envelopeParam] * 1_000 / 10_000
-				: DSEUtils.Duration16[envelopeParam] * _sample.WavInfo.EnvMulti * 1_000 / 10_000;
+				: DSEUtils.Duration16[envelopeParam] * _sample.WavInfo.EnvMult * 1_000 / 10_000;
 			_volumeIncrement = _envelopeTimeLeft == 0 ? 0 : ((targetVolume << 23) - _velocity) / _envelopeTimeLeft;
 		}
 	}
@@ -485,7 +485,7 @@ internal sealed class DSEChannel
 								}
 							default: samp = 0; break;
 						}
-						samp = (short)(samp * Volume / 0x7F);
+						samp = (short)(samp * Volume / _sample.WavInfo.Volume);
 						_prevLeft = (short)(samp * (-Panpot + 0x40) / 0x80);
 						_prevRight = (short)(samp * (Panpot + 0x40) / 0x80);
 						break;
@@ -507,7 +507,7 @@ internal sealed class DSEChannel
 							}
 						}
 						short samp = _sample.DSPADPCM!.DataOutput![_dataOffset++]; // Since DataOutput is already a 16-bit array, only one array entry is needed per loop, no bitshifting needed either
-						samp = (short)(samp * Volume / 0x7F);
+						samp = (short)(samp * Volume / _sample.WavInfo.Volume);
 						_prevLeft = (short)(samp * (-Panpot + 0x40) / 0x80);
 						_prevRight = (short)(samp * (Panpot + 0x40) / 0x80);
 						break;
