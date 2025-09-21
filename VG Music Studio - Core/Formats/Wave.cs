@@ -116,7 +116,7 @@ public class Wave
         Writer = new EndianBinaryWriter(OutStream, ascii: true);
     }
 
-    public Wave CreateFormat(uint sampleRate, ushort channels, ushort blockAlign, uint averageBytesPerSecond, ushort bitsPerSample)
+    public Wave CreateFormat(uint sampleRate, ushort channels, ushort blockAlign, uint averageBytesPerSecond, ushort bitsPerSample, bool isLooped = false, uint loopStart = 0, uint loopEnd = 0)
     {
         Channels = channels;
         SampleRate = sampleRate;
@@ -124,9 +124,15 @@ public class Wave
         BlockAlign = blockAlign;
         BitsPerSample = bitsPerSample;
         ExtraSize = 0;
-        return new Wave();
+        if (isLooped)
+        {
+            IsLooped = isLooped;
+            LoopStart = loopStart;
+            LoopEnd = loopEnd;
+        }
+        return this;
     }
-    public Wave CreateIeeeFloatWave(uint sampleRate, ushort channels, ushort bits = 32) => CreateFormat(sampleRate, channels, (ushort)(channels * (bits / 8)), sampleRate * (ushort)(channels * (bits / 8)), bits);
+    public Wave CreateIeeeFloatWave(uint sampleRate, ushort channels, ushort bits = 32, bool isLooped = false, uint loopStart = 0, uint loopEnd = 0) => CreateFormat(sampleRate, channels, (ushort)(channels * (bits / 8)), sampleRate * (ushort)(channels * (bits / 8)), bits, isLooped, loopStart, loopEnd);
 
     public void AddSamples(Span<byte> buffer, int offset, int count)
     {
@@ -362,7 +368,10 @@ public class Wave
                     samplerSize += 24;
                 }
                 var loopHeader = new byte[loopHeaderSize];
-                var lw = new EndianBinaryWriter(new MemoryStream(loopHeader));
+                var lw = new EndianBinaryWriter(new MemoryStream(loopHeader))
+                {
+                    ASCII = true
+                };
                 for (int i = 0; i < numSampleLoops; i++)
                 {
                     lw.WriteUInt32(loopID[i]);
@@ -372,9 +381,12 @@ public class Wave
                     lw.WriteUInt32(loopFraction[i]);
                     lw.WriteUInt32(loopNumPlayback[i]);
                 }
-                samplerChunk = new byte[samplerSize + 8];
+                samplerChunk = new byte[samplerSize + loopHeaderSize];
 
-                var sw = new EndianBinaryWriter(new MemoryStream(samplerChunk));
+                var sw = new EndianBinaryWriter(new MemoryStream(samplerChunk))
+                {
+                    ASCII = true
+                };
                 sw.WriteChars(samplerID);
                 sw.WriteUInt32(samplerSize);
                 sw.WriteUInt32(manufacturer);
@@ -391,7 +403,10 @@ public class Wave
                 fileSize += (uint)samplerChunk.Length;
 
                 var waveData = new byte[fileSize];
-                var w = new EndianBinaryWriter(new MemoryStream(waveData));
+                var w = new EndianBinaryWriter(new MemoryStream(waveData))
+                {
+                    ASCII = true
+                };
                 w.WriteChars(fileID);
                 w.WriteUInt32(fileSize);
                 w.WriteChars(waveID);
@@ -414,7 +429,10 @@ public class Wave
             {
                 samplerChunk = new byte[samplerSize + 8];
 
-                var sw = new EndianBinaryWriter(new MemoryStream(samplerChunk));
+                var sw = new EndianBinaryWriter(new MemoryStream(samplerChunk))
+                {
+                    ASCII = true
+                };
                 sw.WriteChars(samplerID);
                 sw.WriteUInt32(samplerSize);
                 sw.WriteUInt32(manufacturer);
@@ -430,7 +448,10 @@ public class Wave
                 fileSize += (uint)samplerChunk.Length;
 
                 var waveData = new byte[fileSize];
-                var w = new EndianBinaryWriter(new MemoryStream(waveData));
+                var w = new EndianBinaryWriter(new MemoryStream(waveData))
+                {
+                    ASCII = true
+                };
                 w.WriteChars(fileID);
                 w.WriteUInt32(fileSize);
                 w.WriteChars(waveID);
@@ -453,7 +474,10 @@ public class Wave
         else
         {
             var waveData = new byte[fileSize];
-            var w = new EndianBinaryWriter(new MemoryStream(waveData));
+            var w = new EndianBinaryWriter(new MemoryStream(waveData))
+            {
+                ASCII = true
+            };
             w.WriteChars(fileID);
             w.WriteUInt32(fileSize);
             w.WriteChars(waveID);
@@ -476,6 +500,7 @@ public class Wave
     {
         // Make sure the stream is at position 0 before writing the header
         Writer!.Stream.Position = 0;
+        Writer.ASCII = true;
 
         // Creating the RIFF Wave headers
         writer.WriteChars("RIFF");

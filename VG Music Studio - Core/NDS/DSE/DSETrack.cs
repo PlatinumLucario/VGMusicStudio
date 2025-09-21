@@ -32,14 +32,29 @@ internal sealed class DSETrack(byte i, int startOffset)
 	public byte ChannelVolume;
 	public ushort LFORate;
 	public ushort LFODepth;
-	public byte LFOWaveID;
+	public WaveformType LFOWaveformType;
 	public ushort LFODelay;
 	public ushort LFOFadeTime;
-	public byte LFOParamID;
-	public byte LFOParamWaveID;
+    internal ushort LFO1Rate;
+    internal ushort LFO1Depth;
+    internal WaveformType LFO1WaveformType;
+    internal ushort LFO1Delay;
+    internal ushort LFO1FadeTime;
+    internal ushort LFO2Rate;
+    internal ushort LFO2Depth;
+    internal WaveformType LFO2WaveformType;
+    internal ushort LFO2Delay;
+    internal ushort LFO2FadeTime;
+    internal ushort LFO3Rate;
+    internal ushort LFO3Depth;
+    internal WaveformType LFO3WaveformType;
+    internal ushort LFO3Delay;
+    internal ushort LFO3FadeTime;
+	public ParameterType LFOParamType;
+	public WaveformType LFOParamWaveformType;
 	public byte LFOTarget;
 	public bool LFOEnabled;
-	public byte LFOTargetID;
+	public TargetType LFOTargetType;
 	public bool LFO1PitchEnabled;
 	public bool LFO2VolumeEnabled;
 	public bool LFO3PanpotEnabled;
@@ -66,7 +81,7 @@ internal sealed class DSETrack(byte i, int startOffset)
 	public byte Sustain;
 	public byte Fade;
 	public byte Release;
-	public readonly List<DSEChannel> Channels = new(0x10);
+    public readonly List<DSEChannel> Channels = new(0x10);
 
 	public void Init()
 	{

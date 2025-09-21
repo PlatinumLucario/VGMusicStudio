@@ -604,14 +604,17 @@ internal sealed partial class DSELoadedSong
 				// ReplaceLFO1AsPitch (Seen in ev_e09b.sed)
 				case 0xDC:
 					{
-						track.CurOffset += 5;
+						track.LFO1Rate = (ushort)(SMDFile[track.CurOffset++] | (SMDFile[track.CurOffset++] << 8));
+						track.LFO1Depth = (ushort)(SMDFile[track.CurOffset++] | (SMDFile[track.CurOffset++] << 8));
+						track.LFO1WaveformType = (WaveformType)SMDFile[track.CurOffset++];
 						break;
 					}
 
 				// SetLFO1DelayFade (Seen in ev_e09b.sed)
 				case 0xDD:
 					{
-						track.CurOffset += 4;
+						track.LFO1Delay = (ushort)(SMDFile[track.CurOffset++] | (SMDFile[track.CurOffset++] << 8));
+						track.LFO1FadeTime = (ushort)(SMDFile[track.CurOffset++] | (SMDFile[track.CurOffset++] << 8));
 						break;
 					}
 
@@ -667,14 +670,17 @@ internal sealed partial class DSELoadedSong
 				// ReplaceLFO2AsVolume
 				case 0xE4:
 					{
-						track.CurOffset += 5;
+						track.LFO2Rate = (ushort)(SMDFile[track.CurOffset++] | (SMDFile[track.CurOffset++] << 8));
+						track.LFO2Depth = (ushort)(SMDFile[track.CurOffset++] | (SMDFile[track.CurOffset++] << 8));
+						track.LFO2WaveformType = (WaveformType)SMDFile[track.CurOffset++];
 						break;
 					}
 
 				// SetLFO2DelayFade
 				case 0xE5:
 					{
-						track.CurOffset += 4;
+						track.LFO2Delay = (ushort)(SMDFile[track.CurOffset++] | (SMDFile[track.CurOffset++] << 8));
+						track.LFO2FadeTime = (ushort)(SMDFile[track.CurOffset++] | (SMDFile[track.CurOffset++] << 8));
 						break;
 					}
 
@@ -729,14 +735,17 @@ internal sealed partial class DSELoadedSong
 				// ReplaceLFO3AsPanpot (Seen in ev_e09b.sed)
 				case 0xEC:
 					{
-						track.CurOffset += 5;
+						track.LFO3Rate = (ushort)(SMDFile[track.CurOffset++] | (SMDFile[track.CurOffset++] << 8));
+						track.LFO3Depth = (ushort)(SMDFile[track.CurOffset++] | (SMDFile[track.CurOffset++] << 8));
+						track.LFO3WaveformType = (WaveformType)SMDFile[track.CurOffset++];
 						break;
 					}
 
 				// SetLFO3DelayFade (Seen in ev_e09b.sed)
 				case 0xED:
 					{
-						track.CurOffset += 4;
+						track.LFO3Delay = (ushort)(SMDFile[track.CurOffset++] | (SMDFile[track.CurOffset++] << 8));
+						track.LFO3FadeTime = (ushort)(SMDFile[track.CurOffset++] | (SMDFile[track.CurOffset++] << 8));
 						break;
 					}
 
@@ -764,7 +773,7 @@ internal sealed partial class DSELoadedSong
 					{
 						track.LFORate = (ushort)(SMDFile[track.CurOffset++] | (SMDFile[track.CurOffset++] << 8));
 						track.LFODepth = (ushort)(SMDFile[track.CurOffset++] | (SMDFile[track.CurOffset++] << 8));
-						track.LFOWaveID = SMDFile[track.CurOffset++];
+						track.LFOWaveformType = (WaveformType)SMDFile[track.CurOffset++];
 						break;
 					}
 
@@ -782,8 +791,8 @@ internal sealed partial class DSELoadedSong
 				// *For waveform ids see "LFO Waveforms IDs" below
 				case 0xF2:
 					{
-						track.LFOParamID = SMDFile[track.CurOffset++];
-						track.LFOParamWaveID = SMDFile[track.CurOffset++];
+						track.LFOParamType = (ParameterType)SMDFile[track.CurOffset++];
+						track.LFOParamWaveformType = (WaveformType)SMDFile[track.CurOffset++];
 						break;
 					}
 
@@ -795,7 +804,7 @@ internal sealed partial class DSELoadedSong
 						track.LFOTarget = SMDFile[track.CurOffset++];
 						track.LFOEnabled = SMDFile[track.CurOffset] is 0 || SMDFile[track.CurOffset] is 1;
 						track.CurOffset++;
-						track.LFOTargetID = SMDFile[track.CurOffset++];
+						track.LFOTargetType = (TargetType)SMDFile[track.CurOffset++];
 						break;
 					}
 

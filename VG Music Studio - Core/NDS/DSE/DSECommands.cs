@@ -346,17 +346,20 @@ internal sealed class ReplaceLFO1AsPitchCommand : ICommand
 {
 	public Color Color => Color.YellowGreen;
 	public string Label => $"Replace LFO1 As Pitch";
-	public string Arguments => $"{Args}";
+	public string Arguments => $"{Rate}, {Depth}, {WaveformType}";
 
-	public required byte[] Args { get; set; }
+	public ushort Rate { get; set; }
+	public ushort Depth { get; set; }
+	public WaveformType WaveformType { get; set; }
 }
 internal sealed class SetLFO1DelayFade : ICommand
 {
 	public Color Color => Color.YellowGreen;
 	public string Label => $"Set LFO1 To Delay Fade";
-	public string Arguments => $"{Args}";
+	public string Arguments => $"{Delay}, {FadeTime}";
 
-	public required byte[] Args { get; set; }
+	public ushort Delay { get; set; }
+	public ushort FadeTime { get; set; }
 }
 internal sealed class SetLFO1ToPitchEnabledCommand : ICommand
 {
@@ -370,17 +373,20 @@ internal sealed class ReplaceLFO2AsVolumeCommand : ICommand
 {
 	public Color Color => Color.YellowGreen;
 	public string Label => $"Replace LFO1 As Volume";
-	public string Arguments => $"{Args}";
+	public string Arguments => $"{Rate}, {Depth}, {WaveformType}";
 
-	public required byte[] Args { get; set; }
+	public ushort Rate { get; set; }
+	public ushort Depth { get; set; }
+	public WaveformType WaveformType { get; set; }
 }
 internal sealed class SetLFO2DelayFade : ICommand
 {
 	public Color Color => Color.YellowGreen;
 	public string Label => $"Set LFO2 To Delay Fade";
-	public string Arguments => $"{Args}";
+	public string Arguments => $"{Delay}, {FadeTime}";
 
-	public required byte[] Args { get; set; }
+	public ushort Delay { get; set; }
+	public ushort FadeTime { get; set; }
 }
 internal sealed class SetLFO2ToVolumeEnabledCommand : ICommand
 {
@@ -394,17 +400,20 @@ internal sealed class ReplaceLFO3AsPanpotCommand : ICommand
 {
 	public Color Color => Color.YellowGreen;
 	public string Label => $"Replace LFO3 As Panpot";
-	public string Arguments => $"{Args}";
+	public string Arguments => $"{Rate}, {Depth}, {WaveformType}";
 
-	public required byte[] Args { get; set; }
+	public ushort Rate { get; set; }
+	public ushort Depth { get; set; }
+	public WaveformType WaveformType { get; set; }
 }
 internal sealed class SetLFO3DelayFade : ICommand
 {
 	public Color Color => Color.YellowGreen;
 	public string Label => $"Set LFO3 To Delay Fade";
-	public string Arguments => $"{Args}";
+	public string Arguments => $"{Delay}, {FadeTime}";
 
-	public required byte[] Args { get; set; }
+	public ushort Delay { get; set; }
+	public ushort FadeTime { get; set; }
 }
 internal sealed class SetLFO3ToPanpotEnabledCommand : ICommand
 {
@@ -418,11 +427,11 @@ internal sealed class ReplaceLFOCommand : ICommand
 {
 	public Color Color => Color.DarkSalmon;
 	public string Label => $"Replace LFO";
-	public string Arguments => $"{Rate}, {Depth}, {WaveID}";
+	public string Arguments => $"{Rate}, {Depth}, {WaveformType}";
 
 	public ushort Rate { get; set; }
 	public ushort Depth { get; set; }
-	public byte WaveID { get; set; }
+	public WaveformType WaveformType { get; set; }
 }
 internal sealed class SetLFODelayFadeCommand : ICommand
 {
@@ -437,10 +446,10 @@ internal sealed class SetLFOParamCommand : ICommand
 {
 	public Color Color => Color.AliceBlue;
 	public string Label => $"Set LFO Parameters";
-	public string Arguments => $"{ParamID}, {WaveID}";
+	public string Arguments => $"{ParamType}, {WaveformType}";
 
-	public ushort ParamID { get; set; }
-	public ushort WaveID { get; set; }
+	public ParameterType ParamType { get; set; }
+	public WaveformType WaveformType { get; set; }
 }
 internal sealed class SetLFORouteCommand : ICommand
 {

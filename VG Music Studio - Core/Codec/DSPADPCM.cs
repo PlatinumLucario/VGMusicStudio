@@ -1,4 +1,5 @@
 ﻿using Kermalis.EndianBinaryIO;
+using Kermalis.VGMusicStudio.Core.Formats;
 using Kermalis.VGMusicStudio.Core.Util;
 using System;
 using System.Buffers.Binary;
@@ -224,68 +225,12 @@ internal struct DSPADPCM
 
 	public readonly byte[] ConvertToWav()
 	{
-		// Creating the RIFF Wave header
-		string fileID = "RIFF";
-		uint fileSize = (uint)((DataOutput!.Length * 2) + 44); // File size must match the size of the samples and header size
-		string waveID = "WAVE";
-		string formatID = "fmt ";
-		uint formatLength = 16; // Always a length 16
-		ushort formatType = 1; // Always PCM16
-		// Number of channels is already manually defined
-		uint sampleRate = Info[0].SampleRate; // Sample Rate is read directly from the Info context
-		ushort bitsPerSample = 16; // bitsPerSample must be written to AFTER numNibbles
-		uint numNibbles = sampleRate * bitsPerSample * Channel / 8; // numNibbles must be written BEFORE bitsPerSample is written
-		ushort bitRate = (ushort)((bitsPerSample * Channel) / 8);
-		string dataID = "data";
-		uint dataSize = (uint)(DataOutput!.Length * 2);
-
-		var convertedData = new byte[dataSize];
-		int index = 0;
-		for (int i = 0; i < DataOutput!.Length; i++)
-		{
-			convertedData[index++] = (byte)(DataOutput![i] & 0xff);
-			convertedData[index++] = (byte)(DataOutput![i] >> 8);
-		}
-
-		_ = new byte[4];
-		var header2 = new byte[4];
-		_ = new byte[4];
-		_ = new byte[4];
-		var header5 = new byte[4];
-		var header6 = new byte[2];
-		var header7 = new byte[2];
-		var header8 = new byte[4];
-		var header9 = new byte[4];
-		var header10 = new byte[2];
-		var header11 = new byte[2];
-		_ = new byte[4];
-		var header13 = new byte[4];
-
-		byte[]? header1 = Encoding.ASCII.GetBytes(fileID);
-		BinaryPrimitives.WriteUInt32LittleEndian(header2, fileSize);
-		byte[]? header3 = Encoding.ASCII.GetBytes(waveID);
-		byte[]? header4 = Encoding.ASCII.GetBytes(formatID);
-		BinaryPrimitives.WriteUInt32LittleEndian(header5, formatLength);
-		BinaryPrimitives.WriteUInt16LittleEndian(header6, formatType);
-		BinaryPrimitives.WriteUInt16LittleEndian(header7, NumChannels);
-		BinaryPrimitives.WriteUInt32LittleEndian(header8, sampleRate);
-		BinaryPrimitives.WriteUInt32LittleEndian(header9, numNibbles);
-		BinaryPrimitives.WriteUInt16LittleEndian(header10, bitRate);
-		BinaryPrimitives.WriteUInt16LittleEndian(header11, bitsPerSample);
-		byte[]? header12 = Encoding.ASCII.GetBytes(dataID);
-		BinaryPrimitives.WriteUInt32LittleEndian(header13, dataSize);
-
-		_ = new byte[44];
-		byte[]? header = [ // Using this instead of the Concat() function, which does the exact same task of adding data into the array
-			.. header1, .. header2, .. header3,
-			.. header4, .. header5, .. header6,
-			.. header7, .. header8, .. header9,
-			.. header10, .. header11, .. header12, .. header13];
-		_ = new byte[fileSize];
-		byte[]? waveData = [.. header, .. convertedData];
-
-
-		return waveData;
+		return new Wave().CreateIeeeFloatWave(
+			Info[0].SampleRate, NumChannels,
+			isLooped: Info[0].LoopFlag == 0 || Info[0].LoopFlag == 1,
+			loopStart: (uint)NibblesToSamples((int)Info[0].Sa),
+			loopEnd: (uint)NibblesToSamples((int)Info[0].Ea))
+			.WriteBytes(DataOutput).ToArray();
 	}
 
 	#endregion

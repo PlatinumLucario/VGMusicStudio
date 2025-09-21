@@ -35,6 +35,29 @@ internal enum WaveformType : byte
 	Random = 7
 }
 
+internal enum ParameterType : byte
+{
+	LFOTarget = 1,
+	Enabled = 2,
+	Route = 3,
+	SelectWaveform = 4,
+	LFORate = 5,
+	LFODepth = 6,
+	LFODelay = 7,
+	LFODelayFine = 8,
+	LFODelayCoarse = 9,
+	LFOFade = 10
+}
+
+internal enum TargetType : byte
+{
+	Disconnected = 0,
+	Pitch = 1,
+	Volume = 2,
+	Panpot = 3,
+	Filter = 4
+}
+
 internal enum SampleFormat : ushort
 {
 	PCM8 = 0,

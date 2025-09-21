@@ -731,21 +731,22 @@ internal sealed partial class DSELoadedSong
 						}
 					case 0xDC:
 						{
-							byte[] args = new byte[5];
-							r.ReadBytes(args);
+							ushort rate = r.ReadUInt16();
+							ushort depth = r.ReadUInt16();
+							WaveformType waveformType = (WaveformType)r.ReadByte();
 							if (!EventExists(trackIndex, cmdOffset))
 							{
-								AddEvent(trackIndex, cmdOffset, new ReplaceLFO1AsPitchCommand { Args = args });
+								AddEvent(trackIndex, cmdOffset, new ReplaceLFO1AsPitchCommand { Rate = rate, Depth = depth, WaveformType = waveformType });
 							}
 							break;
 						}
 					case 0xDD:
 						{
-							byte[] args = new byte[4];
-							r.ReadBytes(args);
+							ushort delay = r.ReadUInt16();
+							ushort fadeTime = r.ReadUInt16();
 							if (!EventExists(trackIndex, cmdOffset))
 							{
-								AddEvent(trackIndex, cmdOffset, new SetLFO1DelayFade { Args = args });
+								AddEvent(trackIndex, cmdOffset, new SetLFO1DelayFade { Delay = delay, FadeTime = fadeTime });
 							}
 							break;
 						}
@@ -805,21 +806,22 @@ internal sealed partial class DSELoadedSong
 						}
 					case 0xE4:
 						{
-							byte[] args = new byte[5];
-							r.ReadBytes(args);
+							ushort rate = r.ReadUInt16();
+							ushort depth = r.ReadUInt16();
+							WaveformType waveformType = (WaveformType)r.ReadByte();
 							if (!EventExists(trackIndex, cmdOffset))
 							{
-								AddEvent(trackIndex, cmdOffset, new ReplaceLFO2AsVolumeCommand{ Args = args });
+								AddEvent(trackIndex, cmdOffset, new ReplaceLFO2AsVolumeCommand{ Rate = rate, Depth = depth, WaveformType = waveformType });
 							}
 							break;
 						}
 					case 0xE5:
 						{
-							byte[] args = new byte[4];
-							r.ReadBytes(args);
+							ushort delay = r.ReadUInt16();
+							ushort fadeTime = r.ReadUInt16();
 							if (!EventExists(trackIndex, cmdOffset))
 							{
-								AddEvent(trackIndex, cmdOffset, new SetLFO2DelayFade { Args = args });
+								AddEvent(trackIndex, cmdOffset, new SetLFO2DelayFade { Delay = delay, FadeTime = fadeTime });
 							}
 							break;
 						}
@@ -878,21 +880,22 @@ internal sealed partial class DSELoadedSong
 						}
 					case 0xEC:
 						{
-							byte[] args = new byte[5];
-							r.ReadBytes(args);
+							ushort rate = r.ReadUInt16();
+							ushort depth = r.ReadUInt16();
+							WaveformType waveformType = (WaveformType)r.ReadByte();
 							if (!EventExists(trackIndex, cmdOffset))
 							{
-								AddEvent(trackIndex, cmdOffset, new ReplaceLFO3AsPanpotCommand { Args = args });
+								AddEvent(trackIndex, cmdOffset, new ReplaceLFO3AsPanpotCommand { Rate = rate, Depth = depth, WaveformType = waveformType });
 							}
 							break;
 						}
 					case 0xED:
 						{
-							byte[] args = new byte[4];
-							r.ReadBytes(args);
+							ushort delay = r.ReadUInt16();
+							ushort fadeTime = r.ReadUInt16();
 							if (!EventExists(trackIndex, cmdOffset))
 							{
-								AddEvent(trackIndex, cmdOffset, new SetLFO3DelayFade { Args = args });
+								AddEvent(trackIndex, cmdOffset, new SetLFO3DelayFade { Delay = delay, FadeTime = fadeTime });
 							}
 							break;
 						}
@@ -917,10 +920,10 @@ internal sealed partial class DSELoadedSong
 						{
 							ushort rate = r.ReadUInt16();
 							ushort depth = r.ReadUInt16();
-							byte waveID = r.ReadByte();
+							WaveformType waveformType = (WaveformType)r.ReadByte();
 							if (!EventExists(trackIndex, cmdOffset))
 							{
-								AddEvent(trackIndex, cmdOffset, new ReplaceLFOCommand { Rate = rate, Depth = depth, WaveID = waveID });
+								AddEvent(trackIndex, cmdOffset, new ReplaceLFOCommand { Rate = rate, Depth = depth, WaveformType = waveformType });
 							}
 							break;
 						}
@@ -936,11 +939,11 @@ internal sealed partial class DSELoadedSong
 						}
 					case 0xF2:
 						{
-							byte paramID = r.ReadByte();
-							byte waveID = r.ReadByte();
+							ParameterType paramType = (ParameterType)r.ReadByte();
+							WaveformType waveformType = (WaveformType)r.ReadByte();
 							if (!EventExists(trackIndex, cmdOffset))
 							{
-								AddEvent(trackIndex, cmdOffset, new SetLFOParamCommand { ParamID = paramID, WaveID = waveID });
+								AddEvent(trackIndex, cmdOffset, new SetLFOParamCommand { ParamType = paramType, WaveformType = waveformType });
 							}
 							break;
 						}
