@@ -45,7 +45,7 @@ internal sealed class MP2KSquareChannel : MP2KPSGChannel
 		samplesPerBuffer = _mixer!.SamplesPerBuffer;
 		do
 		{
-			float samp = _pat[_pos];
+			float samp = _pat[_pos] * 1.6f;
 
 			buffer[bufPos++] += samp * vol.LeftVol;
 			buffer[bufPos++] += samp * vol.RightVol;

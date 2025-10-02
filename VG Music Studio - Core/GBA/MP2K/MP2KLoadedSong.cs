@@ -3,44 +3,48 @@ using System.Collections.Generic;
 
 namespace Kermalis.VGMusicStudio.Core.GBA.MP2K;
 
-internal sealed partial class MP2KLoadedSong : ILoadedSong
+internal sealed partial class MP2KLoadedSong : LoadedSong
 {
-	public List<SongEvent>[] Events { get; }
-	public long MaxTicks { get; private set; }
-	public int LongestTrack;
+    public override List<SongEvent>[] Events { get; }
+    public override long MaxTicks { get; protected set; }
+    public override int HeaderOffset { get; protected set; }
+    public override SoundBank Bank { get; protected set; }
+    public int LongestTrack;
 
-	private readonly MP2KPlayer _player;
-	private readonly int _voiceTableOffset;
-	public readonly MP2KTrack[] Tracks;
+    private readonly MP2KPlayer _player;
+    public readonly SongHeader Header;
+    private readonly int _soundBankOffset;
+    public readonly MP2KTrack[] Tracks;
 
-	public MP2KLoadedSong(MP2KPlayer player, int index)
-	{
-		_player = player;
+    public MP2KLoadedSong(MP2KPlayer player, int index)
+    {
+        _player = player;
 
-		MP2KConfig cfg = player.Config;
-		var entry = SongEntry.Get(cfg.ROM, cfg.SongTableOffsets[0], index);
-		int headerOffset = entry.HeaderOffset - GBAUtils.CARTRIDGE_OFFSET;
+        MP2KConfig cfg = player.Config;
+        var entry = SongEntry.Get(cfg.ROM, cfg.SongTableOffsets[0], index);
+        HeaderOffset = entry.HeaderOffset - GBAUtils.CARTRIDGE_OFFSET;
 
-		var header = SongHeader.Get(cfg.ROM, headerOffset, out int tracksOffset);
-		_voiceTableOffset = header.VoiceTableOffset - GBAUtils.CARTRIDGE_OFFSET;
+        Header = SongHeader.Get(cfg.ROM, HeaderOffset, out int tracksOffset);
+        _soundBankOffset = Header.SoundBankOffset - GBAUtils.CARTRIDGE_OFFSET;
+        Bank = MP2KSoundBank.LoadTable<MP2KSoundBank>(_soundBankOffset);
 
-		Tracks = new MP2KTrack[header.NumTracks];
-		Events = new List<SongEvent>[header.NumTracks];
-		for (byte trackIndex = 0; trackIndex < header.NumTracks; trackIndex++)
-		{
-			int trackStart = SongHeader.GetTrackOffset(cfg.ROM, tracksOffset, trackIndex) - GBAUtils.CARTRIDGE_OFFSET;
-			Tracks[trackIndex] = new MP2KTrack(trackIndex, trackStart);
+        Tracks = new MP2KTrack[Header.NumTracks];
+        Events = new List<SongEvent>[Header.NumTracks];
+        for (byte trackIndex = 0; trackIndex < Header.NumTracks; trackIndex++)
+        {
+            int trackStart = SongHeader.GetTrackOffset(cfg.ROM, tracksOffset, trackIndex) - GBAUtils.CARTRIDGE_OFFSET;
+            Tracks[trackIndex] = new MP2KTrack(trackIndex, trackStart);
 
-			AddTrackEvents(trackIndex, trackStart);
-		}
-	}
+            AddTrackEvents(trackIndex, trackStart);
+        }
+    }
 
-	public void CheckVoiceTypeCache(ref int? old, string?[] voiceTypeCache)
-	{
-		if (old != _voiceTableOffset)
-		{
-			old = _voiceTableOffset;
-			Array.Clear(voiceTypeCache);
-		}
-	}
+    public void CheckVoiceTypeCache(ref int? old, string?[] voiceTypeCache)
+    {
+        if (old != _soundBankOffset)
+        {
+            old = _soundBankOffset;
+            Array.Clear(voiceTypeCache);
+        }
+    }
 }

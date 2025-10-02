@@ -54,7 +54,7 @@ internal sealed class DSETrack(byte i, int startOffset)
 	public WaveformType LFOParamWaveformType;
 	public byte LFOTarget;
 	public bool LFOEnabled;
-	public TargetType LFOTargetType;
+	public LFOType LFOType;
 	public bool LFO1PitchEnabled;
 	public bool LFO2VolumeEnabled;
 	public bool LFO3PanpotEnabled;
@@ -119,7 +119,12 @@ internal sealed class DSETrack(byte i, int startOffset)
 		Release = 0;
 		StopAllChannels();
 	}
-
+	public int GetPitch()
+	{
+		//int lfo = LFOType == LFOType.Pitch ? LFOParam : 0;
+		int lfo = 0;
+		return (PitchBend * PitchBendRange / 2) + lfo;
+	}
 	public void Tick()
 	{
 		if (Rest > 0)
@@ -152,7 +157,7 @@ internal sealed class DSETrack(byte i, int startOffset)
 		tin.Voice = Voice;
 		tin.Type = "PCM";
 		tin.Volume = Volume;
-		tin.PitchBend = PitchBend;
+		tin.PitchBend = GetPitch();
 		tin.Extra = Octave;
 		tin.Panpot = Panpot;
 

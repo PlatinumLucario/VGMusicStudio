@@ -10,6 +10,8 @@ public sealed class AlphaDreamEngine : Engine
 	public override AlphaDreamMixer Mixer { get; }
 	public override AlphaDreamPlayer Player { get; }
 
+	public override bool IsFileSystemFormat { get; } = false;
+
 	public AlphaDreamEngine(byte[] rom)
 	{
 		if (rom.Length > GBAUtils.CARTRIDGE_CAPACITY)

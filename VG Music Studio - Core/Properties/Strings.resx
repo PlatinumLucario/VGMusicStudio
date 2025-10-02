@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
-  <!-- 
+  <!--  
     Microsoft ResX Schema 
     
     Version 2.0
@@ -234,22 +234,22 @@
   <data name="PlaylistMusic" xml:space="preserve">
     <value>All Songs</value>
   </data>
-  <data name="TrackViewerArguments" xml:space="preserve">
+  <data name="TrackEditorArguments" xml:space="preserve">
     <value>Arguments</value>
   </data>
-  <data name="TrackViewerEvent" xml:space="preserve">
+  <data name="TrackEditorEvent" xml:space="preserve">
     <value>Event</value>
   </data>
-  <data name="TrackViewerOffset" xml:space="preserve">
+  <data name="TrackEditorOffset" xml:space="preserve">
     <value>Offset</value>
   </data>
-  <data name="TrackViewerTicks" xml:space="preserve">
+  <data name="TrackEditorTicks" xml:space="preserve">
     <value>Ticks</value>
   </data>
-  <data name="TrackViewerTitle" xml:space="preserve">
-    <value>Track Viewer</value>
+  <data name="TrackEditorTitle" xml:space="preserve">
+    <value>Track Editor</value>
   </data>
-  <data name="TrackViewerTrackX" xml:space="preserve">
+  <data name="TrackEditorTrackX" xml:space="preserve">
     <value>Track {0}</value>
     <comment>{0} is the track number.</comment>
   </data>
@@ -402,5 +402,124 @@
   </data>
   <data name="MenuOpenSWD" xml:space="preserve">
     <value>Open Main SWD File</value>
+  </data>
+  <data name="MIDIConverterError" xml:space="preserve">
+    <value>There was an error converting the MIDI file:{0}</value>
+    <comment>{0} is newline followed by the error.</comment>
+  </data>
+  <data name="MIDIConverterPreviewSong" xml:space="preserve">
+    <value>Preview Song</value>
+  </data>
+  <data name="MIDIConverterTitle" xml:space="preserve">
+    <value>MIDI Converter</value>
+  </data>
+  <data name="MIDIConverterTitleError" xml:space="preserve">
+    <value>Error Converting MIDI</value>
+  </data>
+  <data name="AssemblerDefinition" xml:space="preserve">
+    <value>Definition</value>
+  </data>
+  <data name="AssemblerErrorDefinitionDigit" xml:space="preserve">
+    <value>Definitions cannot start with a digit.</value>
+  </data>
+  <data name="AssemblerErrorInvalidValue" xml:space="preserve">
+    <value>Invalid value: {0}</value>
+    <comment>{0} is the value.</comment>
+  </data>
+  <data name="AssemblerOpenFile" xml:space="preserve">
+    <value>Open File</value>
+  </data>
+  <data name="AssemblerPreviewSong" xml:space="preserve">
+    <value>Preview Song</value>
+  </data>
+  <data name="AssemblerSizeInBytes" xml:space="preserve">
+    <value>Size in bytes: {0}</value>
+    <comment>{0} is the size.</comment>
+  </data>
+  <data name="AssemblerTitle" xml:space="preserve">
+    <value>ASM Assembler</value>
+  </data>
+  <data name="AssemblerValue" xml:space="preserve">
+    <value>Value</value>
+  </data>
+  <data name="FilterOpenASM" xml:space="preserve">
+    <value>ASM files</value>
+  </data>
+  <data name="FilterOpenMIDI" xml:space="preserve">
+    <value>MIDI files</value>
+  </data>
+  <data name="FilterSaveASM" xml:space="preserve">
+    <value>ASM file</value>
+  </data>
+  <data name="MenuOpenASM" xml:space="preserve">
+    <value>Open ASM</value>
+  </data>
+  <data name="MenuOpenMIDI" xml:space="preserve">
+    <value>Open MIDI</value>
+  </data>
+  <data name="MenuSaveASM" xml:space="preserve">
+    <value>Export Song as ASM</value>
+  </data>
+  <data name="MIDIConverterOpenFile" xml:space="preserve">
+    <value>Open MIDI</value>
+  </data>
+  <data name="TitleOpenASM" xml:space="preserve">
+    <value>Open ASM</value>
+  </data>
+  <data name="TitleOpenMIDI" xml:space="preserve">
+    <value>Open MIDI</value>
+  </data>
+  <data name="TitleSaveASM" xml:space="preserve">
+    <value>Export ASM File</value>
+  </data>
+  <data name="ErrorEngineOpenMIDI" xml:space="preserve">
+    <value>Converting MIDI files to this game engine is not supported at this time.</value>
+  </data>
+  <data name="ErrorEngineSaveASM" xml:space="preserve">
+    <value>Exporting to ASM from this game engine is not supported at this time.</value>
+  </data>
+  <data name="ErrorSaveASM" xml:space="preserve">
+    <value>Error Exporting ASM</value>
+  </data>
+  <data name="SuccessSaveASM" xml:space="preserve">
+    <value>ASM saved to {0}.</value>
+    <comment>{0} is the file name.</comment>
+  </data>
+  <data name="SoundBankEditorAddress" xml:space="preserve">
+    <value>Address</value>
+  </data>
+  <data name="SoundBankEditorTitle" xml:space="preserve">
+    <value>Sound Bank Editor</value>
+  </data>
+  <data name="ErrorTitleAssembler" xml:space="preserve">
+    <value>Error Assembling File</value>
+  </data>
+  <data name="TrackEditorAddEvent" xml:space="preserve">
+    <value>Add Event</value>
+  </data>
+  <data name="TrackEditorArgX" xml:space="preserve">
+    <value>Arg. {0}</value>
+    <comment>{0} is the argument number.</comment>
+  </data>
+  <data name="TrackEditorRemoveEvent" xml:space="preserve">
+    <value>Remove Event</value>
+  </data>
+  <data name="TrackEditorFrom" xml:space="preserve">
+    <value>From</value>
+  </data>
+  <data name="TrackEditorTo" xml:space="preserve">
+    <value>To</value>
+  </data>
+  <data name="TrackEditorChangeVoices" xml:space="preserve">
+    <value>Change Voices</value>
+  </data>
+  <data name="TrackEditorArgEditor" xml:space="preserve">
+    <value>Argument Editor</value>
+  </data>
+  <data name="MenuVoiceGroupSoundBankEditor" xml:space="preserve">
+    <value>Voice Group / Sound Bank Editor</value>
+  </data>
+  <data name="VoiceGroupEditorTitle" xml:space="preserve">
+    <value>Voice Group Editor</value>
   </data>
 </root>

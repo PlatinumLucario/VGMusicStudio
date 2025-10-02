@@ -10,6 +10,7 @@ public sealed class SongState
 		public int LFO;
 		public long Rest;
 		public sbyte Panpot;
+		public byte Reverb;
 		public float LeftVolume;
 		public float RightVolume;
 		public int PitchBend;
@@ -34,7 +35,7 @@ public sealed class SongState
 
 		public void Reset()
 		{
-			Position = Rest = 0;
+			Position = Rest = Reverb = 0;
 			Voice = Volume = Extra = 0;
 			LFO = PitchBend = PreviousKeysTime = 0;
 			Panpot = 0;

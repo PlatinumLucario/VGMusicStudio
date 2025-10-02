@@ -156,13 +156,13 @@ internal sealed partial class MP2KLoadedSong
 					}
 					case LibraryCommand c:
 					{
-						track.InsertMessage(ticks, new ControllerMessage(trackIndex, (ControllerType)30, c.Command));
+						track.InsertMessage(ticks, new ControllerMessage(trackIndex, (ControllerType)30, (byte)c.LibraryCommandType));
 						track.InsertMessage(ticks, new ControllerMessage(trackIndex, (ControllerType)29, c.Argument));
 						break;
 					}
 					case MemoryAccessCommand c:
 					{
-						track.InsertMessage(ticks, new ControllerMessage(trackIndex, ControllerType.EffectControl2, c.Operator));
+						track.InsertMessage(ticks, new ControllerMessage(trackIndex, ControllerType.EffectControl2, (byte)c.Operator));
 						track.InsertMessage(ticks, new ControllerMessage(trackIndex, (ControllerType)14, c.Address));
 						track.InsertMessage(ticks, new ControllerMessage(trackIndex, ControllerType.EffectControl1, c.Data));
 						break;

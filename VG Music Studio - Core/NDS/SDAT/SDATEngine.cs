@@ -8,6 +8,8 @@ public sealed class SDATEngine : Engine
 	public override SDATMixer Mixer { get; }
 	public override SDATPlayer Player { get; }
 
+	public override bool IsFileSystemFormat { get; } = true;
+
 	public SDATEngine(SDAT sdat)
 	{
 		Config = new SDATConfig(sdat);

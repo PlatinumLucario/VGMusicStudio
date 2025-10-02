@@ -2,7 +2,7 @@
 
 internal abstract class MP2KPSGChannel : MP2KChannel
 {
-	protected enum GBPan : byte
+	protected enum PSGPan : byte
 	{
 		Left,
 		Center,
@@ -13,7 +13,7 @@ internal abstract class MP2KPSGChannel : MP2KChannel
 	private EnvelopeState _nextState;
 	private byte _peakVelocity;
 	private byte _sustainVelocity;
-	protected GBPan _panpot = GBPan.Center;
+	protected PSGPan _panpot = PSGPan.Center;
 
 	public MP2KPSGChannel(MP2KMixer mixer)
 		: base(mixer)
@@ -80,13 +80,18 @@ internal abstract class MP2KPSGChannel : MP2KChannel
 		return true;
 	}
 
+	public byte GetPseudoEchoLevel()
+	{
+		return (byte)(((_peakVelocity * Note.PseudoEchoVolume) + 0xFF) >> 8);
+	}
+
 	public override ChannelVolume GetVolume()
 	{
 		const float MAX = 0x20;
 		return new ChannelVolume
 		{
-			LeftVol = _panpot == GBPan.Right ? 0 : _velocity / MAX,
-			RightVol = _panpot == GBPan.Left ? 0 : _velocity / MAX
+			LeftVol = _panpot == PSGPan.Right ? 0 : _velocity / MAX,
+			RightVol = _panpot == PSGPan.Left ? 0 : _velocity / MAX
 		};
 	}
 	public override void SetVolume(byte vol, sbyte pan)
@@ -102,7 +107,7 @@ internal abstract class MP2KPSGChannel : MP2KChannel
 		}
 		if (State < EnvelopeState.Releasing)
 		{
-			_panpot = combinedPan < -21 ? GBPan.Left : combinedPan > 20 ? GBPan.Right : GBPan.Center;
+			_panpot = combinedPan < -21 ? PSGPan.Left : combinedPan > 20 ? PSGPan.Right : PSGPan.Center;
 			_peakVelocity = (byte)((Note.Velocity * vol) >> 10);
 			_sustainVelocity = (byte)(((_peakVelocity * _adsr.S) + 0xF) >> 4); // TODO
 			if (State == EnvelopeState.Playing)
@@ -141,6 +146,10 @@ internal abstract class MP2KPSGChannel : MP2KChannel
 			else
 			{
 				_processStep = 0;
+				if (GetPseudoEchoLevel() != 0 && Note.PseudoEchoLength != 0)
+				{
+					_nextState = EnvelopeState.PseudoEcho;
+				}
 				if (_velocity - 1 <= 0)
 				{
 					_nextState = EnvelopeState.Dying;
@@ -178,6 +187,10 @@ internal abstract class MP2KPSGChannel : MP2KChannel
 						{
 							_velocity = _sustainVelocity;
 						}
+						else if (GetPseudoEchoLevel() != 0)
+						{
+							_velocity = GetPseudoEchoLevel();
+						}
 						return;
 					}
 					else if (_adsr.A == 0)
@@ -192,6 +205,17 @@ internal abstract class MP2KPSGChannel : MP2KChannel
 						_velocity = 1;
 						return;
 					}
+				}
+			case EnvelopeState.PseudoEcho:
+				{
+					if (--Note.PseudoEchoLength == 0)
+					{
+						_nextState = EnvelopeState.Dying;
+						_processStep = 4 - 1;
+						return;
+					}
+					
+					return;
 				}
 			case EnvelopeState.Rising:
 				{

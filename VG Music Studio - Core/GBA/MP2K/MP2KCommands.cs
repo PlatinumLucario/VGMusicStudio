@@ -26,6 +26,7 @@ internal sealed class FinishCommand : ICommand
 	public string Arguments => Prev ? "Resume previous track" : "End track";
 
 	public bool Prev { get; set; }
+	public byte Type { get => (byte)(Prev ? 0xB6 : 0xB1); set => Prev = value == 0xB6; }
 }
 internal sealed class JumpCommand : ICommand
 {
@@ -71,9 +72,9 @@ internal sealed class LibraryCommand : ICommand
 {
 	public Color Color => Color.SteelBlue;
 	public string Label => "Library Call";
-	public string Arguments => $"{Command}, {Argument}";
+	public string Arguments => $"{LibraryCommandType}, {Argument}";
 
-	public byte Command { get; set; }
+	public LibraryCommandTypes LibraryCommandType { get; set; }
 	public byte Argument { get; set; }
 }
 internal sealed class MemoryAccessCommand : ICommand
@@ -82,7 +83,7 @@ internal sealed class MemoryAccessCommand : ICommand
 	public string Label => "Memory Access";
 	public string Arguments => $"{Operator}, {Address}, {Data}";
 
-	public byte Operator { get; set; }
+	public MemoryOperatorType Operator { get; set; }
 	public byte Address { get; set; }
 	public byte Data { get; set; }
 }

@@ -10,6 +10,8 @@ public sealed class DSEEngine : Engine
 	public override DSEMixer Mixer { get; }
 	public override DSEPlayer Player { get; }
 
+	public override bool IsFileSystemFormat { get; } = true;
+
 	public DSEEngine(string mainSWDFile, string smdPath, bool useNewUI = false)
 	{
 		Config = new DSEConfig(mainSWDFile, smdPath, useNewUI);

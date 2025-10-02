@@ -17,6 +17,7 @@ internal sealed partial class DSELoadedSong : ILoadedSong
 	public SMD.SongChunk SongChunk;
 	public SMD.Header Header;
 	public readonly DSETrack[] Tracks;
+	public SoundBank Bank { get; }
 
 	public DSELoadedSong(DSEPlayer player, string bgm)
 	{

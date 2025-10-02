@@ -22,6 +22,18 @@ public sealed class DSEInvalidHeaderVersionException : Exception
 	}
 }
 
+public sealed class DSEArrayIndexAndHeaderIDMismatchException : Exception
+{
+	public int ArrayIndex { get; }
+	public ushort HeaderID { get; }
+
+	internal DSEArrayIndexAndHeaderIDMismatchException(int arrayIndex, ushort headerID)
+	{
+		ArrayIndex = arrayIndex;
+		HeaderID = headerID;
+	}
+}
+
 public sealed class DSEInvalidNoteException : Exception
 {
 	public byte TrackIndex { get; }

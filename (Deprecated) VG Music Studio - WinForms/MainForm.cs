@@ -31,7 +31,10 @@ internal sealed class MainForm : ThemedForm
 	private PlayingPlaylist? _playlist;
 	private int _curSong = -1;
 
+	private AssemblerDialog? _assemblerDialog;
+	private MIDIConverterDialog? _midiConverterDialog;
 	private TrackViewer? _trackViewer;
+	private SoundBankEditor? _soundBankEditor;
 
 	private bool _songEnded = false;
 	private bool _positionBarFree = true;
@@ -41,7 +44,7 @@ internal sealed class MainForm : ThemedForm
 
 	private readonly MenuStrip _mainMenu;
 	private readonly ToolStripMenuItem _fileItem, _openDSEItem, _openAlphaDreamItem, _openMP2KItem, _openSDATItem,
-		_dataItem, _trackViewerItem, _exportDLSItem, _exportMIDIItem, _exportSF2Item, _exportWAVItem,
+		_dataItem, _trackViewerItem, _soundBankEditorItem, _importASMItem, _exportASMItem, _importMIDIItem, _exportMIDIItem, _exportDLSItem, _exportSF2Item, _exportWAVItem,
 		_playlistItem, _endPlaylistItem;
 	private readonly Timer _timer;
 	private readonly ThemedNumeric _songNumerical;
@@ -79,18 +82,26 @@ internal sealed class MainForm : ThemedForm
 		_fileItem.DropDownItems.AddRange(new ToolStripItem[] { _openDSEItem, _openAlphaDreamItem, _openMP2KItem, _openSDATItem });
 
 		// Data Menu
-		_trackViewerItem = new ToolStripMenuItem { ShortcutKeys = Keys.Control | Keys.T, Text = Strings.TrackViewerTitle };
+		_trackViewerItem = new ToolStripMenuItem { ShortcutKeys = Keys.Control | Keys.T, Text = Strings.TrackEditorTitle };
 		_trackViewerItem.Click += OpenTrackViewer;
-		_exportDLSItem = new ToolStripMenuItem { Enabled = false, Text = Strings.MenuSaveDLS };
-		_exportDLSItem.Click += ExportDLS;
+		_soundBankEditorItem = new ToolStripMenuItem { Text = Strings.SoundBankEditorTitle, Enabled = false, ShortcutKeys = Keys.Control | Keys.V };
+		_soundBankEditorItem.Click += OpenSoundBankEditor;
+		_importASMItem = new ToolStripMenuItem { Text = Strings.MenuOpenASM, Enabled = false, ShortcutKeys = Keys.Control | Keys.Shift | Keys.M };
+		_importASMItem.Click += OpenAssembler;
+		_exportASMItem = new ToolStripMenuItem { Text = Strings.MenuSaveASM, Enabled = false };
+		_exportASMItem.Click += ExportASM;
+		_importMIDIItem = new ToolStripMenuItem { Text = Strings.MenuOpenMIDI, Enabled = false, ShortcutKeys = Keys.Control | Keys.M };
+		_importMIDIItem.Click += OpenMIDIConverter;
 		_exportMIDIItem = new ToolStripMenuItem { Enabled = false, Text = Strings.MenuSaveMIDI };
 		_exportMIDIItem.Click += ExportMIDI;
+		_exportDLSItem = new ToolStripMenuItem { Enabled = false, Text = Strings.MenuSaveDLS };
+		_exportDLSItem.Click += ExportDLS;
 		_exportSF2Item = new ToolStripMenuItem { Enabled = false, Text = Strings.MenuSaveSF2 };
 		_exportSF2Item.Click += ExportSF2;
 		_exportWAVItem = new ToolStripMenuItem { Enabled = false, Text = Strings.MenuSaveWAV };
 		_exportWAVItem.Click += ExportWAV;
 		_dataItem = new ToolStripMenuItem { Text = Strings.MenuData };
-		_dataItem.DropDownItems.AddRange(new ToolStripItem[] { _trackViewerItem, _exportDLSItem, _exportMIDIItem, _exportSF2Item, _exportWAVItem });
+		_dataItem.DropDownItems.AddRange(new ToolStripItem[] { _trackViewerItem, _soundBankEditorItem, _importMIDIItem, _exportMIDIItem, _importASMItem, _exportASMItem, _exportDLSItem, _exportSF2Item, _exportWAVItem });
 
 		// Playlist Menu
 		_endPlaylistItem = new ToolStripMenuItem { Enabled = false, Text = Strings.MenuEndPlaylist };
@@ -201,8 +212,8 @@ internal sealed class MainForm : ThemedForm
 			}
 			_positionBar.Enabled = true;
 			_exportWAVItem.Enabled = true;
-			_exportMIDIItem.Enabled = MP2KEngine.MP2KInstance is not null;
-			_exportDLSItem.Enabled = _exportSF2Item.Enabled = AlphaDreamEngine.AlphaDreamInstance is not null;
+			_soundBankEditorItem.Enabled = _importMIDIItem.Enabled = _exportMIDIItem.Enabled = _importASMItem.Enabled = _exportASMItem.Enabled = MP2KEngine.MP2KInstance is not null;
+            _exportDLSItem.Enabled = _exportSF2Item.Enabled = AlphaDreamEngine.AlphaDreamInstance is not null;
 		}
 		else
 		{
@@ -242,6 +253,14 @@ internal sealed class MainForm : ThemedForm
 					break;
 				}
 		}
+	}
+	public void PreviewSong(LoadedSong song, string caption)
+	{
+		Text = $"{ConfigUtils.PROGRAM_NAME} - {caption}";
+		Stop();
+		Engine.Instance!.Player.LoadSong(song);
+		_trackViewer?.UpdateTracks();
+		_soundBankEditor?.UpdateTable();
 	}
 	private void ResetPlaylistStuff(bool numericalAndComboboxEnabled)
 	{
@@ -346,8 +365,11 @@ internal sealed class MainForm : ThemedForm
 		MP2KConfig config = MP2KEngine.MP2KInstance!.Config;
 		FinishLoading(config.SongTableSizes[0]);
 		_songNumerical.Visible = true;
-		_exportDLSItem.Visible = false;
-		_exportMIDIItem.Visible = true;
+		_importMIDIItem.Visible = true;
+        _exportMIDIItem.Visible = true;
+		_importASMItem.Visible = true;
+		_exportASMItem.Visible = true;
+        _exportDLSItem.Visible = false;
 		_exportSF2Item.Visible = false;
 	}
 	private void OpenSDAT(object? sender, EventArgs e)
@@ -398,6 +420,49 @@ internal sealed class MainForm : ThemedForm
 		{
 			FlexibleMessageBox.Show(ex, Strings.ErrorSaveDLS);
 		}
+	}
+	private void OpenAssembler(object? sender, EventArgs e)
+	{
+		if (_assemblerDialog != null)
+		{
+			_assemblerDialog.Focus();
+			return;
+		}
+		_assemblerDialog = new AssemblerDialog { Owner = this };
+		_assemblerDialog.FormClosed += (o, s) => _assemblerDialog = null!;
+		_assemblerDialog.Show();
+	}
+	private void ExportASM(object? sender, EventArgs e)
+	{
+        string songName = Engine.Instance!.Config.GetSongName((int)_songNumerical.Value);
+        string? outFile = WinFormsUtils.CreateSaveDialog(songName, ".s", Strings.TitleSaveASM, Strings.FilterSaveASM + " (*.s)|*.s");
+        if (outFile is null)
+        {
+            return;
+        }
+
+        MP2KPlayer p = MP2KEngine.MP2KInstance!.Player;
+		var args = new ASMSaveArgs(true);
+		try
+		{
+			p.SaveAsASM(outFile, args);
+			FlexibleMessageBox.Show(string.Format(Strings.SuccessSaveASM, outFile), Text);
+		}
+		catch (Exception ex)
+		{
+			FlexibleMessageBox.Show(ex.Message, Strings.ErrorSaveASM);
+		}
+	}
+	private void OpenMIDIConverter(object? sender, EventArgs e)
+	{
+		if (_midiConverterDialog != null)
+		{
+			_midiConverterDialog.Focus();
+			return;
+		}
+		_midiConverterDialog = new MIDIConverterDialog { Owner = this };
+		_midiConverterDialog.FormClosed += (o, s) => _midiConverterDialog = null!;
+		_midiConverterDialog.Show();
 	}
 	private void ExportMIDI(object? sender, EventArgs e)
 	{
@@ -587,6 +652,18 @@ internal sealed class MainForm : ThemedForm
 		_trackViewer = new TrackViewer { Owner = this };
 		_trackViewer.FormClosed += TrackViewer_FormClosed;
 		_trackViewer.Show();
+	}
+
+	private void OpenSoundBankEditor(object? sender, EventArgs e)
+	{
+		if (_soundBankEditor != null)
+		{
+			_soundBankEditor.Focus();
+			return;
+		}
+		_soundBankEditor = new SoundBankEditor { Owner = this };
+		_soundBankEditor.FormClosed += (o, s) => _soundBankEditor = null;
+		_soundBankEditor.Show();
 	}
 
 	public void TogglePlayback()

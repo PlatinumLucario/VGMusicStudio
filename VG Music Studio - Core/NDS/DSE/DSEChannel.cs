@@ -60,8 +60,9 @@ internal sealed class DSEChannel
 		Index = i;
 	}
 
-	public bool StartChannel(SWD localswd, SWD masterswd, byte voice, int key, uint noteLength)
+	public bool StartChannel(SWD localswd, SWD masterswd, DSETrack track, int key, uint noteLength)
 	{
+		Owner = track;
 		if (localswd == null) { SWDType = masterswd.Type; }
 		else { SWDType = localswd.Type; }
 
@@ -71,22 +72,22 @@ internal sealed class DSEChannel
 			// Failsafe to check if SWD.ProgramBank contains an instance, if it doesn't, it will be skipped
 			// This is especially important for initializing a main SWD before the local SWDs
 			// accompaning the SMDs with the same names are loaded in.
-			if (voice > masterswd.Programs!.ProgramInfos!.Length)
+			if (track.Voice > masterswd.Programs!.ProgramInfos!.Length)
 			{
-				throw new IndexOutOfRangeException(string.Format(Strings.ErrorDSEVoiceIndexOutOfRange, voice, masterswd.Programs!.ProgramInfos!.Length));
+				throw new IndexOutOfRangeException(string.Format(Strings.ErrorDSEVoiceIndexOutOfRange, track.Voice, masterswd.Programs!.ProgramInfos!.Length));
 			}
 			if (masterswd.Programs != null)
 			{
-				programInfo = masterswd.Programs!.ProgramInfos![voice];
+				programInfo = masterswd.Programs!.ProgramInfos![track.Voice];
 			}
 		}
-		else if (voice > localswd.Programs!.ProgramInfos!.Length)
+		else if (track.Voice > localswd.Programs!.ProgramInfos!.Length)
 		{
-			programInfo = masterswd.Programs!.ProgramInfos![voice];
+			programInfo = masterswd.Programs!.ProgramInfos![track.Voice];
 		}
 		else
 		{
-			programInfo = localswd.Programs!.ProgramInfos![voice];
+			programInfo = localswd.Programs!.ProgramInfos![track.Voice];
 		}
 
 		if (programInfo is null)
@@ -136,13 +137,15 @@ internal sealed class DSEChannel
 				//hold = split.Hold == 0 ? sample.WavInfo.Hold : split.Hold;
 				//decay2 = split.Decay2 == 0 ? sample.WavInfo.Decay2 : split.Decay2;
 				//release = split.Release == 0 ? sample.WavInfo.Release : split.Release;
+
 				_attackVolume = split.AttackVolume == 0 ? _sample.WavInfo.AttackVolume == 0 ? _sample.WavInfo.Volume : _sample.WavInfo.AttackVolume : split.AttackVolume;
-				_attackTime = split.AttackTime == 0 ? _sample.WavInfo.Attack == 0 ? _sample.WavInfo.Volume : _sample.WavInfo.Attack : split.AttackTime;
+				_attackTime = split.AttackTime == 0 ? _sample.WavInfo.AttackTime == 0 ? _sample.WavInfo.Volume : _sample.WavInfo.AttackTime : split.AttackTime;
 				_decay = split.Decay == 0 ? _sample.WavInfo.Decay == 0 ? _sample.WavInfo.Volume : _sample.WavInfo.Decay : split.Decay;
 				_sustain = split.Sustain == 0 ? _sample.WavInfo.Sustain == 0 ? _sample.WavInfo.Volume : _sample.WavInfo.Sustain : split.Sustain;
 				_hold = split.Hold == 0 ? _sample.WavInfo.Hold == 0 ? _sample.WavInfo.Volume : _sample.WavInfo.Hold : split.Hold;
 				_fade = split.Fade == 0 ? _sample.WavInfo.Fade == 0 ? _sample.WavInfo.Volume : _sample.WavInfo.Fade : split.Fade;
 				_release = split.Release == 0 ? _sample.WavInfo.Release == 0 ? _sample.WavInfo.Volume : _sample.WavInfo.Release : split.Release;
+
 				DetermineEnvelopeStartingPoint();
 				_pos = 0;
 				_prevLeft = _prevRight = 0;
@@ -173,37 +176,6 @@ internal sealed class DSEChannel
 		int sweep = (int)(Math.BigMul(Owner.SweepPitch, Owner.SweepRate - SweepCounter) / Owner.SweepRate);
 		SweepCounter++;
 		return sweep;
-	}
-	public void CheckEnvelopeValues()
-	{
-		if (Owner!.AttackVolume != 0)
-		{
-			_attackVolume = Owner.AttackVolume;
-		}
-		if (Owner.AttackTime != 0)
-		{
-			_attackTime = Owner.AttackTime;
-		}
-		if (Owner.Decay != 0)
-		{
-			_decay = Owner.Decay;
-		}
-		if (Owner.Sustain != 0)
-		{
-			_sustain = Owner.Sustain;
-		}
-		if (Owner.Hold != 0)
-		{
-			_hold = Owner.Hold;
-		}
-		if (Owner.Fade != 0)
-		{
-			_fade = Owner.Fade;
-		}
-		if (Owner.Release != 0)
-		{
-			_release = Owner.Release;
-		}
 	}
 
 	// CMDB1___sub_2074CA0
@@ -377,9 +349,9 @@ internal sealed class DSEChannel
 		else
 		{
 			_targetVolume = targetVolume;
-			_envelopeTimeLeft = _sample!.WavInfo!.EnvMult == 0
+			_envelopeTimeLeft = (int)(_sample!.WavInfo!.EnvMult == 0
 				? DSEUtils.Duration32[envelopeParam] * 1_000 / 10_000
-				: DSEUtils.Duration16[envelopeParam] * _sample.WavInfo.EnvMult * 1_000 / 10_000;
+				: DSEUtils.Duration16[envelopeParam] * (_sample.WavInfo.EnvMult * .2));
 			_volumeIncrement = _envelopeTimeLeft == 0 ? 0 : ((targetVolume << 23) - _velocity) / _envelopeTimeLeft;
 		}
 	}

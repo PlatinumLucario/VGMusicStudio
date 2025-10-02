@@ -46,7 +46,7 @@ internal static class DSEUtils
 		0x0003ECDA, 0x000403B5, 0x00041AE5, 0x0004326A, 0x00044A45, 0x00046277, 0x00047B00, 0x7FFFFFFF,
 	];
 
-	public static ReadOnlySpan<byte> AttackTable =>
+	public static ReadOnlySpan<byte> AttackVolumeTable =>
     [
         255, 254, 253, 252, 251, 250, 249, 248,
 		247, 246, 245, 244, 243, 242, 241, 240,

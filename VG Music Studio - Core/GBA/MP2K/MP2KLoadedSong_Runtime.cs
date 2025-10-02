@@ -27,7 +27,7 @@ internal sealed partial class MP2KLoadedSong
 	private void PlayNote(byte[] rom, MP2KTrack track, byte note, byte velocity, byte addedDuration)
 	{
 		bool fromDrum = false;
-		int offset = _voiceTableOffset + (track.Voice * 12);
+		int offset = _soundBankOffset + (track.Voice * 12);
 		while (true)
 		{
 			var v = new VoiceEntry(rom.AsSpan(offset));
@@ -50,6 +50,8 @@ internal sealed partial class MP2KLoadedSong
 					Velocity = velocity,
 					OriginalNote = note,
 					Note = fromDrum ? v.RootNote : note,
+					PseudoEchoVolume = track.PseudoEchoVolume,
+					PseudoEchoLength = track.PseudoEchoLength,
 				};
 				var type = (VoiceType)(v.Type & 0x7);
 				int instPan = v.Pan;
@@ -293,19 +295,43 @@ internal sealed partial class MP2KLoadedSong
 						}
 						break;
 					}
-				/*case 0xB5: // TODO: Logic so this isn't an infinite loop
-				{
-					byte times = config.Reader.ReadByte();
-					int repeatOffset = config.Reader.ReadInt32() - GBA.Utils.CartridgeOffset;
-					if (!EventExists(offset))
+				case 0xB5: // TODO: Logic so this isn't an infinite loop
 					{
-						AddEvent(new RepeatCommand { Times = times, Offset = repeatOffset });
+						if (track.RepeatActivated is false)
+						{
+							if (track.CallStackDepth >= 3)
+							{
+								throw new MP2KTooManyNestedCallsException(track.Index);
+							}
+
+							track.RepeatTimes = rom[track.DataOffset++];
+							track.RepeatOffset = (rom[track.DataOffset++] | (rom[track.DataOffset++] << 8) | (rom[track.DataOffset++] << 16) | (rom[track.DataOffset++] << 24)) - GBAUtils.CARTRIDGE_OFFSET;
+							track.RepeatActivated = true;
+							track.CallStack[track.CallStackDepth] = track.DataOffset;
+							track.CallStackDepth++;
+							track.DataOffset = track.RepeatOffset;
+						}
+						if (track.RepeatTimes > 0)
+						{
+							track.RepeatTimes--;
+							track.DataOffset = track.RepeatOffset;
+							break;
+						}
+						else
+						{
+							track.RepeatTimes = 0;
+							track.RepeatOffset = 0;
+							track.RepeatActivated = false;
+							track.CallStackDepth--;
+							track.DataOffset = track.CallStack[track.CallStackDepth];
+						}
+						break;
 					}
-					break;
-				}*/
 				case 0xB9:
 					{
-						track.DataOffset += 3;
+						track.MemSet = rom[track.DataOffset++];
+						track.MemAddress = rom[track.DataOffset++];
+						track.MemData = rom[track.DataOffset++];
 						break;
 					}
 				case 0xBA:
@@ -390,7 +416,19 @@ internal sealed partial class MP2KLoadedSong
 					}
 				case 0xCD:
 					{
-						track.DataOffset += 2;
+						switch (rom[track.DataOffset++])
+						{
+							case 0x08:
+								{
+									track.PseudoEchoVolume = rom[track.DataOffset++];
+									break;
+								}
+							case 0x09:
+								{
+									track.PseudoEchoLength = rom[track.DataOffset++];
+									break;
+								}
+						}
 						break;
 					}
 				case 0xCE:
@@ -424,7 +462,7 @@ internal sealed partial class MP2KLoadedSong
 
 	public void UpdateInstrumentCache(byte voice, out string str)
 	{
-		byte t = _player.Config.ROM[_voiceTableOffset + (voice * 12)];
+		byte t = _player.Config.ROM[_soundBankOffset + (voice * 12)];
 		if (t == (byte)VoiceFlags.KeySplit)
 		{
 			str = "Key Split";

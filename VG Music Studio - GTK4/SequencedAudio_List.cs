@@ -20,6 +20,7 @@ internal class SequencedAudio_List : Viewport
 	private bool IsSongTable = false;
 	internal bool IsInitialized = false;
 	public bool HasSelectedRow = false;
+	private string? _selectedRowName;
 
 	private EndianBinaryReader? Reader { get; set; }
 
@@ -29,13 +30,14 @@ internal class SequencedAudio_List : Viewport
 	// private SortListModel? SortModel { get; set; }
 	private ColumnViewSorter? ColumnSorter { get; set; }
 
-    private GestureClick? ColumnViewGestureClick { get; set; }
+	private GestureClick? ColumnViewGestureClick { get; set; }
 
-    internal ColumnView? ColumnView { get; set; }
+	internal ColumnView? ColumnView { get; set; }
 
-	ColumnViewColumn PlistColumn = null!;
-	ColumnViewColumn SongTableOffsetColumn = null!;
-	ColumnViewColumn SequenceOffsetColumn = null!;
+	private ColumnViewColumn _columnName = null!;
+	private ColumnViewColumn _columnPlist = null!;
+	private ColumnViewColumn _columnSongTableOffset = null!;
+	private ColumnViewColumn _columnSequenceOffset = null!;
 
 	public SequencedAudio_List[]? SoundData { get; set; }
 
@@ -158,9 +160,9 @@ internal class SequencedAudio_List : Viewport
 		SetHexpand(true);
 	}
 
-    private void ColumnViewGestureClick_LeftClick(GestureClick sender, GestureClick.PressedSignalArgs args)
-    {
-        if (SelectionModel?.GetSelectedItem() is SequencedAudio_List list)
+	private void ColumnViewGestureClick_LeftClick(GestureClick sender, GestureClick.PressedSignalArgs args)
+	{
+		if (SelectionModel?.GetSelectedItem() is SequencedAudio_List list)
 		{
 			if (list.Id is not null)
 			{
@@ -170,14 +172,14 @@ internal class SequencedAudio_List : Viewport
 				}
 			}
 		}
-    }
+	}
 
-    private void SelectionModel_Notified(GObject.Object sender, NotifySignalArgs args)
-    {
-		var name = args.Pspec.GetName();
-    }
+	private void SelectionModel_Notified(GObject.Object sender, NotifySignalArgs args)
+	{
+		_selectedRowName = args.Pspec.GetName();
+	}
 
-    internal void Init()
+	internal void Init()
 	{
 		IsInitialized = false;
 
@@ -199,12 +201,12 @@ internal class SequencedAudio_List : Viewport
 		SeqListItemFactory.OnSetup += OnSetupNameLabel;
 		SeqListItemFactory.OnBind += OnBindNameText;
 
-		var nameColumn = ColumnViewColumn.New("Internal Name", SeqListItemFactory);
-		nameColumn.SetFixedWidth(160);
-		nameColumn.SetExpand(true);
-		nameColumn.SetResizable(true);
+		_columnName = ColumnViewColumn.New("Internal Name", SeqListItemFactory);
+		_columnName.SetFixedWidth(160);
+		_columnName.SetExpand(true);
+		_columnName.SetResizable(true);
 		// nameColumn.SetSorter(ColumnSorter);
-		ColumnView.AppendColumn(nameColumn);
+		ColumnView.AppendColumn(_columnName);
 
 		IsInitialized = true;
 	}
@@ -214,56 +216,57 @@ internal class SequencedAudio_List : Viewport
 		IsSongTable = isSongTable;
 		if (IsSongTable)
 		{
+			_columnName.SetExpand(false);
+
 			// Playlist Name Column
 			SeqListItemFactory = SignalListItemFactory.New();
 			SeqListItemFactory.OnSetup += OnSetupPlistLabel;
 			SeqListItemFactory.OnBind += OnBindPlistText;
 
-			PlistColumn = ColumnViewColumn.New("Playlist Name", SeqListItemFactory);
-			PlistColumn.SetFixedWidth(160);
-			PlistColumn.SetExpand(true);
-			PlistColumn.SetResizable(true);
+			_columnPlist = ColumnViewColumn.New("Playlist Name", SeqListItemFactory);
+			_columnPlist.SetFixedWidth(160);
+			_columnPlist.SetResizable(true);
 			// plistColumn.SetSorter(ColumnSorter);
-			ColumnView!.AppendColumn(PlistColumn);
+			ColumnView!.AppendColumn(_columnPlist);
 
 			// Song Table Offset Column
 			SeqListItemFactory = SignalListItemFactory.New();
 			SeqListItemFactory.OnSetup += OnSetupSongTableOffsetLabel;
 			SeqListItemFactory.OnBind += OnBindSongTableOffsetText;
 
-			SongTableOffsetColumn = ColumnViewColumn.New("Song Table Offset", SeqListItemFactory);
-			SongTableOffsetColumn.SetFixedWidth(80);
-			SongTableOffsetColumn.SetExpand(true);
-			SongTableOffsetColumn.SetResizable(true);
+			_columnSongTableOffset = ColumnViewColumn.New("Song Table Offset", SeqListItemFactory);
+			_columnSongTableOffset.SetFixedWidth(80);
+			_columnSongTableOffset.SetResizable(true);
 			// offsetColumn.SetSorter(ColumnSorter);
-			ColumnView.AppendColumn(SongTableOffsetColumn);
+			ColumnView.AppendColumn(_columnSongTableOffset);
 
 			// Sequence Offset Column
 			SeqListItemFactory = SignalListItemFactory.New();
 			SeqListItemFactory.OnSetup += OnSetupSeqOffsetLabel;
 			SeqListItemFactory.OnBind += OnBindSeqOffsetText;
 
-			SequenceOffsetColumn = ColumnViewColumn.New("Sequence Offset", SeqListItemFactory);
-			SequenceOffsetColumn.SetFixedWidth(80);
-			SequenceOffsetColumn.SetExpand(true);
-			SequenceOffsetColumn.SetResizable(true);
+			_columnSequenceOffset = ColumnViewColumn.New("Sequence Offset", SeqListItemFactory);
+			_columnSequenceOffset.SetFixedWidth(80);
+			_columnSequenceOffset.SetExpand(true);
+			_columnSequenceOffset.SetResizable(true);
 			// offsetColumn.SetSorter(ColumnSorter);
-			ColumnView.AppendColumn(SequenceOffsetColumn);
+			ColumnView.AppendColumn(_columnSequenceOffset);
 		}
 		else
 		{
-			if (PlistColumn is not null)
+			if (_columnPlist is not null)
 			{
-				ColumnView!.RemoveColumn(PlistColumn);
+				ColumnView!.RemoveColumn(_columnPlist);
 			}
-			if (SongTableOffsetColumn is not null)
+			if (_columnSongTableOffset is not null)
 			{
-				ColumnView!.RemoveColumn(SongTableOffsetColumn);
+				ColumnView!.RemoveColumn(_columnSongTableOffset);
 			}
-			if (SequenceOffsetColumn is not null)
+			if (_columnSequenceOffset is not null)
 			{
-				ColumnView!.RemoveColumn(SequenceOffsetColumn);
+				ColumnView!.RemoveColumn(_columnSequenceOffset);
 			}
+			_columnName.SetExpand(true);
 		}
 		ConfigureTimer();
 	}
@@ -281,7 +284,7 @@ internal class SequencedAudio_List : Viewport
 		var source = GLib.Functions.TimeoutSourceNew(50); // Creates and configures the timeout interval at 50 microseconds, so it updates upon selection
 		source.SetCallback(ListCallback); // Sets the callback for the timer interval to be used on
 		var microsec = new CULong(source.Attach(context)); // Configures the microseconds based on attaching the GLib MainContext thread
-		// timer.Elapsed(ref microsec); // Adds the pointer to the configured microseconds source
+														   // timer.Elapsed(ref microsec); // Adds the pointer to the configured microseconds source
 		GLib.Internal.Timer.Elapsed(timer.Handle, ref microsec); // GLib.Timer.Elapsed was removed in GirCore 0.6.3, so we're using this workaround instead
 		timer.Start(); // Starts the timer
 	}

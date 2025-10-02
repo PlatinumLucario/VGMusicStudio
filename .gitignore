@@ -293,6 +293,6 @@ __pycache__/
 *.lib
 *.dll
 *.dylib
-*.csproj
+/CreateNugets/**/*.csproj
 /CreateNugets/Adwaita/lib
 /CreateNugets/PortAudio/lib

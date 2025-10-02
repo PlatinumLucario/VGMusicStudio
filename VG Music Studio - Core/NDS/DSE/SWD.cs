@@ -167,13 +167,15 @@ internal sealed class SWD
 		ushort SampleId { get; }
 		sbyte SampleRootKey { get; }
 		sbyte SampleTranspose { get; }
-		byte AttackVolume { get; set; }
-		byte AttackTime { get; set; }
-		byte Decay { get; set; }
-		byte Sustain { get; set; }
-		byte Hold { get; set; }
-		byte Fade { get; set; }
-		byte Release { get; set; }
+		byte EnvelopeVolume { get; }
+		byte EnvelopeMultiplier { get; }
+		byte AttackVolume { get; }
+		byte AttackTime { get; }
+		byte Decay { get; }
+		byte Sustain { get; }
+		byte Hold { get; }
+		byte Fade { get; }
+		byte Release { get; }
 	}
 	public class SplitEntry : ISplitEntry // 0x30
 	{
@@ -218,7 +220,16 @@ internal sealed class SWD
 
 		public SplitEntry(EndianBinaryReader r, SWD swd)
 		{
-			Id = r.ReadUInt16();
+			if (swd.Type == "swdl")
+			{
+				r.Endianness = Endianness.BigEndian;
+				Id = r.ReadUInt16(); // ID for the SplitEntry is always read in Big Endian format
+				r.Endianness = Endianness.LittleEndian;
+			}
+			else
+			{
+				Id = r.ReadUInt16();
+			}
 
 			BendRange = r.ReadByte();
 
@@ -386,7 +397,16 @@ internal sealed class SWD
 					{
 						Id = r.ReadByte();
 
-						NumSplits = r.ReadByte();
+						if (swd.Type == "swdb")
+						{
+							r.Endianness = Endianness.LittleEndian;
+							NumSplits = r.ReadUInt16();
+							r.Endianness = Endianness.BigEndian;
+						}
+						else
+						{
+							NumSplits = r.ReadUInt16();
+						}
 
 						Unknown1 = new byte[2];
 						r.ReadBytes(Unknown1);
@@ -410,9 +430,16 @@ internal sealed class SWD
 						{
 							LFOInfos[i] = new LFOInfo(r);
 						}
-						;
 
 						SplitEntries = new SplitEntry[NumSplits];
+						for (int i = 0; i < NumSplits; i++)
+						{
+							SplitEntries[i] = new SplitEntry(r, swd);
+							if (SplitEntries[i].Id != i)
+							{
+								throw new DSEArrayIndexAndHeaderIDMismatchException(i, SplitEntries[i].Id);
+							}
+						}
 
 						break;
 					}
@@ -421,7 +448,16 @@ internal sealed class SWD
 					{
 						Id = r.ReadUInt16();
 
-						NumSplits = r.ReadUInt16();
+						if (swd.Type == "swdb")
+						{
+							r.Endianness = Endianness.LittleEndian;
+							NumSplits = r.ReadUInt16(); // NumSplits is always read in Little Endian format
+							r.Endianness = Endianness.BigEndian;
+						}
+						else
+						{
+							NumSplits = r.ReadUInt16();
+						}
 
 						Volume = r.ReadByte();
 
@@ -440,7 +476,6 @@ internal sealed class SWD
 						{
 							LFOInfos[i] = new LFOInfo(r);
 						}
-						;
 
 						LFOPadding = new byte[16];
 						r.ReadBytes(LFOPadding);
@@ -449,6 +484,10 @@ internal sealed class SWD
 						for (int i = 0; i < NumSplits; i++)
 						{
 							SplitEntries[i] = new SplitEntry(r, swd);
+							if (SplitEntries[i].Id != i)
+							{
+								throw new DSEArrayIndexAndHeaderIDMismatchException(i, SplitEntries[i].Id);
+							}
 						}
 
 						break;
@@ -476,7 +515,7 @@ internal sealed class SWD
 		uint LoopEnd { get; }
 		byte EnvMult { get; }
 		byte AttackVolume { get; }
-		byte Attack { get; }
+		byte AttackTime { get; }
 		byte Decay { get; }
 		byte Sustain { get; }
 		byte Hold { get; }
@@ -511,7 +550,7 @@ internal sealed class SWD
 		public byte EnvMult { get; set; }
 		public byte[] Unknown8 { get; set; }
 		public byte AttackVolume { get; set; }
-		public byte Attack { get; set; }
+		public byte AttackTime { get; set; }
 		public byte Decay { get; set; }
 		public byte Sustain { get; set; }
 		public byte Hold { get; set; }
@@ -593,7 +632,7 @@ internal sealed class SWD
 						// Volume Envelop On
 						EnvOn = r.ReadByte();
 
-						// Volume Envelop Multiple
+						// Volume Envelop Multiplier
 						EnvMult = r.ReadByte();
 
 						// Undocumented variable(s)
@@ -604,9 +643,9 @@ internal sealed class SWD
 						AttackVolume = r.ReadByte();
 
 						// Attack
-						Attack = r.ReadByte();
+						AttackTime = r.ReadByte();
 
-						// Decay 1
+						// Decay
 						Decay = r.ReadByte();
 
 						// Sustain
@@ -615,7 +654,7 @@ internal sealed class SWD
 						// Hold
 						Hold = r.ReadByte();
 
-						// Decay 2
+						// Fade
 						Fade = r.ReadByte();
 
 						// Release
@@ -715,7 +754,7 @@ internal sealed class SWD
 						// Volume Envelop On
 						EnvOn = r.ReadByte();
 
-						// Volume Envelop Multiple
+						// Volume Envelop Multiplier
 						EnvMult = r.ReadByte();
 
 						// Undocumented variable(s)
@@ -726,9 +765,9 @@ internal sealed class SWD
 						AttackVolume = r.ReadByte();
 
 						// Attack
-						Attack = r.ReadByte();
+						AttackTime = r.ReadByte();
 
-						// Decay 1
+						// Decay
 						Decay = r.ReadByte();
 
 						// Sustain
@@ -737,7 +776,7 @@ internal sealed class SWD
 						// Hold
 						Hold = r.ReadByte();
 
-						// Decay 2
+						// Fade
 						Fade = r.ReadByte();
 
 						// Release
@@ -881,6 +920,10 @@ internal sealed class SWD
 				{
 					r.Stream.Position = offset + waviDataOffset;
 					var wavInfo = new WavInfo(r, swd);
+					if (wavInfo.Id != i)
+					{
+						throw new DSEArrayIndexAndHeaderIDMismatchException(i, wavInfo.Id);
+					}
 					switch (Type)
 					{
 						case "swdm":
@@ -952,6 +995,10 @@ internal sealed class SWD
 			{
 				r.Stream.Position = offset + dataOffset;
 				programInfos[i] = new ProgramInfo(r, swd);
+				if (programInfos[i].Id != i)
+				{
+					throw new DSEArrayIndexAndHeaderIDMismatchException(i, programInfos[i].Id);
+				}
 			}
 		}
 		return new ProgramBank
@@ -975,6 +1022,10 @@ internal sealed class SWD
 		for (int i = 0; i < keyGroups.Length; i++)
 		{
 			keyGroups[i] = new KeyGroup(r, swd);
+			if (keyGroups[i].Id != i)
+			{
+				throw new DSEArrayIndexAndHeaderIDMismatchException(i, keyGroups[i].Id);
+			}
 		}
 		return keyGroups;
 	}

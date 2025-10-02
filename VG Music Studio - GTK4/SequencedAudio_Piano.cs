@@ -98,7 +98,7 @@ internal class SequencedAudio_Piano : DrawingArea
         if (keyGroup > 0) smallAdj = 0.5f; // If key group is more than 0, make it 0.5f
         cr.SetSourceRgb(0, 0, 0); // Set the font color to black
         cr.SelectFontFace("Sans", FontSlant.Normal, FontWeight.Normal); // We're using Sans as the font, with no slant or weight
-        cr.SetFontSize(areaWidth * areaHeight / 16); // Setting it to be large enough to fit in the keys
+        cr.SetFontSize(areaWidth * 4); // Setting it to be large enough to fit in the keys
         cr.MoveTo((pos * areaWidth) + areaWidth + smallAdj, areaHeight - 5); // Move the font to the bottom of the keys
         cr.ShowText(ConfigUtils.GetKeyName(keyIndex)); // Set the text so it shows as the actual piano key note
     }

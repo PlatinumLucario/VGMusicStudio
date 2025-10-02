@@ -74,7 +74,7 @@ namespace Kermalis.VGMusicStudio.GTK4
 			var win = new MainWindow(_app);
 			_app.AddWindow(win);
 			win.Present();
-			_app.Run(args.Length, args);
+			_app.Run(args);
 		}
 	}
 }

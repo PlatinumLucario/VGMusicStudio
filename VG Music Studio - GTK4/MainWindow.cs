@@ -28,11 +28,15 @@ internal sealed class MainWindow : Window
 
     public static MainWindow? Instance { get; private set; }
 
+    private readonly Gtk.WindowGroup _windowGroup;
+
     #region Widgets
 
     // The Windows
     private Preferences? _preferences;
-    private TrackViewer? _trackViewer;
+    private MIDIConverterDialog? _midiConverterDialog;
+    private TrackEditor? _trackEditor;
+    private SoundBankEditor? _soundBankEditor;
     private WidgetWindow? _playlistWindow, _seqAudioPianoWindow, _sequencedAudioTrackInfoWindow, _sequencedAudioListWindow;
 
     // Buttons
@@ -68,7 +72,7 @@ internal sealed class MainWindow : Window
         _editItem,
         _preferencesItem,
         _dataItem,
-        _trackViewerItem, _exportDLSItem, _exportSF2Item, _exportMIDIItem, _exportWAVItem,
+        _midiConverterDialogItem, _trackEditorItem, _soundBankEditorItem, _exportASMItem, _exportMIDIItem, _exportDLSItem, _exportSF2Item, _exportWAVItem,
         _playlistItem,
         _playPlaylistItem, _endPlaylistItem,
         _widgetItem,
@@ -81,7 +85,7 @@ internal sealed class MainWindow : Window
     private readonly Gio.SimpleAction
         _openDSEAction, _openAlphaDreamAction, _openMP2KAction, _openSDATAction,
         _preferencesAction,
-        _trackViewerAction, _exportDLSAction, _exportSF2Action, _exportMIDIAction, _exportWAVAction,
+        _midiConverterDialogAction, _trackEditorAction, _soundBankEditorAction, _exportASMAction, _exportMIDIAction, _exportDLSAction, _exportSF2Action, _exportWAVAction,
         _playPlaylistAction, _endPlaylistAction,
         _playlistWidgetTiledAction, _playlistWidgetWindowedAction, _playlistWidgetHideAction,
         _seqAudioPianoWidgetTiledAction, _seqAudioPianoWidgetWindowedAction, _seqAudioPianoWidgetHideAction,
@@ -119,6 +123,7 @@ internal sealed class MainWindow : Window
         SetDefaultSize(100, 100); // Sets the default size of the Window
         Title = GetProgramName(); // Sets the title to the name of the program, which is "VG Music Studio"
         _app = app;
+        _windowGroup = Gtk.WindowGroup.New();
 
         // LibAdwaita Header Bar
         _headerBar = Adw.HeaderBar.New();
@@ -206,13 +211,45 @@ internal sealed class MainWindow : Window
         _popoverMenuBar.AddMnemonicLabel(_dataLabel);
         _dataItem.SetSubmenu(_dataMenu);
 
-        _trackViewerItem = Gio.MenuItem.New(Strings.TrackViewerTitle, "app.trackViewer");
-        _trackViewerAction = Gio.SimpleAction.New("trackViewer", null);
-        _app.AddAction(_trackViewerAction);
-        _trackViewerAction.Enabled = false;
-        _trackViewerAction.OnActivate += OpenTrackViewer;
-        _dataMenu.AppendItem(_trackViewerItem);
-        _trackViewerItem.Unref();
+        _midiConverterDialogItem = Gio.MenuItem.New(Strings.MIDIConverterTitle, "app.midiConverterDialog");
+        _midiConverterDialogAction = Gio.SimpleAction.New("midiConverterDialog", null);
+        _app.AddAction(_midiConverterDialogAction);
+        _midiConverterDialogAction.Enabled = true;
+        _midiConverterDialogAction.OnActivate += OpenMIDIConverterDialog;
+        _dataMenu.AppendItem(_midiConverterDialogItem);
+        _midiConverterDialogItem.Unref();
+
+        _trackEditorItem = Gio.MenuItem.New(Strings.TrackEditorTitle, "app.trackEditor");
+        _trackEditorAction = Gio.SimpleAction.New("trackEditor", null);
+        _app.AddAction(_trackEditorAction);
+        _trackEditorAction.Enabled = false;
+        _trackEditorAction.OnActivate += OpenTrackEditor;
+        _dataMenu.AppendItem(_trackEditorItem);
+        _trackEditorItem.Unref();
+
+        _soundBankEditorItem = Gio.MenuItem.New(Strings.MenuVoiceGroupSoundBankEditor, "app.soundBankEditor");
+        _soundBankEditorAction = Gio.SimpleAction.New("soundBankEditor", null);
+        _app.AddAction(_soundBankEditorAction);
+        _soundBankEditorAction.Enabled = false;
+        _soundBankEditorAction.OnActivate += OpenSoundBankEditor;
+        _dataMenu.AppendItem(_soundBankEditorItem);
+        _soundBankEditorItem.Unref();
+
+        _exportASMItem = Gio.MenuItem.New(Strings.MenuSaveASM, "app.exportASM");
+        _exportASMAction = Gio.SimpleAction.New("exportASM", null);
+        _app.AddAction(_exportASMAction);
+        _exportASMAction.Enabled = false;
+        _exportASMAction.OnActivate += ExportASM;
+        _dataMenu.AppendItem(_exportASMItem);
+        _exportASMItem.Unref();
+
+        _exportMIDIItem = Gio.MenuItem.New(Strings.MenuSaveMIDI, "app.exportMIDI");
+        _exportMIDIAction = Gio.SimpleAction.New("exportMIDI", null);
+        _app.AddAction(_exportMIDIAction);
+        _exportMIDIAction.Enabled = false;
+        _exportMIDIAction.OnActivate += ExportMIDI;
+        _dataMenu.AppendItem(_exportMIDIItem);
+        _exportMIDIItem.Unref();
 
         _exportDLSItem = Gio.MenuItem.New(Strings.MenuSaveDLS, "app.exportDLS");
         _exportDLSAction = Gio.SimpleAction.New("exportDLS", null);
@@ -229,14 +266,6 @@ internal sealed class MainWindow : Window
         _exportSF2Action.OnActivate += ExportSF2;
         _dataMenu.AppendItem(_exportSF2Item);
         _exportSF2Item.Unref();
-
-        _exportMIDIItem = Gio.MenuItem.New(Strings.MenuSaveMIDI, "app.exportMIDI");
-        _exportMIDIAction = Gio.SimpleAction.New("exportMIDI", null);
-        _app.AddAction(_exportMIDIAction);
-        _exportMIDIAction.Enabled = false;
-        _exportMIDIAction.OnActivate += ExportMIDI;
-        _dataMenu.AppendItem(_exportMIDIItem);
-        _exportMIDIItem.Unref();
 
         _exportWAVItem = Gio.MenuItem.New(Strings.MenuSaveWAV, "app.exportWAV");
         _exportWAVAction = Gio.SimpleAction.New("exportWAV", null);
@@ -412,7 +441,7 @@ internal sealed class MainWindow : Window
         _buttonRecord.OnClicked += ExportWAV;
 
         // Spin Button
-        _sequenceNumberSpinButton = Gtk.SpinButton.New(Gtk.Adjustment.New(0, 0, -1, 1, 10, 0), 0, 0);
+        _sequenceNumberSpinButton = Gtk.SpinButton.New(Gtk.Adjustment.New(0, 0, 10000, 1, 10, 0), 0, 0);
         _sequenceNumberSpinButtonGestureClick = Gtk.GestureClick.New();
         _sequenceNumberSpinButton.AddController(_sequenceNumberSpinButtonGestureClick);
         _sequenceNumberSpinButton.Sensitive = false;
@@ -543,6 +572,8 @@ internal sealed class MainWindow : Window
         SetContent(_mainBox);
 
         Instance = this;
+        
+        _windowGroup.AddWindow(this);
 
         // Ensures the entire application gets closed when the main window is closed
         OnCloseRequest += MainWindow_CloseRequest;
@@ -678,6 +709,7 @@ internal sealed class MainWindow : Window
             _pianoBox.Remove(_piano);
         }
         _seqAudioPianoWindow ??= new WidgetWindow(_piano);
+        _seqAudioPianoWindow.HeightRequest = 60;
         _seqAudioPianoWindow.OnCloseRequest += SeqAudioPianoWindow_CloseRequest;
         _seqAudioPianoWindow.Present();
 
@@ -1472,7 +1504,7 @@ internal sealed class MainWindow : Window
         {
             if (ex is IndexOutOfRangeException && Engine.Instance is DSEEngine)
             {
-                FlexibleDialog.Show(ex.Message, "Unable to load song.");
+                FlexibleDialog.Show(ex, string.Format(Strings.ErrorLoadSong, Engine.Instance!.Config.GetSongName(index)));
             }
             else if (ex is DSEInvalidNoteException)
             {
@@ -1507,7 +1539,7 @@ internal sealed class MainWindow : Window
             _buttonPlay.Sensitive = false;
             SequencedAudio_TrackInfo.SetNumTracks(0);
         }
-        _trackViewer?.UpdateTracks();
+        _trackEditor?.UpdateTracks();
         _positionBar.Sensitive = _exportWAVAction.Enabled = success;
         _exportMIDIAction.Enabled = success && MP2KEngine.MP2KInstance is not null;
         _exportDLSAction.Enabled = _exportSF2Action.Enabled = success && AlphaDreamEngine.AlphaDreamInstance is not null;
@@ -1561,9 +1593,11 @@ internal sealed class MainWindow : Window
                     _playlistSelector.ButtonPrevPlistSong!.Sensitive =
                     _playlistSelector.PlaylistSongDropDown!.Sensitive =
                     _playlistSelector.ButtonNextPlistSong!.Sensitive = false;
-                _trackViewerAction.Enabled = true;
-                _exportDLSAction.Enabled = false;
+                _midiConverterDialogAction.Enabled = false;
+                _trackEditorAction.Enabled = true;
+                _exportASMAction.Enabled = false;
                 _exportMIDIAction.Enabled = false;
+                _exportDLSAction.Enabled = false;
                 _exportSF2Action.Enabled = false;
                 _playPlaylistAction.Enabled =
                     _endPlaylistAction.Enabled = false;
@@ -1614,9 +1648,11 @@ internal sealed class MainWindow : Window
                 _playlistSelector.ButtonPrevPlistSong!.Sensitive =
                 _playlistSelector.PlaylistSongDropDown!.Sensitive =
                 _playlistSelector.ButtonNextPlistSong!.Sensitive = false;
-            _trackViewerAction.Enabled = true;
-            _exportDLSAction.Enabled = false;
+            _midiConverterDialogAction.Enabled = false;
+            _trackEditorAction.Enabled = true;
+            _exportASMAction.Enabled = false;
             _exportMIDIAction.Enabled = false;
+            _exportDLSAction.Enabled = false;
             _exportSF2Action.Enabled = false;
             _playPlaylistAction.Enabled =
                 _endPlaylistAction.Enabled = false;
@@ -1665,9 +1701,11 @@ internal sealed class MainWindow : Window
                 _playlistSelector.ButtonPrevPlistSong!.Sensitive =
                 _playlistSelector.PlaylistSongDropDown!.Sensitive =
                 _playlistSelector.ButtonNextPlistSong!.Sensitive = true;
-            _trackViewerAction.Enabled = true;
-            _exportDLSAction.Enabled = true;
+            _midiConverterDialogAction.Enabled = false;
+            _trackEditorAction.Enabled = true;
+            _exportASMAction.Enabled = false;
             _exportMIDIAction.Enabled = false;
+            _exportDLSAction.Enabled = true;
             _exportSF2Action.Enabled = true;
             _playPlaylistAction.Enabled = true;
             _endPlaylistAction.Enabled = false;
@@ -1719,9 +1757,12 @@ internal sealed class MainWindow : Window
                 _playlistSelector.ButtonPrevPlistSong!.Sensitive =
                 _playlistSelector.PlaylistSongDropDown!.Sensitive =
                 _playlistSelector.ButtonNextPlistSong!.Sensitive = true;
-            _trackViewerAction.Enabled = true;
-            _exportDLSAction.Enabled = false;
+            _midiConverterDialogAction.Enabled = true;
+            _trackEditorAction.Enabled = true;
+            _soundBankEditorAction.Enabled = true;
+            _exportASMAction.Enabled = true;
             _exportMIDIAction.Enabled = true;
+            _exportDLSAction.Enabled = false;
             _exportSF2Action.Enabled = false;
             _playPlaylistAction.Enabled = true;
             _endPlaylistAction.Enabled = false;
@@ -1732,9 +1773,9 @@ internal sealed class MainWindow : Window
             CheckWidgetPlaylist();
         }
     }
-    private void ExportDLS(Gio.SimpleAction sender, EventArgs e)
+    private void ExportASM(Gio.SimpleAction sender, EventArgs e)
     {
-        GTK4Utils.CreateSaveDialog(Engine.Instance!.Config.GetGameName(), ["*.dls"], Strings.MenuSaveDLS, Strings.FilterSaveDLS);
+        GTK4Utils.CreateSaveDialog(Engine.Instance!.Config.GetSongName((int)_sequenceNumberSpinButton.Value), ["*.s"], Strings.MenuSaveASM, Strings.FilterSaveASM);
         GTK4Utils.OnPathChanged += SaveFile;
 
         static void SaveFile(string path)
@@ -1745,16 +1786,16 @@ internal sealed class MainWindow : Window
                 return;
             }
 
-            AlphaDreamConfig cfg = AlphaDreamEngine.AlphaDreamInstance!.Config;
-
+            MP2KPlayer p = MP2KEngine.MP2KInstance!.Player;
+            var args = new ASMSaveArgs(true);
             try
             {
-                AlphaDreamSoundFontSaver_DLS.Save(cfg, path);
-                FlexibleDialog.Show(string.Format(Strings.SuccessSaveDLS, path), Strings.SuccessSaveDLS);
+                p.SaveAsASM(path, args);
+                FlexibleDialog.Show(string.Format(Strings.SuccessSaveASM, path), Strings.SuccessSaveASM);
             }
             catch (Exception ex)
             {
-                FlexibleDialog.Show(ex, Strings.ErrorSaveDLS);
+                FlexibleDialog.Show(ex.Message, Strings.ErrorSaveASM);
             }
         }
     }
@@ -1782,6 +1823,32 @@ internal sealed class MainWindow : Window
             catch (Exception ex)
             {
                 FlexibleDialog.Show(ex, Strings.ErrorSaveMIDI);
+            }
+        }
+    }
+    private void ExportDLS(Gio.SimpleAction sender, EventArgs e)
+    {
+        GTK4Utils.CreateSaveDialog(Engine.Instance!.Config.GetGameName(), ["*.dls"], Strings.MenuSaveDLS, Strings.FilterSaveDLS);
+        GTK4Utils.OnPathChanged += SaveFile;
+
+        static void SaveFile(string path)
+        {
+            GTK4Utils.OnPathChanged -= SaveFile;
+            if (path is null)
+            {
+                return;
+            }
+
+            AlphaDreamConfig cfg = AlphaDreamEngine.AlphaDreamInstance!.Config;
+
+            try
+            {
+                AlphaDreamSoundFontSaver_DLS.Save(cfg, path);
+                FlexibleDialog.Show(string.Format(Strings.SuccessSaveDLS, path), Strings.SuccessSaveDLS);
+            }
+            catch (Exception ex)
+            {
+                FlexibleDialog.Show(ex, Strings.ErrorSaveDLS);
             }
         }
     }
@@ -2089,7 +2156,7 @@ internal sealed class MainWindow : Window
             Engine.Instance.Dispose();
         }
 
-        //_trackViewer?.UpdateTracks();
+        //_trackEditor?.UpdateTracks();
         Name = GetProgramName();
         SequencedAudio_TrackInfo.SetNumTracks(0);
         _sequencedAudioTrackInfo.ResetMutes();
@@ -2153,29 +2220,72 @@ internal sealed class MainWindow : Window
         }
     }
 
-    private void OpenTrackViewer(Gio.SimpleAction sender, Gio.SimpleAction.ActivateSignalArgs args)
+    private void OpenMIDIConverterDialog(Gio.SimpleAction sender, Gio.SimpleAction.ActivateSignalArgs args)
     {
-        if (_trackViewer is not null)
-        {
-            _trackViewer.FocusVisible = true;
-        }
+        _midiConverterDialog = new MIDIConverterDialog();
+        _midiConverterDialog.Present(this);
 
-        _trackViewer = new TrackViewer();
-        if (Engine.Instance is not null)
-        {
-            _trackViewer.ReloadDropDownEntries();
-            _trackViewer.Init();
-            _trackViewer.ReloadColumnEntries();
-        }
-        _trackViewer.Present();
+        _midiConverterDialog.OnClosed += WindowClosed;
 
-        _trackViewer.OnCloseRequest += TrackViewer_WindowClosed;
+        void WindowClosed(Dialog sender, EventArgs args)
+        {
+            _midiConverterDialog!.Dispose();
+            _midiConverterDialog = null!;
+        }
     }
 
-    private bool TrackViewer_WindowClosed(Gtk.Window sender, EventArgs args)
+    private void OpenTrackEditor(Gio.SimpleAction sender, Gio.SimpleAction.ActivateSignalArgs args)
     {
-        _trackViewer!.Dispose();
-        _trackViewer = null!;
-        return false;
+        if (_trackEditor is not null)
+        {
+            _trackEditor.FocusVisible = true;
+        }
+
+        _trackEditor = new TrackEditor();
+        _windowGroup.AddWindow(_trackEditor);
+        if (Engine.Instance is not null)
+        {
+            _trackEditor.Init();
+            _trackEditor.ReloadDropDownEntries();
+            // _trackEditor.ReloadColumnEntries();
+        }
+        _trackEditor.Present();
+
+        _trackEditor.OnCloseRequest += WindowClosed;
+
+        bool WindowClosed(Gtk.Window sender, EventArgs args)
+        {
+            _windowGroup.RemoveWindow(_trackEditor);
+            _trackEditor!.Dispose();
+            _trackEditor = null!;
+            return false;
+        }
+    }
+
+    private void OpenSoundBankEditor(Gio.SimpleAction sender, Gio.SimpleAction.ActivateSignalArgs args)
+    {
+        if (_soundBankEditor is not null)
+        {
+            _soundBankEditor.FocusVisible = true;
+        }
+
+        _soundBankEditor = new SoundBankEditor();
+        _windowGroup.AddWindow(_soundBankEditor);
+        if (Engine.Instance is not null)
+        {
+            _soundBankEditor.Init();
+            _soundBankEditor.LoadVoices(Engine.Instance.Player.LoadedSong!.Bank);
+        }
+        _soundBankEditor.Present();
+
+        _soundBankEditor.OnCloseRequest += WindowClosed;
+
+        bool WindowClosed(Gtk.Window sender, EventArgs args)
+        {
+            _windowGroup.RemoveWindow(_soundBankEditor);
+            _soundBankEditor!.Dispose();
+            _soundBankEditor = null!;
+            return false;
+        }
     }
 }

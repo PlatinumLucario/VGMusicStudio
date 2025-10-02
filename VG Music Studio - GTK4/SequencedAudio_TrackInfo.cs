@@ -11,35 +11,35 @@ namespace Kermalis.VGMusicStudio.GTK4;
 
 internal class SequencedAudio_TrackInfo : Box
 {
-    private Label? TempoLabel { get; set; }
-    private ushort BaseTempo { get; set; }
-    private Label? BaseTempoLabel { get; set; }
-    private SpinButton TempoSpinButton { get; set; }
+    private readonly Label? _tempoLabel;
+    private ushort _baseTempo;
+    private readonly Label? _baseTempoLabel;
+    private readonly SpinButton _tempoSpinButton;
 
-    private CheckButton? TrackToggleCheckButtonHeader { get; set; }
-    private Label? VelocityHeader { get; set; }
+    private CheckButton? _trackToggleCheckButtonHeader;
+    private Label? _velocityHeader;
 
-    private CheckButton[]? TrackToggleCheckButton { get; set; }
-    private Label[]? PositionLabel { get; set; }
-    private Label[]? RestLabel { get; set; }
-    private Label[]? VoiceLabel { get; set; }
-    private Label[]? NotesLabel { get; set; }
-    private Label[]? PanpotLabel { get; set; }
-    private Label[]? VolumeLabel { get; set; }
-    private Label[]? LFOLabel { get; set; }
-    private Label[]? PitchBendLabel { get; set; }
-    private Label[]? ExtraLabel { get; set; }
-    private VelocityBar[]? Velocity { get; set; }
-    private Label[]? TypeLabel { get; set; }
+    private CheckButton[]? _trackToggleCheckButton;
+    private Label[]? _labelPosition;
+    private Label[]? _labelRest;
+    private Label[]? _labelVoice;
+    private Label[]? _labelNotes;
+    private Label[]? _labelPanpot;
+    private Label[]? _labelVolume;
+    private Label[]? _labelLFO;
+    private Label[]? _labelPitchBend;
+    private Label[]? _labelExtra;
+    private VelocityBar[]? _velocity;
+    private Label[]? _labelType;
 
-    private ListBox? ListBox { get; set; }
-    private static readonly List<string> KeysCache = new(128);
+    private readonly ListBox? _listBox;
+    private static readonly List<string> _keysCache = new(128);
 
     public readonly bool[]? NumTracks;
     public readonly SongState? Info;
     internal static int NumTracksToDraw;
 
-    public SequencedAudio_TrackInfo[]? TrackInfo { get; set; }
+    internal SequencedAudio_TrackInfo[]? TrackInfo { get; set; }
 
     internal SequencedAudio_TrackInfo()
     {
@@ -51,32 +51,32 @@ internal class SequencedAudio_TrackInfo : Box
 
         Info = new SongState();
         
-        TempoLabel = Label.New(string.Format("{0} - {1}", Strings.PlayerTempo, Info!.Tempo));
-        TempoSpinButton = SpinButton.New(Adjustment.New(0, 0, -1, 1, 10, 0), 0, 0);
-        TempoSpinButton.SetNumeric(true);
-        TempoSpinButton.OnValueChanged += ChangeTempo;
-        TempoSpinButton.OnChangeValue += ChangeTempo;
-        BaseTempo = Info.Tempo;
-        BaseTempoLabel = Label.New(string.Format("{0} + ", BaseTempo));
+        _tempoLabel = Label.New(string.Format("{0} - {1}", Strings.PlayerTempo, Info!.Tempo));
+        _tempoSpinButton = SpinButton.New(Adjustment.New(0, 0, 10000, 1, 10, 0), 0, 0);
+        _tempoSpinButton.SetNumeric(true);
+        _tempoSpinButton.OnValueChanged += ChangeTempo;
+        _tempoSpinButton.OnChangeValue += ChangeTempo;
+        _baseTempo = Info.Tempo;
+        _baseTempoLabel = Label.New(string.Format("{0} + ", _baseTempo));
         var tempoBox = New(Orientation.Vertical, 4);
         var tempoControlBox = New(Orientation.Horizontal, 4);
-        tempoControlBox.Append(BaseTempoLabel);
-        tempoControlBox.Append(TempoSpinButton);
+        tempoControlBox.Append(_baseTempoLabel);
+        tempoControlBox.Append(_tempoSpinButton);
         tempoControlBox.SetHalign(Align.Center);
-        tempoBox.Append(TempoLabel);
+        tempoBox.Append(_tempoLabel);
         tempoBox.Append(tempoControlBox);
         var listHeader = CreateListHeader();
-        var viewport = Viewport.New(Adjustment.New(0, -1, -1, 1, 1, 1), Adjustment.New(0, -1, -1, 1, 1, 1));
+        var viewport = Viewport.New(Adjustment.New(0, double.MinValue, double.MaxValue, 1, 1, 1), Adjustment.New(0, double.MinValue, double.MaxValue, 1, 1, 1));
         var scrolledWindow = ScrolledWindow.New();
         scrolledWindow.SetSizeRequest(700, 150);
         scrolledWindow.SetHexpand(true);
         scrolledWindow.SetVexpand(true);
 
-        ListBox = ListBox.New();
-        ListBox.SetHexpand(true);
-        ListBox.SetSelectionMode(SelectionMode.None);
+        _listBox = ListBox.New();
+        _listBox.SetHexpand(true);
+        _listBox.SetSelectionMode(SelectionMode.None);
 
-        scrolledWindow.SetChild(ListBox);
+        scrolledWindow.SetChild(_listBox);
 
         viewport.Child = scrolledWindow;
 
@@ -94,13 +94,13 @@ internal class SequencedAudio_TrackInfo : Box
     {
         if (Engine.Instance is not null)
         {
-            Engine.Instance.Player.Tempo = (ushort)(BaseTempo! + TempoSpinButton.Value);
+            Engine.Instance.Player.Tempo = (ushort)(_baseTempo! + _tempoSpinButton.Value);
         }
     }
     
     internal void ResetTempo()
     {
-        TempoSpinButton.Value = 0;
+        _tempoSpinButton.Value = 0;
     }
 
     internal static void SetNumTracks(int num) => NumTracksToDraw = num;
@@ -121,81 +121,81 @@ internal class SequencedAudio_TrackInfo : Box
     {
         if (Engine.Instance is not null)
         {
-            TempoLabel!.SetLabel(string.Format("{0} - {1}", Strings.PlayerTempo, Engine.Instance!.Player.Tempo));
+            _tempoLabel!.SetLabel(string.Format("{0} - {1}", Strings.PlayerTempo, Engine.Instance!.Player.Tempo));
         }
-        if (TrackToggleCheckButton is not null &&
-            PositionLabel is not null &&
-            RestLabel is not null &&
-            VoiceLabel is not null &&
-            NotesLabel is not null &&
-            PanpotLabel is not null &&
-            VolumeLabel is not null &&
-            LFOLabel is not null &&
-            PitchBendLabel is not null &&
-            ExtraLabel is not null &&
-            Velocity is not null &&
-            TypeLabel is not null)
+        if (_trackToggleCheckButton is not null &&
+            _labelPosition is not null &&
+            _labelRest is not null &&
+            _labelVoice is not null &&
+            _labelNotes is not null &&
+            _labelPanpot is not null &&
+            _labelVolume is not null &&
+            _labelLFO is not null &&
+            _labelPitchBend is not null &&
+            _labelExtra is not null &&
+            _velocity is not null &&
+            _labelType is not null)
         {
-            if (PositionLabel.Length == 0)
+            if (_labelPosition.Length == 0)
             {
                 return true;
             }
 
             for (int i = 0; i < NumTracksToDraw; i++)
             {
-                if (TrackToggleCheckButton[i] is not null &&
-                    PositionLabel[i] is not null &&
-                    RestLabel[i] is not null &&
-                    VoiceLabel[i] is not null &&
-                    NotesLabel[i] is not null &&
-                    PanpotLabel[i] is not null &&
-                    VolumeLabel[i] is not null &&
-                    LFOLabel[i] is not null &&
-                    PitchBendLabel[i] is not null &&
-                    ExtraLabel[i] is not null &&
-                    Velocity[i] is not null &&
-                    TypeLabel[i] is not null)
+                if (_trackToggleCheckButton[i] is not null &&
+                    _labelPosition[i] is not null &&
+                    _labelRest[i] is not null &&
+                    _labelVoice[i] is not null &&
+                    _labelNotes[i] is not null &&
+                    _labelPanpot[i] is not null &&
+                    _labelVolume[i] is not null &&
+                    _labelLFO[i] is not null &&
+                    _labelPitchBend[i] is not null &&
+                    _labelExtra[i] is not null &&
+                    _velocity[i] is not null &&
+                    _labelType[i] is not null)
                 {
                     if (Engine.Instance!.Player.State is not PlayerState.Stopped)
                     {
-                        ToggleTrack(i, TrackToggleCheckButton[i].Active);
-                        PositionLabel[i].SetText(string.Format("0x{0:X}", Info!.Tracks[i].Position));
-                        RestLabel[i].SetText(Info.Tracks[i].Rest.ToString());
-                        VoiceLabel[i].SetText(Info.Tracks[i].Voice.ToString());
-                        NotesLabel[i].SetText(GetNote(Info.Tracks[i]));
-                        PanpotLabel[i].SetText(Info.Tracks[i].Panpot.ToString());
-                        VolumeLabel[i].SetText(Info.Tracks[i].Volume.ToString());
-                        LFOLabel[i].SetText(Info.Tracks[i].LFO.ToString());
-                        PitchBendLabel[i].SetText(Info.Tracks[i].PitchBend.ToString());
-                        ExtraLabel[i].SetText(Info.Tracks[i].Extra.ToString());
-                        VelocityHeader!.WidthRequest = GetWidth() / 4;
-                        Velocity[i].WidthRequest = GetWidth() / 4;
-                        Velocity[i].UpdateColor(Info.Tracks[i], TrackToggleCheckButton[i].Active);
-                        Velocity[i].QueueDraw();
+                        ToggleTrack(i, _trackToggleCheckButton[i].Active);
+                        _labelPosition[i].SetText(string.Format("0x{0:X}", Info!.Tracks[i].Position));
+                        _labelRest[i].SetText(Info.Tracks[i].Rest.ToString());
+                        _labelVoice[i].SetText(Info.Tracks[i].Voice.ToString());
+                        _labelNotes[i].SetText(GetNote(Info.Tracks[i]));
+                        _labelPanpot[i].SetText(Info.Tracks[i].Panpot.ToString());
+                        _labelVolume[i].SetText(Info.Tracks[i].Volume.ToString());
+                        _labelLFO[i].SetText(Info.Tracks[i].LFO.ToString());
+                        _labelPitchBend[i].SetText(Info.Tracks[i].PitchBend.ToString());
+                        _labelExtra[i].SetText(Info.Tracks[i].Extra.ToString());
+                        _velocityHeader!.WidthRequest = GetWidth() / 4;
+                        _velocity[i].WidthRequest = GetWidth() / 4;
+                        _velocity[i].UpdateColor(Info.Tracks[i], _trackToggleCheckButton[i].Active);
+                        _velocity[i].QueueDraw();
                         if (Info.Tracks[i].Type is not null)
                         {
-                            TypeLabel[i].SetText(Info.Tracks[i].Type);
+                            _labelType[i].SetText(Info.Tracks[i].Type);
                         }
                     }
                     else
                     {
-                        ToggleTrack(i, TrackToggleCheckButton[i].Active);
-                        PositionLabel[i].SetText(string.Format("0x{0:X}", 0));
-                        RestLabel[i].SetText(0.ToString());
-                        VoiceLabel[i].SetText(0.ToString());
-                        NotesLabel[i].SetText("");
-                        PanpotLabel[i].SetText(0.ToString());
-                        VolumeLabel[i].SetText(0.ToString());
-                        LFOLabel[i].SetText(0.ToString());
-                        PitchBendLabel[i].SetText(0.ToString());
-                        ExtraLabel[i].SetText(Info!.Tracks[i].Extra.ToString());
-                        VelocityHeader!.WidthRequest = GetWidth() / 4;
-                        Velocity[i].WidthRequest = GetWidth() / 4;
-                        Velocity[i].UpdateColor(Info.Tracks[i], TrackToggleCheckButton[i].Active);
-                        Velocity[i].QueueDraw();
+                        ToggleTrack(i, _trackToggleCheckButton[i].Active);
+                        _labelPosition[i].SetText(string.Format("0x{0:X}", 0));
+                        _labelRest[i].SetText(0.ToString());
+                        _labelVoice[i].SetText(0.ToString());
+                        _labelNotes[i].SetText("");
+                        _labelPanpot[i].SetText(0.ToString());
+                        _labelVolume[i].SetText(0.ToString());
+                        _labelLFO[i].SetText(0.ToString());
+                        _labelPitchBend[i].SetText(0.ToString());
+                        _labelExtra[i].SetText(Info!.Tracks[i].Extra.ToString());
+                        _velocityHeader!.WidthRequest = GetWidth() / 4;
+                        _velocity[i].WidthRequest = GetWidth() / 4;
+                        _velocity[i].UpdateColor(Info.Tracks[i], _trackToggleCheckButton[i].Active);
+                        _velocity[i].QueueDraw();
                         if (Info.Tracks[i].Type is not null)
                         {
-                            TypeLabel[i].SetText("");
+                            _labelType[i].SetText("");
                         }
                     }
                 }
@@ -206,37 +206,37 @@ internal class SequencedAudio_TrackInfo : Box
 
     private class VelocityBar : DrawingArea
     {
-        private SongState.Track? Track;
-        private HSLColor Color;
-        private HSLColor OverampColor;
+        private SongState.Track? _track;
+        private HSLColor _color;
+        private HSLColor _overampColor;
         internal VelocityBar()
         {
-            Color = new HSLColor();
-            OverampColor = new HSLColor(0, 1, 0.5);
+            _color = new HSLColor();
+            _overampColor = new HSLColor(0, 1, 0.5);
             SetHexpand(true);
             SetVexpand(true);
-            SetDrawFunc(DrawVisualizerBar);
+            SetDrawFunc(DrawVelocityBar);
         }
 
         internal void UpdateColor(SongState.Track track, bool trackEnabled)
         {
-            Track = track;
+            _track = track;
             if (GlobalConfig.Instance is not null) // Nullability check
             {
-                Color = new HSLColor(GlobalConfig.Instance.Colors[track.Voice]);
+                _color = new HSLColor(GlobalConfig.Instance.Colors[track.Voice]);
                 if (!trackEnabled)
                 {
-                    Color = new HSLColor(Color.Hue, 0, Color.Lightness);
+                    _color = new HSLColor(_color.Hue, 0, _color.Lightness);
                 }
             }
-            OverampColor = new HSLColor(0, 1, 0.5);
+            _overampColor = new HSLColor(0, 1, 0.5);
             if (!trackEnabled)
             {
-                OverampColor = new HSLColor(OverampColor.Hue, 0, 0.8);
+                _overampColor = new HSLColor(_overampColor.Hue, 0, 0.8);
             }
         }
 
-        private void DrawVisualizerBar(DrawingArea drawingArea, Context cr, int width, int height)
+        private void DrawVelocityBar(DrawingArea drawingArea, Context cr, int width, int height)
         {
             // cr.LineWidth = 3;
 
@@ -258,9 +258,9 @@ internal class SequencedAudio_TrackInfo : Box
         private void DrawLineL(Context cr, int width, int height)
         {
             DrawTrough(cr, height, width / 2, -(width / 3));
-            if (Track is not null)
+            if (_track is not null)
             {
-                DrawVolumeLine(cr, height, width / 2, -(Track.LeftVolume * ((width / 3) + (width / 9))));
+                DrawVolumeLine(cr, height, width / 2, -(_track.LeftVolume * ((width / 3) + (width / 9))));
             }
             DrawText(cr, height, (width / 2) - (width / 3) - 8, (width / 2) - (width / 3) - (width / 9) - 7.5, "-1.0", "L");
             DrawOverampLine(cr, height, (width / 2) - (width / 3), -(width / 9));
@@ -269,9 +269,9 @@ internal class SequencedAudio_TrackInfo : Box
         private void DrawLineR(Context cr, int width, int height)
         {
             DrawTrough(cr, height, (width / 2) + (5 * (width / 599f)), width / 3);
-            if (Track is not null)
+            if (_track is not null)
             {
-                DrawVolumeLine(cr, height, (width / 2) + (5 * (width / 599f)), Track.LeftVolume * ((width / 3) + (width / 9)));
+                DrawVolumeLine(cr, height, (width / 2) + (5 * (width / 599f)), _track.LeftVolume * ((width / 3) + (width / 9)));
             }
             DrawText(cr, height, (width / 2) + (5 * (width / 599f)) + (width / 3) - 8, width / 1.045, "+1.0", "R");
             DrawOverampLine(cr, height, (width / 2) + (5 * (width / 599f)) + (width / 3), width / 9);
@@ -291,7 +291,7 @@ internal class SequencedAudio_TrackInfo : Box
         private void DrawVolumeLine(Context cr, int height, float pos, float length)
         {
             cr.Save();
-            cr.SetSourceRgb(Color.R, Color.G, Color.B);
+            cr.SetSourceRgb(_color.R, _color.G, _color.B);
             cr.LineWidth = 5;
             cr.MoveTo(pos, height / 2);
             cr.LineTo(pos + length, height / 2);
@@ -321,7 +321,7 @@ internal class SequencedAudio_TrackInfo : Box
         private void DrawOverampLine(Context cr, int height, float pos, int length)
         {
             cr.Save();
-            cr.SetSourceRgba(OverampColor.R, OverampColor.G, OverampColor.B, 0.5);
+            cr.SetSourceRgba(_overampColor.R, _overampColor.G, _overampColor.B, 0.5);
             cr.LineWidth = 5;
             cr.MoveTo(pos, height / 2);
             cr.LineTo(pos + length, height / 2);
@@ -348,7 +348,7 @@ internal class SequencedAudio_TrackInfo : Box
         }
         else // Keys are held down
         {
-            KeysCache.Clear();
+            _keysCache.Clear();
             string noteName = "";
             for (int nk = 0; nk < SongState.MAX_KEYS; nk++)
             {
@@ -361,14 +361,14 @@ internal class SequencedAudio_TrackInfo : Box
                 noteName = ConfigUtils.GetKeyName(k);
                 if (nk != 0)
                 {
-                    KeysCache.Add(' ' + noteName);
+                    _keysCache.Add(' ' + noteName);
                 }
                 else
                 {
-                    KeysCache.Add(noteName);
+                    _keysCache.Add(noteName);
                 }
             }
-            foreach (var k in KeysCache)
+            foreach (var k in _keysCache)
             {
                 if (k == noteName)
                 {
@@ -386,17 +386,18 @@ internal class SequencedAudio_TrackInfo : Box
         var columns = New(Orientation.Horizontal, 4);
         columns.SetHexpand(true);
 
-        TrackToggleCheckButtonHeader = CheckButton.New();
-        TrackToggleCheckButtonHeader.Active = true;
-        TrackToggleCheckButtonHeader.OnToggled += ToggleAllTracks;
-        TrackToggleCheckButtonHeader.SetMarginStart(2); // So that the starting margin is aligned with the check buttons in the list box
-        TrackToggleCheckButtonHeader.SetHalign(Align.Start);
-        columns.Append(TrackToggleCheckButtonHeader);
+        _trackToggleCheckButtonHeader = CheckButton.New();
+        _trackToggleCheckButtonHeader.Active = true;
+        _trackToggleCheckButtonHeader.OnToggled += ToggleAllTracks;
+        _trackToggleCheckButtonHeader.SetMarginStart(2); // So that the starting margin is aligned with the check buttons in the list box
+        _trackToggleCheckButtonHeader.SetHalign(Align.Start);
+        columns.Append(_trackToggleCheckButtonHeader);
 
         var positionLabelHeader = Label.New(Strings.PlayerPosition);
         positionLabelHeader.SetMaxWidthChars(1);
         positionLabelHeader.SetEllipsize(Pango.EllipsizeMode.End);
-        positionLabelHeader.WidthRequest = 80;
+        positionLabelHeader.SetHalign(Align.Start);
+        positionLabelHeader.WidthRequest = 30;
         positionLabelHeader.SetHexpand(true);
         columns.Append(positionLabelHeader);
 
@@ -456,17 +457,16 @@ internal class SequencedAudio_TrackInfo : Box
         extraLabelHeader.SetHexpand(true);
         columns.Append(extraLabelHeader);
 
-        VelocityHeader = Label.New("");
-        VelocityHeader.SetMaxWidthChars(1);
-        VelocityHeader.WidthRequest = GetWidth() / 4;
-        VelocityHeader.SetHexpand(true);
-        columns.Append(VelocityHeader);
+        _velocityHeader = Label.New("");
+        _velocityHeader.SetMaxWidthChars(1);
+        _velocityHeader.WidthRequest = GetWidth() / 4;
+        _velocityHeader.SetHexpand(true);
+        columns.Append(_velocityHeader);
 
         var typeLabelHeader = Label.New(Strings.PlayerType);
         typeLabelHeader.SetMaxWidthChars(1);
         typeLabelHeader.SetEllipsize(Pango.EllipsizeMode.End);
-        typeLabelHeader.SetHalign(Align.End);
-        typeLabelHeader.WidthRequest = 60;
+        typeLabelHeader.WidthRequest = 30;
         typeLabelHeader.SetHexpand(true);
         columns.Append(typeLabelHeader);
         return columns;
@@ -495,17 +495,17 @@ internal class SequencedAudio_TrackInfo : Box
         }
         if (numActive == NumTracksToDraw)
         {
-            TrackToggleCheckButtonHeader!.Inconsistent = false;
-            TrackToggleCheckButtonHeader.Active = true;
+            _trackToggleCheckButtonHeader!.Inconsistent = false;
+            _trackToggleCheckButtonHeader.Active = true;
         }
         else if (numActive < NumTracksToDraw && numActive is not 0)
         {
-            TrackToggleCheckButtonHeader!.Inconsistent = true;
+            _trackToggleCheckButtonHeader!.Inconsistent = true;
         }
         else
         {
-            TrackToggleCheckButtonHeader!.Inconsistent = false;
-            TrackToggleCheckButtonHeader.Active = false;
+            _trackToggleCheckButtonHeader!.Inconsistent = false;
+            _trackToggleCheckButtonHeader.Active = false;
         }
     }
 
@@ -516,7 +516,7 @@ internal class SequencedAudio_TrackInfo : Box
             for (int i = 0; i < NumTracksToDraw; i++)
             {
                 Engine.Instance!.Mixer!.Mutes[i] = false;
-                NumTracks![i] = TrackToggleCheckButton![i].Active = true;
+                NumTracks![i] = _trackToggleCheckButton![i].Active = true;
             }
         }
         else
@@ -524,14 +524,14 @@ internal class SequencedAudio_TrackInfo : Box
             for (int i = 0; i < NumTracksToDraw; i++)
             {
                 Engine.Instance!.Mixer!.Mutes[i] = true;
-                NumTracks![i] = TrackToggleCheckButton![i].Active = false;
+                NumTracks![i] = _trackToggleCheckButton![i].Active = false;
             }
         }
     }
 
     public void AddTrackInfo()
     {
-        ListBox!.RemoveAll();
+        _listBox!.RemoveAll();
         for (int i = 0; i < NumTracks!.Length; i++)
         {
             if (i < NumTracksToDraw)
@@ -544,111 +544,111 @@ internal class SequencedAudio_TrackInfo : Box
             }
         }
 
-        TempoSpinButton.Value = 0;
-        BaseTempo = Engine.Instance!.Player.Tempo;
-        BaseTempoLabel!.SetLabel(string.Format("{0} + ", BaseTempo));
-        TempoSpinButton.SetRange(-BaseTempo, short.MaxValue);
+        _tempoSpinButton.Value = 0;
+        _baseTempo = Engine.Instance!.Player.Tempo;
+        _baseTempoLabel!.SetLabel(string.Format("{0} + ", _baseTempo));
+        _tempoSpinButton.SetRange(-_baseTempo, short.MaxValue);
 
-        TrackToggleCheckButton = new CheckButton[NumTracksToDraw];
-        PositionLabel = new Label[NumTracksToDraw];
-        RestLabel = new Label[NumTracksToDraw];
-        VoiceLabel = new Label[NumTracksToDraw];
-        NotesLabel = new Label[NumTracksToDraw];
-        PanpotLabel = new Label[NumTracksToDraw];
-        VolumeLabel = new Label[NumTracksToDraw];
-        LFOLabel = new Label[NumTracksToDraw];
-        PitchBendLabel = new Label[NumTracksToDraw];
-        ExtraLabel = new Label[NumTracksToDraw];
-        Velocity = new VelocityBar[NumTracksToDraw];
-        TypeLabel = new Label[NumTracksToDraw];
+        _trackToggleCheckButton = new CheckButton[NumTracksToDraw];
+        _labelPosition = new Label[NumTracksToDraw];
+        _labelRest = new Label[NumTracksToDraw];
+        _labelVoice = new Label[NumTracksToDraw];
+        _labelNotes = new Label[NumTracksToDraw];
+        _labelPanpot = new Label[NumTracksToDraw];
+        _labelVolume = new Label[NumTracksToDraw];
+        _labelLFO = new Label[NumTracksToDraw];
+        _labelPitchBend = new Label[NumTracksToDraw];
+        _labelExtra = new Label[NumTracksToDraw];
+        _velocity = new VelocityBar[NumTracksToDraw];
+        _labelType = new Label[NumTracksToDraw];
         for (int i = 0; i < NumTracksToDraw; i++)
         {
             var columns = New(Orientation.Horizontal, 4);
             columns.SetHexpand(true);
 
-            TrackToggleCheckButton[i] = CheckButton.New();
-            TrackToggleCheckButton[i].Active = true;
-            TrackToggleCheckButton[i].SetHalign(Align.Start);
-            columns.Append(TrackToggleCheckButton[i]);
+            _trackToggleCheckButton[i] = CheckButton.New();
+            _trackToggleCheckButton[i].Active = true;
+            _trackToggleCheckButton[i].SetHalign(Align.Start);
+            columns.Append(_trackToggleCheckButton[i]);
 
-            PositionLabel[i] = Label.New(string.Format("0x{0:X}", Info!.Tracks[i].Position));
-            PositionLabel[i].SetEllipsize(Pango.EllipsizeMode.End);
-            PositionLabel[i].SetMaxWidthChars(1);
-            PositionLabel[i].WidthRequest = 80;
-            PositionLabel[i].SetHexpand(true);
-            columns.Append(PositionLabel[i]);
+            _labelPosition[i] = Label.New(string.Format("0x{0:X}", Info!.Tracks[i].Position));
+            _labelPosition[i].SetEllipsize(Pango.EllipsizeMode.Start);
+            _labelPosition[i].SetMaxWidthChars(1);
+            _labelPosition[i].SetHalign(Align.Start);
+            _labelPosition[i].WidthRequest = 30;
+            _labelPosition[i].SetHexpand(true);
+            columns.Append(_labelPosition[i]);
 
-            RestLabel[i] = Label.New(Info.Tracks[i].Rest.ToString());
-            RestLabel[i].SetEllipsize(Pango.EllipsizeMode.End);
-            RestLabel[i].SetMaxWidthChars(1);
-            RestLabel[i].WidthRequest = 30;
-            RestLabel[i].SetHexpand(true);
-            columns.Append(RestLabel[i]);
+            _labelRest[i] = Label.New(Info.Tracks[i].Rest.ToString());
+            _labelRest[i].SetEllipsize(Pango.EllipsizeMode.End);
+            _labelRest[i].SetMaxWidthChars(1);
+            _labelRest[i].WidthRequest = 30;
+            _labelRest[i].SetHexpand(true);
+            columns.Append(_labelRest[i]);
 
-            VoiceLabel[i] = Label.New(Info.Tracks[i].Voice.ToString());
-            VoiceLabel[i].SetEllipsize(Pango.EllipsizeMode.End);
-            VoiceLabel[i].SetMaxWidthChars(1);
-            VoiceLabel[i].WidthRequest = 30;
-            VoiceLabel[i].SetHexpand(true);
-            columns.Append(VoiceLabel[i]);
+            _labelVoice[i] = Label.New(Info.Tracks[i].Voice.ToString());
+            _labelVoice[i].SetEllipsize(Pango.EllipsizeMode.End);
+            _labelVoice[i].SetMaxWidthChars(1);
+            _labelVoice[i].WidthRequest = 30;
+            _labelVoice[i].SetHexpand(true);
+            columns.Append(_labelVoice[i]);
 
-            NotesLabel[i] = Label.New("");
-            NotesLabel[i].SetEllipsize(Pango.EllipsizeMode.End);
-            NotesLabel[i].SetMaxWidthChars(1);
-            NotesLabel[i].WidthRequest = 30;
-            NotesLabel[i].SetHexpand(true);
-            columns.Append(NotesLabel[i]);
+            _labelNotes[i] = Label.New("");
+            _labelNotes[i].SetEllipsize(Pango.EllipsizeMode.End);
+            _labelNotes[i].SetMaxWidthChars(1);
+            _labelNotes[i].WidthRequest = 30;
+            _labelNotes[i].SetHexpand(true);
+            columns.Append(_labelNotes[i]);
 
-            PanpotLabel[i] = Label.New(Info.Tracks[i].Panpot.ToString());
-            PanpotLabel[i].SetEllipsize(Pango.EllipsizeMode.End);
-            PanpotLabel[i].SetMaxWidthChars(1);
-            PanpotLabel[i].WidthRequest = 30;
-            PanpotLabel[i].SetHexpand(true);
-            columns.Append(PanpotLabel[i]);
+            _labelPanpot[i] = Label.New(Info.Tracks[i].Panpot.ToString());
+            _labelPanpot[i].SetEllipsize(Pango.EllipsizeMode.End);
+            _labelPanpot[i].SetMaxWidthChars(1);
+            _labelPanpot[i].WidthRequest = 30;
+            _labelPanpot[i].SetHexpand(true);
+            columns.Append(_labelPanpot[i]);
 
-            VolumeLabel[i] = Label.New(Info.Tracks[i].Volume.ToString());
-            VolumeLabel[i].SetEllipsize(Pango.EllipsizeMode.End);
-            VolumeLabel[i].SetMaxWidthChars(1);
-            VolumeLabel[i].WidthRequest = 30;
-            VolumeLabel[i].SetHexpand(true);
-            columns.Append(VolumeLabel[i]);
+            _labelVolume[i] = Label.New(Info.Tracks[i].Volume.ToString());
+            _labelVolume[i].SetEllipsize(Pango.EllipsizeMode.End);
+            _labelVolume[i].SetMaxWidthChars(1);
+            _labelVolume[i].WidthRequest = 30;
+            _labelVolume[i].SetHexpand(true);
+            columns.Append(_labelVolume[i]);
 
-            LFOLabel[i] = Label.New(Info.Tracks[i].LFO.ToString());
-            LFOLabel[i].SetEllipsize(Pango.EllipsizeMode.End);
-            LFOLabel[i].SetMaxWidthChars(1);
-            LFOLabel[i].WidthRequest = 30;
-            LFOLabel[i].SetHexpand(true);
-            columns.Append(LFOLabel[i]);
+            _labelLFO[i] = Label.New(Info.Tracks[i].LFO.ToString());
+            _labelLFO[i].SetEllipsize(Pango.EllipsizeMode.End);
+            _labelLFO[i].SetMaxWidthChars(1);
+            _labelLFO[i].WidthRequest = 30;
+            _labelLFO[i].SetHexpand(true);
+            columns.Append(_labelLFO[i]);
 
-            PitchBendLabel[i] = Label.New(Info.Tracks[i].PitchBend.ToString());
-            PitchBendLabel[i].SetEllipsize(Pango.EllipsizeMode.End);
-            PitchBendLabel[i].SetMaxWidthChars(1);
-            PitchBendLabel[i].WidthRequest = 30;
-            PitchBendLabel[i].SetHexpand(true);
-            columns.Append(PitchBendLabel[i]);
+            _labelPitchBend[i] = Label.New(Info.Tracks[i].PitchBend.ToString());
+            _labelPitchBend[i].SetEllipsize(Pango.EllipsizeMode.End);
+            _labelPitchBend[i].SetMaxWidthChars(1);
+            _labelPitchBend[i].WidthRequest = 30;
+            _labelPitchBend[i].SetHexpand(true);
+            columns.Append(_labelPitchBend[i]);
 
-            ExtraLabel[i] = Label.New(Info.Tracks[i].Extra.ToString());
-            ExtraLabel[i].SetEllipsize(Pango.EllipsizeMode.End);
-            ExtraLabel[i].SetMaxWidthChars(1);
-            ExtraLabel[i].WidthRequest = 30;
-            ExtraLabel[i].SetHexpand(true);
-            columns.Append(ExtraLabel[i]);
+            _labelExtra[i] = Label.New(Info.Tracks[i].Extra.ToString());
+            _labelExtra[i].SetEllipsize(Pango.EllipsizeMode.End);
+            _labelExtra[i].SetMaxWidthChars(1);
+            _labelExtra[i].WidthRequest = 30;
+            _labelExtra[i].SetHexpand(true);
+            columns.Append(_labelExtra[i]);
 
-            Velocity[i] = new VelocityBar();
-            Velocity[i].SetHalign(Align.Center);
-            Velocity[i].WidthRequest = GetWidth() / 4;
-            Velocity[i].SetHexpand(true);
-            columns.Append(Velocity[i]);
+            _velocity[i] = new VelocityBar();
+            _velocity[i].SetHalign(Align.Center);
+            _velocity[i].WidthRequest = GetWidth() / 4;
+            _velocity[i].SetHexpand(true);
+            columns.Append(_velocity[i]);
 
-            TypeLabel[i] = Label.New("");
-            TypeLabel[i].SetEllipsize(Pango.EllipsizeMode.End);
-            TypeLabel[i].SetMaxWidthChars(1);
-            TypeLabel[i].SetHalign(Align.End);
-            TypeLabel[i].WidthRequest = 60;
-            TypeLabel[i].SetHexpand(true);
-            columns.Append(TypeLabel[i]);
+            _labelType[i] = Label.New("");
+            _labelType[i].SetEllipsize(Pango.EllipsizeMode.Middle);
+            _labelType[i].SetMaxWidthChars(1);
+            _labelType[i].WidthRequest = 30;
+            _labelType[i].SetHexpand(true);
+            columns.Append(_labelType[i]);
 
-            ListBox.Append(columns);
+            _listBox.Append(columns);
         }
     }
 
@@ -657,9 +657,9 @@ internal class SequencedAudio_TrackInfo : Box
         for (int i = 0; i < SongState.MAX_TRACKS; i++)
         {
             NumTracks![i] = true;
-            if (TrackToggleCheckButton is not null && i < TrackToggleCheckButton.Length)
+            if (_trackToggleCheckButton is not null && i < _trackToggleCheckButton.Length)
             {
-                TrackToggleCheckButton[i].Active = true;
+                _trackToggleCheckButton[i].Active = true;
             }
         }
     }

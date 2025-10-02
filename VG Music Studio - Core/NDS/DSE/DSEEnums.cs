@@ -49,7 +49,7 @@ internal enum ParameterType : byte
 	LFOFade = 10
 }
 
-internal enum TargetType : byte
+internal enum LFOType : byte
 {
 	Disconnected = 0,
 	Pitch = 1,

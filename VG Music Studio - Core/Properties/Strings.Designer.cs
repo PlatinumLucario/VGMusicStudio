@@ -61,6 +61,78 @@ namespace Kermalis.VGMusicStudio.Core.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Definition.
+        /// </summary>
+        public static string AssemblerDefinition {
+            get {
+                return ResourceManager.GetString("AssemblerDefinition", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Definitions cannot start with a digit..
+        /// </summary>
+        public static string AssemblerErrorDefinitionDigit {
+            get {
+                return ResourceManager.GetString("AssemblerErrorDefinitionDigit", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid value: {0}.
+        /// </summary>
+        public static string AssemblerErrorInvalidValue {
+            get {
+                return ResourceManager.GetString("AssemblerErrorInvalidValue", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Open File.
+        /// </summary>
+        public static string AssemblerOpenFile {
+            get {
+                return ResourceManager.GetString("AssemblerOpenFile", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Preview Song.
+        /// </summary>
+        public static string AssemblerPreviewSong {
+            get {
+                return ResourceManager.GetString("AssemblerPreviewSong", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Size in bytes: {0}.
+        /// </summary>
+        public static string AssemblerSizeInBytes {
+            get {
+                return ResourceManager.GetString("AssemblerSizeInBytes", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ASM Assembler.
+        /// </summary>
+        public static string AssemblerTitle {
+            get {
+                return ResourceManager.GetString("AssemblerTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Value.
+        /// </summary>
+        public static string AssemblerValue {
+            get {
+                return ResourceManager.GetString("AssemblerValue", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to {0} key.
         /// </summary>
         public static string ConfigKeySubkey {
@@ -214,11 +286,32 @@ namespace Kermalis.VGMusicStudio.Core.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to There's not enough Program Infos (instruments) in the loaded SWD..
+        ///   Looks up a localized string similar to There&apos;s not enough Program Infos (instruments) in the loaded SWD to load this song.
+        ///    
+        ///    Voice key index requested: {0}
+        ///    Number of ProgramInfos (Voices): {1}.
         /// </summary>
         public static string ErrorDSEVoiceIndexOutOfRange {
             get {
                 return ResourceManager.GetString("ErrorDSEVoiceIndexOutOfRange", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Converting MIDI files to this game engine is not supported at this time..
+        /// </summary>
+        public static string ErrorEngineOpenMIDI {
+            get {
+                return ResourceManager.GetString("ErrorEngineOpenMIDI", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Exporting to ASM from this game engine is not supported at this time..
+        /// </summary>
+        public static string ErrorEngineSaveASM {
+            get {
+                return ResourceManager.GetString("ErrorEngineSaveASM", resourceCulture);
             }
         }
         
@@ -304,6 +397,15 @@ namespace Kermalis.VGMusicStudio.Core.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Error Exporting ASM.
+        /// </summary>
+        public static string ErrorSaveASM {
+            get {
+                return ResourceManager.GetString("ErrorSaveASM", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Error Exporting DLS.
         /// </summary>
         public static string ErrorSaveDLS {
@@ -349,6 +451,15 @@ namespace Kermalis.VGMusicStudio.Core.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Error Assembling File.
+        /// </summary>
+        public static string ErrorTitleAssembler {
+            get {
+                return ResourceManager.GetString("ErrorTitleAssembler", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to &quot;{0}&quot; is not an integer value..
         /// </summary>
         public static string ErrorValueParse {
@@ -376,11 +487,29 @@ namespace Kermalis.VGMusicStudio.Core.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to ASM files.
+        /// </summary>
+        public static string FilterOpenASM {
+            get {
+                return ResourceManager.GetString("FilterOpenASM", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Game Boy Advance ROM (*.gba, *.srl).
         /// </summary>
         public static string FilterOpenGBA {
             get {
                 return ResourceManager.GetString("FilterOpenGBA", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to MIDI files.
+        /// </summary>
+        public static string FilterOpenMIDI {
+            get {
+                return ResourceManager.GetString("FilterOpenMIDI", resourceCulture);
             }
         }
         
@@ -399,6 +528,15 @@ namespace Kermalis.VGMusicStudio.Core.Properties {
         public static string FilterOpenSWD {
             get {
                 return ResourceManager.GetString("FilterOpenSWD", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ASM file.
+        /// </summary>
+        public static string FilterSaveASM {
+            get {
+                return ResourceManager.GetString("FilterSaveASM", resourceCulture);
             }
         }
         
@@ -439,20 +577,11 @@ namespace Kermalis.VGMusicStudio.Core.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Edit.
+        ///   Looks up a localized string similar to Internal Song Name.
         /// </summary>
-        public static string MenuEdit {
+        public static string InternalSongName {
             get {
-                return ResourceManager.GetString("MenuEdit", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Edit.
-        /// </summary>
-        public static string MenuPreferences {
-            get {
-                return ResourceManager.GetString("MenuPreferences", resourceCulture);
+                return ResourceManager.GetString("InternalSongName", resourceCulture);
             }
         }
         
@@ -466,11 +595,11 @@ namespace Kermalis.VGMusicStudio.Core.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Play Current Playlist.
+        ///   Looks up a localized string similar to Edit.
         /// </summary>
-        public static string MenuPlayPlaylist {
+        public static string MenuEdit {
             get {
-                return ResourceManager.GetString("MenuPlayPlaylist", resourceCulture);
+                return ResourceManager.GetString("MenuEdit", resourceCulture);
             }
         }
         
@@ -502,11 +631,29 @@ namespace Kermalis.VGMusicStudio.Core.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Open ASM.
+        /// </summary>
+        public static string MenuOpenASM {
+            get {
+                return ResourceManager.GetString("MenuOpenASM", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Open DSE Files.
         /// </summary>
         public static string MenuOpenDSE {
             get {
                 return ResourceManager.GetString("MenuOpenDSE", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Open MIDI.
+        /// </summary>
+        public static string MenuOpenMIDI {
+            get {
+                return ResourceManager.GetString("MenuOpenMIDI", resourceCulture);
             }
         }
         
@@ -556,6 +703,33 @@ namespace Kermalis.VGMusicStudio.Core.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Play Current Playlist.
+        /// </summary>
+        public static string MenuPlayPlaylist {
+            get {
+                return ResourceManager.GetString("MenuPlayPlaylist", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Preferences.
+        /// </summary>
+        public static string MenuPreferences {
+            get {
+                return ResourceManager.GetString("MenuPreferences", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Export Song To ASM.
+        /// </summary>
+        public static string MenuSaveASM {
+            get {
+                return ResourceManager.GetString("MenuSaveASM", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Export VoiceTable as DLS.
         /// </summary>
         public static string MenuSaveDLS {
@@ -588,6 +762,51 @@ namespace Kermalis.VGMusicStudio.Core.Properties {
         public static string MenuSaveWAV {
             get {
                 return ResourceManager.GetString("MenuSaveWAV", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to There was an error converting the MIDI file:{0}.
+        /// </summary>
+        public static string MIDIConverterError {
+            get {
+                return ResourceManager.GetString("MIDIConverterError", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Open MIDI.
+        /// </summary>
+        public static string MIDIConverterOpenFile {
+            get {
+                return ResourceManager.GetString("MIDIConverterOpenFile", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Preview Song.
+        /// </summary>
+        public static string MIDIConverterPreviewSong {
+            get {
+                return ResourceManager.GetString("MIDIConverterPreviewSong", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to MIDI Converter.
+        /// </summary>
+        public static string MIDIConverterTitle {
+            get {
+                return ResourceManager.GetString("MIDIConverterTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Error Converting MIDI.
+        /// </summary>
+        public static string MIDIConverterTitleError {
+            get {
+                return ResourceManager.GetString("MIDIConverterTitleError", resourceCulture);
             }
         }
         
@@ -646,6 +865,15 @@ namespace Kermalis.VGMusicStudio.Core.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Record Song.
+        /// </summary>
+        public static string PlayerRecord {
+            get {
+                return ResourceManager.GetString("PlayerRecord", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Rest.
         /// </summary>
         public static string PlayerRest {
@@ -660,15 +888,6 @@ namespace Kermalis.VGMusicStudio.Core.Properties {
         public static string PlayerStop {
             get {
                 return ResourceManager.GetString("PlayerStop", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Record Song.
-        /// </summary>
-        public static string PlayerRecord {
-            get {
-                return ResourceManager.GetString("PlayerRecord", resourceCulture);
             }
         }
         
@@ -700,15 +919,6 @@ namespace Kermalis.VGMusicStudio.Core.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Internal Song Name.
-        /// </summary>
-        public static string InternalSongName {
-            get {
-                return ResourceManager.GetString("InternalSongName", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to All Songs.
         /// </summary>
         public static string PlaylistMusic {
@@ -732,6 +942,51 @@ namespace Kermalis.VGMusicStudio.Core.Properties {
         public static string Song_s_ {
             get {
                 return ResourceManager.GetString("Song(s)", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Address.
+        /// </summary>
+        public static string SoundBankEditorAddress {
+            get {
+                return ResourceManager.GetString("SoundBankEditorAddress", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Sound Bank Editor.
+        /// </summary>
+        public static string SoundBankEditorTitle {
+            get {
+                return ResourceManager.GetString("SoundBankEditorTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Voice Group Editor.
+        /// </summary>
+        public static string VoiceGroupEditorTitle {
+            get {
+                return ResourceManager.GetString("VoiceGroupEditorTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Voice Group / Sound Bank Editor.
+        /// </summary>
+        public static string MenuVoiceGroupSoundBankEditor {
+            get {
+                return ResourceManager.GetString("MenuVoiceGroupSoundBankEditor", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ASM saved to {0}..
+        /// </summary>
+        public static string SuccessSaveASM {
+            get {
+                return ResourceManager.GetString("SuccessSaveASM", resourceCulture);
             }
         }
         
@@ -772,56 +1027,146 @@ namespace Kermalis.VGMusicStudio.Core.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Open ASM.
+        /// </summary>
+        public static string TitleOpenASM {
+            get {
+                return ResourceManager.GetString("TitleOpenASM", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Open MIDI.
+        /// </summary>
+        public static string TitleOpenMIDI {
+            get {
+                return ResourceManager.GetString("TitleOpenMIDI", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Export ASM File.
+        /// </summary>
+        public static string TitleSaveASM {
+            get {
+                return ResourceManager.GetString("TitleSaveASM", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Add Event.
+        /// </summary>
+        public static string TrackEditorAddEvent {
+            get {
+                return ResourceManager.GetString("TrackEditorAddEvent", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Arguments.
         /// </summary>
-        public static string TrackViewerArguments {
+        public static string TrackEditorArguments {
             get {
-                return ResourceManager.GetString("TrackViewerArguments", resourceCulture);
+                return ResourceManager.GetString("TrackEditorArguments", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Arg. {0}.
+        /// </summary>
+        public static string TrackEditorArgX {
+            get {
+                return ResourceManager.GetString("TrackEditorArgX", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Change Voices.
+        /// </summary>
+        public static string TrackEditorChangeVoices {
+            get {
+                return ResourceManager.GetString("TrackEditorChangeVoices", resourceCulture);
             }
         }
         
         /// <summary>
         ///   Looks up a localized string similar to Event.
         /// </summary>
-        public static string TrackViewerEvent {
+        public static string TrackEditorEvent {
             get {
-                return ResourceManager.GetString("TrackViewerEvent", resourceCulture);
+                return ResourceManager.GetString("TrackEditorEvent", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to From.
+        /// </summary>
+        public static string TrackEditorFrom {
+            get {
+                return ResourceManager.GetString("TrackEditorFrom", resourceCulture);
             }
         }
         
         /// <summary>
         ///   Looks up a localized string similar to Offset.
         /// </summary>
-        public static string TrackViewerOffset {
+        public static string TrackEditorOffset {
             get {
-                return ResourceManager.GetString("TrackViewerOffset", resourceCulture);
+                return ResourceManager.GetString("TrackEditorOffset", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Remove Event.
+        /// </summary>
+        public static string TrackEditorRemoveEvent {
+            get {
+                return ResourceManager.GetString("TrackEditorRemoveEvent", resourceCulture);
             }
         }
         
         /// <summary>
         ///   Looks up a localized string similar to Ticks.
         /// </summary>
-        public static string TrackViewerTicks {
+        public static string TrackEditorTicks {
             get {
-                return ResourceManager.GetString("TrackViewerTicks", resourceCulture);
+                return ResourceManager.GetString("TrackEditorTicks", resourceCulture);
             }
         }
         
         /// <summary>
         ///   Looks up a localized string similar to Track Viewer.
         /// </summary>
-        public static string TrackViewerTitle {
+        public static string TrackEditorTitle {
             get {
-                return ResourceManager.GetString("TrackViewerTitle", resourceCulture);
+                return ResourceManager.GetString("TrackEditorTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to To.
+        /// </summary>
+        public static string TrackEditorTo {
+            get {
+                return ResourceManager.GetString("TrackEditorTo", resourceCulture);
             }
         }
         
         /// <summary>
         ///   Looks up a localized string similar to Track {0}.
         /// </summary>
-        public static string TrackViewerTrackX {
+        public static string TrackEditorTrackX {
             get {
-                return ResourceManager.GetString("TrackViewerTrackX", resourceCulture);
+                return ResourceManager.GetString("TrackEditorTrackX", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Argument Editor.
+        /// </summary>
+        public static string TrackEditorArgEditor {
+            get {
+                return ResourceManager.GetString("TrackEditorArgEditor", resourceCulture);
             }
         }
     }

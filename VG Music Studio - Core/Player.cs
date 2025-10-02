@@ -1,13 +1,8 @@
-﻿using PortAudio;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
-using Kermalis.EndianBinaryIO;
-using Kermalis.VGMusicStudio.Core.Formats;
 using Kermalis.VGMusicStudio.Core.Util;
-using System.Timers;
-using System.Runtime.InteropServices;
 
 namespace Kermalis.VGMusicStudio.Core;
 
@@ -18,12 +13,6 @@ public enum PlayerState : byte
 	Paused,
 	Recording,
 	ShutDown,
-}
-
-public interface ILoadedSong
-{
-	List<SongEvent>?[] Events { get; }
-	long MaxTicks { get; }
 }
 
 public abstract class Player(double ticksPerSecond) : IDisposable
@@ -39,9 +28,9 @@ public abstract class Player(double ticksPerSecond) : IDisposable
 
 	public long ElapsedTicks { get; internal set; }
 	public PlayerState State { get; protected set; }
-    public Exception? ErrorDetails { get; set; }
+	public Exception? ErrorDetails { get; set; }
 
-    public event Action? SongEnded;
+	public event Action? SongEnded;
 
 	private readonly BetterTimer _timer = new(ticksPerSecond);
 	private Thread? _thread;
@@ -50,6 +39,8 @@ public abstract class Player(double ticksPerSecond) : IDisposable
 	public bool IsPauseToggled = false;
 
 	public abstract void LoadSong(int index);
+	public virtual void LoadSong(LoadedSong song) { }
+	public virtual void RefreshSong() { }
 	public abstract void UpdateSongState(SongState info);
 	internal abstract void InitEmulation();
 	protected abstract void SetCurTick(long ticks);

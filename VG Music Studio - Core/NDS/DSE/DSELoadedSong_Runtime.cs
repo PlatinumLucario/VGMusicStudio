@@ -53,11 +53,9 @@ internal sealed partial class DSELoadedSong
 
 			channel.Stop();
 			track.Octave = (byte)(track.Octave + oct);
-			if (channel.StartChannel(LocalSWD!, _player.MainSWD, track.Voice, n + (12 * track.Octave), duration))
+			if (channel.StartChannel(LocalSWD!, _player.MainSWD, track, n + (12 * track.Octave), duration))
 			{
 				channel.NoteVelocity = cmd;
-				channel.Owner = track;
-				channel.CheckEnvelopeValues();
 				track.Channels.Add(channel);
 			}
 			channel.SweepCounter = 0;
@@ -573,7 +571,7 @@ internal sealed partial class DSELoadedSong
 				// 500 == 1 semitone. Negative val, means increase pitch, positive the opposite.
 				case 0xD7:
 					{
-						track.PitchBend = (ushort)(SMDFile[track.CurOffset++] | (SMDFile[track.CurOffset++] << 8));
+						track.PitchBend = (ushort)((SMDFile[track.CurOffset++] << 8) | SMDFile[track.CurOffset++]);
 						break;
 					}
 
@@ -804,7 +802,7 @@ internal sealed partial class DSELoadedSong
 						track.LFOTarget = SMDFile[track.CurOffset++];
 						track.LFOEnabled = SMDFile[track.CurOffset] is 0 || SMDFile[track.CurOffset] is 1;
 						track.CurOffset++;
-						track.LFOTargetType = (TargetType)SMDFile[track.CurOffset++];
+						track.LFOType = (LFOType)SMDFile[track.CurOffset++];
 						break;
 					}
 

@@ -1,7 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFramework>net8.0-windows</TargetFramework>
+		<TargetFramework>net10.0-windows</TargetFramework>
+		<EnableWindowsTargeting>true</EnableWindowsTargeting>
 		<OutputType>WinExe</OutputType>
 		<LangVersion>latest</LangVersion>
 		<RootNamespace>Kermalis.VGMusicStudio.WinForms</RootNamespace>

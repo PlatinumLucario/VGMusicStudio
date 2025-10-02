@@ -26,11 +26,19 @@ internal sealed class MP2KTrack
 	public int DataOffset;
 	public int[] CallStack = new int[3];
 	public byte CallStackDepth;
+	public bool RepeatActivated = false;
+	public byte RepeatTimes;
+	public int RepeatOffset;
 	public byte RunCmd;
 	public byte PrevNote;
 	public byte PrevVelocity;
-
-	public readonly List<MP2KChannel> Channels = new();
+    internal byte PseudoEchoVolume;
+    internal byte PseudoEchoLength;
+    internal byte MemSet;
+    internal byte MemAddress;
+    internal byte MemData;
+	public byte Reverb;
+    public readonly List<MP2KChannel> Channels = [];
 
 	public int GetPitch()
 	{
@@ -186,6 +194,7 @@ internal sealed class MP2KTrack
 		tin.Volume = GetVolume();
 		tin.PitchBend = GetPitch();
 		tin.Panpot = GetPanpot();
+		tin.Reverb = Reverb = loadedSong.Header.Reverb;
 
 		MP2KChannel[] channels = Channels.ToArray();
 		if (channels.Length == 0)
