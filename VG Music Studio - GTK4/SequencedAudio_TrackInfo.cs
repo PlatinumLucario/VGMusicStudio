@@ -68,7 +68,7 @@ internal class SequencedAudio_TrackInfo : Box
         var listHeader = CreateListHeader();
         var viewport = Viewport.New(Adjustment.New(0, double.MinValue, double.MaxValue, 1, 1, 1), Adjustment.New(0, double.MinValue, double.MaxValue, 1, 1, 1));
         var scrolledWindow = ScrolledWindow.New();
-        scrolledWindow.SetSizeRequest(700, 150);
+        scrolledWindow.SetSizeRequest(150, 150);
         scrolledWindow.SetHexpand(true);
         scrolledWindow.SetVexpand(true);
 
@@ -397,8 +397,8 @@ internal class SequencedAudio_TrackInfo : Box
         positionLabelHeader.SetMaxWidthChars(1);
         positionLabelHeader.SetEllipsize(Pango.EllipsizeMode.End);
         positionLabelHeader.SetHalign(Align.Start);
-        positionLabelHeader.WidthRequest = 30;
-        positionLabelHeader.SetHexpand(true);
+        positionLabelHeader.WidthRequest = 100;
+        positionLabelHeader.SetHexpand(false);
         columns.Append(positionLabelHeader);
 
         var restLabelHeader = Label.New(Strings.PlayerRest);
@@ -575,8 +575,8 @@ internal class SequencedAudio_TrackInfo : Box
             _labelPosition[i].SetEllipsize(Pango.EllipsizeMode.Start);
             _labelPosition[i].SetMaxWidthChars(1);
             _labelPosition[i].SetHalign(Align.Start);
-            _labelPosition[i].WidthRequest = 30;
-            _labelPosition[i].SetHexpand(true);
+            _labelPosition[i].WidthRequest = 100;
+            _labelPosition[i].SetHexpand(false);
             columns.Append(_labelPosition[i]);
 
             _labelRest[i] = Label.New(Info.Tracks[i].Rest.ToString());

@@ -74,7 +74,7 @@ internal sealed class LibraryCommand : ICommand
 	public string Label => "Library Call";
 	public string Arguments => $"{LibraryCommandType}, {Argument}";
 
-	public LibraryCommandTypes LibraryCommandType { get; set; }
+	public ExtendedCommandType LibraryCommandType { get; set; }
 	public byte Argument { get; set; }
 }
 internal sealed class MemoryAccessCommand : ICommand

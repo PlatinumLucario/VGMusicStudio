@@ -1,11 +1,8 @@
 ﻿using PortAudio;
 using System;
 using System.Runtime.InteropServices;
-using System.Linq;
 using System.IO;
-using Kermalis.EndianBinaryIO;
 using Kermalis.VGMusicStudio.Core.Formats;
-using Stream = PortAudio.Stream;
 using NAudio.Wave;
 using NAudio.CoreAudioApi;
 using NAudio.CoreAudioApi.Interfaces;
@@ -64,8 +61,8 @@ public abstract class Mixer : IAudioSessionEventsHandler, IDisposable
 
     public enum AudioBackend
     {
-        PortAudio,
         MiniAudio,
+        PortAudio,
         NAudio
     }
 
@@ -84,17 +81,6 @@ public abstract class Mixer : IAudioSessionEventsHandler, IDisposable
     {
         switch (PlaybackBackend)
         {
-            case AudioBackend.PortAudio:
-                {
-                    // First, check if the instance contains something
-                    if (WaveData is null || PortAudioPlayer is null)
-                    {
-                        WaveData = waveData;
-                        PortAudioPlayer = new PortAudioPlayer(sampleFormat, SamplesPerBuffer, WaveData);
-                    }
-                    PortAudioPlayer.Play();
-                    break;
-                }
             case AudioBackend.MiniAudio:
                 {
                     _soundFlowEngine = new MiniAudioEngine();
@@ -108,6 +94,17 @@ public abstract class Mixer : IAudioSessionEventsHandler, IDisposable
                     _playbackDevice.Start();
                     // LSXPrime's notes: Start from the player once; it will pull from the queue automatically
                     MiniAudioPlayer.Play(); // LSXPrime said that I only need to start the player once and it will pull from the queue automatically
+                    break;
+                }
+            case AudioBackend.PortAudio:
+                {
+                    // First, check if the instance contains something
+                    if (WaveData is null || PortAudioPlayer is null)
+                    {
+                        WaveData = waveData;
+                        PortAudioPlayer = new PortAudioPlayer(sampleFormat, SamplesPerBuffer, WaveData);
+                    }
+                    PortAudioPlayer.Play();
                     break;
                 }
             case AudioBackend.NAudio:
@@ -145,8 +142,8 @@ public abstract class Mixer : IAudioSessionEventsHandler, IDisposable
     {
         return PlaybackBackend switch
         {
-            AudioBackend.PortAudio => PortAudioPlayer!.Volume,
             AudioBackend.MiniAudio => _playbackDevice!.MasterMixer.Volume,
+            AudioBackend.PortAudio => PortAudioPlayer!.Volume,
             AudioBackend.NAudio => _appVolume!.SimpleAudioVolume.Volume,
             _ => float.NaN,
         };
@@ -156,14 +153,14 @@ public abstract class Mixer : IAudioSessionEventsHandler, IDisposable
     {
         switch (PlaybackBackend)
         {
-            case AudioBackend.PortAudio:
-                {
-                    PortAudioPlayer!.Volume = Math.Clamp(volume, 0, 1);
-                    break;
-                }
             case AudioBackend.MiniAudio:
                 {
                     _playbackDevice!.MasterMixer.Volume = volume;
+                    break;
+                }
+            case AudioBackend.PortAudio:
+                {
+                    PortAudioPlayer!.Volume = Math.Clamp(volume, 0, 1);
                     break;
                 }
             case AudioBackend.NAudio:
@@ -218,12 +215,6 @@ public abstract class Mixer : IAudioSessionEventsHandler, IDisposable
     {
         switch (PlaybackBackend)
         {
-            case AudioBackend.PortAudio:
-                {
-                    _waveWriterPortAudio = WaveData;
-                    _waveWriterPortAudio!.CreateFileStream(fileName);
-                    break;
-                }
             case AudioBackend.MiniAudio:
                 {
                     if (_soundFlowEngine is null)
@@ -234,6 +225,12 @@ public abstract class Mixer : IAudioSessionEventsHandler, IDisposable
                     _soundFlowFileStream = new FileStream(fileName, FileMode.Create, FileAccess.Write, FileShare.None);
 
                     _soundFlowEncoder = _soundFlowEngine.CreateEncoder(_soundFlowFileStream, EncodingFormat.Wav, SoundFlowFormat);
+                    break;
+                }
+            case AudioBackend.PortAudio:
+                {
+                    _waveWriterPortAudio = WaveData;
+                    _waveWriterPortAudio!.CreateFileStream(fileName);
                     break;
                 }
             case AudioBackend.NAudio:
@@ -247,18 +244,18 @@ public abstract class Mixer : IAudioSessionEventsHandler, IDisposable
     {
         switch (PlaybackBackend)
         {
-            case AudioBackend.PortAudio:
-                {
-                    _waveWriterPortAudio!.Dispose(true);
-                    _waveWriterPortAudio = null;
-                    break;
-                }
             case AudioBackend.MiniAudio: // Thank you LSXPrime for adding this in
                 {
                     _soundFlowEncoder?.Dispose();
                     _soundFlowFileStream?.Dispose();
                     _soundFlowEncoder = null;
                     _soundFlowFileStream = null;
+                    break;
+                }
+            case AudioBackend.PortAudio:
+                {
+                    _waveWriterPortAudio!.Dispose(true);
+                    _waveWriterPortAudio = null;
                     break;
                 }
             case AudioBackend.NAudio:
@@ -274,15 +271,6 @@ public abstract class Mixer : IAudioSessionEventsHandler, IDisposable
     {
         switch (PlaybackBackend)
         {
-            case AudioBackend.PortAudio:
-                {
-                    if (PortAudioPlayer is not null)
-                    {
-                        PortAudioPlayer.Stop();
-                        PortAudioPlayer.Dispose();
-                    }
-                    break;
-                }
             case AudioBackend.MiniAudio:
                 {
                     if (MiniAudioPlayer is not null && _playbackDevice is not null)
@@ -292,6 +280,15 @@ public abstract class Mixer : IAudioSessionEventsHandler, IDisposable
                         _playbackDevice.Dispose();
                         _soundFlowEngine?.Dispose();
                         DataProvider?.Dispose();
+                    }
+                    break;
+                }
+            case AudioBackend.PortAudio:
+                {
+                    if (PortAudioPlayer is not null)
+                    {
+                        PortAudioPlayer.Stop();
+                        PortAudioPlayer.Dispose();
                     }
                     break;
                 }

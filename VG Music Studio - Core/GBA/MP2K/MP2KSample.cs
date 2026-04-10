@@ -16,7 +16,7 @@ internal class MP2KSample
         else
         {
             Header = new SampleHeader(src);
-            PCMData = src.Slice(16, Header.Length - 1).ToArray();
+            PCMData = src.Slice(16, (int)(Header.Length - 1)).ToArray();
         }
     }
 }

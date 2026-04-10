@@ -1,10 +1,13 @@
 ﻿using System;
+using System.Buffers.Binary;
 
 namespace Kermalis.VGMusicStudio.Core.GBA;
 
 public static class GBAUtils
 {
     public const double AGB_FPS = 59.7275;
+    public const int AGB_APPROX_FPS = 60;
+    public const int INTERFRAMES = 4;
     public const int SYSTEM_CLOCK = 16_777_216; // 16.777216 MHz (16*1024*1024 Hz)
 
     public const int CARTRIDGE_OFFSET = 0x08_000_000;
@@ -28,5 +31,9 @@ public static class GBAUtils
             return offset - CARTRIDGE_OFFSET;
         }
         return offset;
+    }
+    public static int ReadOffsetData(ReadOnlySpan<byte> data)
+    {
+        return SanitizeOffset(BinaryPrimitives.ReadInt32LittleEndian(data));
     }
 }

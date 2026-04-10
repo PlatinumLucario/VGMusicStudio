@@ -21,17 +21,17 @@ public sealed class AlphaDreamMixer : Mixer
 	private readonly float[][] _trackBuffers = new float[AlphaDreamPlayer.NUM_TRACKS][];
 	private readonly AudioBackend AlphaDreamPlaybackBackend;
 
-	#region PortAudio Fields
-	// PortAudio Fields
-	private readonly Audio? _audioPortAudio;
-	private readonly Wave? _bufferPortAudio;
-	#endregion
-
 	#region MiniAudio Fields
 	// MiniAudio Fields
 	private readonly float[]? _bufferMiniAudio;
 	private readonly AudioFormat _formatSoundFlow;
     protected override AudioFormat SoundFlowFormat => _formatSoundFlow;
+	#endregion
+
+	#region PortAudio Fields
+	// PortAudio Fields
+	private readonly Audio? _audioPortAudio;
+	private readonly Wave? _bufferPortAudio;
 	#endregion
 
 	#region NAudio Fields
@@ -58,6 +58,18 @@ public sealed class AlphaDreamMixer : Mixer
 		AlphaDreamPlaybackBackend = PlaybackBackend;
 		switch (PlaybackBackend)
 		{
+			case AudioBackend.MiniAudio:
+				{
+					_bufferMiniAudio = new float[amt];
+					_formatSoundFlow = new AudioFormat
+					{
+						Channels = 2,
+						SampleRate = sampleRate,
+						Format = SampleFormat.F32
+					};
+					Init();
+					break;
+				}
 			case AudioBackend.PortAudio:
 				{
 					_audioPortAudio = new Audio(amt * sizeof(float)) { Float32BufferCount = amt };
@@ -69,18 +81,6 @@ public sealed class AlphaDreamMixer : Mixer
 					_bufferPortAudio.CreateIeeeFloatWave(sampleRate, 2); // TODO
 
 					Init(waveData: _bufferPortAudio);
-					break;
-				}
-			case AudioBackend.MiniAudio:
-				{
-					_bufferMiniAudio = new float[amt];
-					_formatSoundFlow = new AudioFormat
-					{
-						Channels = 2,
-						SampleRate = sampleRate,
-						Format = SampleFormat.F32
-					};
-					Init();
 					break;
 				}
 			case AudioBackend.NAudio:
@@ -182,16 +182,16 @@ public sealed class AlphaDreamMixer : Mixer
 			{
 				switch (AlphaDreamPlaybackBackend)
 				{
-					case AudioBackend.PortAudio:
-						{
-							_audioPortAudio!.Float32Buffer![j * 2] += buf[j * 2] * level;
-							_audioPortAudio.Float32Buffer[(j * 2) + 1] += buf[(j * 2) + 1] * level;
-							break;
-						}
 					case AudioBackend.MiniAudio:
 						{
 							_bufferMiniAudio![j * 2] += buf[j * 2] * level;
 							_bufferMiniAudio[(j * 2) + 1] += buf[(j * 2) + 1] * level;
+							break;
+						}
+					case AudioBackend.PortAudio:
+						{
+							_audioPortAudio!.Float32Buffer![j * 2] += buf[j * 2] * level;
+							_audioPortAudio.Float32Buffer[(j * 2) + 1] += buf[(j * 2) + 1] * level;
 							break;
 						}
 					case AudioBackend.NAudio:
@@ -208,14 +208,14 @@ public sealed class AlphaDreamMixer : Mixer
 		{
 			switch (AlphaDreamPlaybackBackend)
 			{
-				case AudioBackend.PortAudio:
-					{
-						_bufferPortAudio!.AddSamples(_audioPortAudio!.ByteBuffer, 0, _audioPortAudio.ByteBufferCount);
-						break;
-					}
 				case AudioBackend.MiniAudio:
 					{
 						DataProvider!.AddSamples(_bufferMiniAudio);
+						break;
+					}
+				case AudioBackend.PortAudio:
+					{
+						_bufferPortAudio!.AddSamples(_audioPortAudio!.ByteBuffer, 0, _audioPortAudio.ByteBufferCount);
 						break;
 					}
 				case AudioBackend.NAudio:
@@ -229,14 +229,14 @@ public sealed class AlphaDreamMixer : Mixer
 		{
 			switch (AlphaDreamPlaybackBackend)
 			{
-				case AudioBackend.PortAudio:
-					{
-						_waveWriterPortAudio!.Write(_audioPortAudio!.ByteBuffer, 0, _audioPortAudio.ByteBufferCount);
-						break;
-					}
 				case AudioBackend.MiniAudio:
 					{
 						_soundFlowEncoder!.Encode(_bufferMiniAudio);
+						break;
+					}
+				case AudioBackend.PortAudio:
+					{
+						_waveWriterPortAudio!.Write(_audioPortAudio!.ByteBuffer, 0, _audioPortAudio.ByteBufferCount);
 						break;
 					}
 				case AudioBackend.NAudio:

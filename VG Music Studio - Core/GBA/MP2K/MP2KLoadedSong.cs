@@ -33,10 +33,15 @@ internal sealed partial class MP2KLoadedSong : LoadedSong
         for (byte trackIndex = 0; trackIndex < Header.NumTracks; trackIndex++)
         {
             int trackStart = SongHeader.GetTrackOffset(cfg.ROM, tracksOffset, trackIndex) - GBAUtils.CARTRIDGE_OFFSET;
-            Tracks[trackIndex] = new MP2KTrack(trackIndex, trackStart);
+            Tracks[trackIndex] = new MP2KTrack(trackIndex, trackStart, _player.MContext.SamplesPerBuffer);
 
             AddTrackEvents(trackIndex, trackStart);
         }
+
+        player.MMixer.UpdateFixedModeRate(Tracks);
+        MP2KMixer.UpdateReverb(Tracks);
+
+        _player = player;
     }
 
     public void CheckVoiceTypeCache(ref int? old, string?[] voiceTypeCache)

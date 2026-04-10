@@ -25,12 +25,12 @@ internal class Preferences : Window
 
         var labelAudioBackend = Gtk.Label.New("Audio Backend:");
 
-        RadioButtonPortAudio = Gtk.CheckButton.New();
-        RadioButtonPortAudio.Label = "PortAudio";
-        RadioButtonPortAudio.OnNotify += OnNotify_PortAudio;
         RadioButtonMiniAudio = Gtk.CheckButton.New();
         RadioButtonMiniAudio.Label = "MiniAudio";
         RadioButtonMiniAudio.OnNotify += OnNotify_MiniAudio;
+        RadioButtonPortAudio = Gtk.CheckButton.New();
+        RadioButtonPortAudio.Label = "PortAudio";
+        RadioButtonPortAudio.OnNotify += OnNotify_PortAudio;
         RadioButtonNAudio = Gtk.CheckButton.New();
         RadioButtonNAudio.Label = "NAudio (Legacy, Deprecated, Windows Only)";
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
@@ -47,14 +47,14 @@ internal class Preferences : Window
         
         switch (Mixer.PlaybackBackend)
         {
-            case Mixer.AudioBackend.PortAudio:
-                {
-                    RadioButtonPortAudio.Active = true;
-                    break;
-                }
             case Mixer.AudioBackend.MiniAudio:
                 {
                     RadioButtonMiniAudio.Active = true;
+                    break;
+                }
+            case Mixer.AudioBackend.PortAudio:
+                {
+                    RadioButtonPortAudio.Active = true;
                     break;
                 }
             case Mixer.AudioBackend.NAudio:
@@ -90,8 +90,8 @@ internal class Preferences : Window
         box.SetVexpand(true);
         box.Append(header);
         box.Append(labelAudioBackend);
-        box.Append(RadioButtonPortAudio);
         box.Append(RadioButtonMiniAudio);
+        box.Append(RadioButtonPortAudio);
         box.Append(RadioButtonNAudio);
         box.Append(buttonBox);
 
@@ -121,27 +121,13 @@ internal class Preferences : Window
     private bool Preferences_WindowClosed(Gtk.Window sender, EventArgs args)
     {
         OnCloseRequest -= Preferences_WindowClosed;
-        RadioButtonPortAudio.OnNotify -= OnNotify_PortAudio;
         RadioButtonMiniAudio.OnNotify -= OnNotify_MiniAudio;
+        RadioButtonPortAudio.OnNotify -= OnNotify_PortAudio;
         RadioButtonNAudio.OnNotify -= OnNotify_NAudio;
         MainWindow.Instance!.SetCanTarget(true);
         MainWindow.Instance.SetSensitive(true);
         Dispose();
         return false;
-    }
-
-    private void OnNotify_PortAudio(object sender, EventArgs args)
-    {
-        if (args is NotifySignalArgs notifyArgs)
-        {
-            var name = notifyArgs.Pspec.GetName();
-            if (name is "active" && RadioButtonPortAudio.Active is true)
-            {
-                PlaybackBackend = Mixer.AudioBackend.PortAudio;
-                RadioButtonMiniAudio.Active = false;
-                RadioButtonNAudio.Active = false;
-            }
-        }
     }
 
     private void OnNotify_MiniAudio(object sender, EventArgs args)
@@ -158,6 +144,20 @@ internal class Preferences : Window
         }
     }
 
+    private void OnNotify_PortAudio(object sender, EventArgs args)
+    {
+        if (args is NotifySignalArgs notifyArgs)
+        {
+            var name = notifyArgs.Pspec.GetName();
+            if (name is "active" && RadioButtonPortAudio.Active is true)
+            {
+                PlaybackBackend = Mixer.AudioBackend.PortAudio;
+                RadioButtonMiniAudio.Active = false;
+                RadioButtonNAudio.Active = false;
+            }
+        }
+    }
+
     private void OnNotify_NAudio(object sender, EventArgs args)
     {
         if (args is NotifySignalArgs notifyArgs)
@@ -166,8 +166,8 @@ internal class Preferences : Window
             if (name is "active" && RadioButtonNAudio.Active is true)
             {
                 PlaybackBackend = Mixer.AudioBackend.NAudio;
-                RadioButtonPortAudio.Active = false;
                 RadioButtonMiniAudio.Active = false;
+                RadioButtonPortAudio.Active = false;
             }
         }
     }

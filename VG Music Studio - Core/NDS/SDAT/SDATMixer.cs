@@ -18,15 +18,15 @@ public sealed class SDATMixer : Mixer
 	internal SDATChannel[] Channels;
 	private readonly AudioBackend SDATPlaybackBackend;
 
-	#region PortAudio Fields
-	// PortAudio Fields
-	private readonly Wave? _bufferPortAudio;
-	#endregion
-
 	#region MiniAudio Fields
 	// MiniAudio Fields
 	private readonly AudioFormat _formatSoundFlow;
 	protected override AudioFormat SoundFlowFormat => _formatSoundFlow;
+	#endregion
+
+	#region PortAudio Fields
+	// PortAudio Fields
+	private readonly Wave? _bufferPortAudio;
 	#endregion
 
 	#region NAudio Fields
@@ -52,6 +52,17 @@ public sealed class SDATMixer : Mixer
 		SDATPlaybackBackend = PlaybackBackend;
 		switch (PlaybackBackend)
 		{
+			case AudioBackend.MiniAudio:
+				{
+					_formatSoundFlow = new AudioFormat
+					{
+						Channels = 2,
+						SampleRate = sampleRate,
+						Format = SoundFlow.Enums.SampleFormat.F32
+					};
+					Init();
+					break;
+				}
 			case AudioBackend.PortAudio:
 				{
 					_bufferPortAudio = new Wave()
@@ -62,17 +73,6 @@ public sealed class SDATMixer : Mixer
 					_bufferPortAudio.CreateIeeeFloatWave(sampleRate, 2, 16);
 
 					Init(waveData: _bufferPortAudio, PortAudio.SampleFormat.Int16);
-					break;
-				}
-			case AudioBackend.MiniAudio:
-				{
-					_formatSoundFlow = new AudioFormat
-					{
-						Channels = 2,
-						SampleRate = sampleRate,
-						Format = SoundFlow.Enums.SampleFormat.F32
-					};
-					Init();
 					break;
 				}
 			case AudioBackend.NAudio:
@@ -285,14 +285,14 @@ public sealed class SDATMixer : Mixer
 			{
 				switch (SDATPlaybackBackend)
 				{
-					case AudioBackend.PortAudio:
-						{
-							_bufferPortAudio!.AddSamples(_b, 0, 4);
-							break;
-						}
 					case AudioBackend.MiniAudio:
 						{
 							DataProvider!.AddSamples(_f);
+							break;
+						}
+					case AudioBackend.PortAudio:
+						{
+							_bufferPortAudio!.AddSamples(_b, 0, 4);
 							break;
 						}
 					case AudioBackend.NAudio:
@@ -306,14 +306,14 @@ public sealed class SDATMixer : Mixer
 			{
 				switch (SDATPlaybackBackend)
 				{
-					case AudioBackend.PortAudio:
-						{
-							_waveWriterPortAudio!.Write(_b, 0, 4);
-							break;
-						}
 					case AudioBackend.MiniAudio:
 						{
 							_soundFlowEncoder!.Encode(_f);
+							break;
+						}
+					case AudioBackend.PortAudio:
+						{
+							_waveWriterPortAudio!.Write(_b, 0, 4);
 							break;
 						}
 					case AudioBackend.NAudio:

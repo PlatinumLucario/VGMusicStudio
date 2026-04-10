@@ -8,6 +8,7 @@ public sealed partial class MP2KPlayer : Player
 
     private readonly string?[] _voiceTypeCache;
     internal readonly MP2KConfig Config;
+    internal MP2KContext MContext;
     internal readonly MP2KMixer MMixer;
     private MP2KLoadedSong? _loadedSong;
 
@@ -21,10 +22,11 @@ public sealed partial class MP2KPlayer : Player
     public override ILoadedSong? LoadedSong => _loadedSong;
     protected override Mixer Mixer => MMixer;
 
-    internal MP2KPlayer(MP2KConfig config, MP2KMixer mixer)
+    internal MP2KPlayer(MP2KConfig config, MP2KContext context, MP2KMixer mixer)
         : base(GBAUtils.AGB_FPS)
     {
         Config = config;
+        MContext = context;
         MMixer = mixer;
 
         _voiceTypeCache = new string[256];
@@ -47,6 +49,12 @@ public sealed partial class MP2KPlayer : Player
 
         _loadedSong.CheckVoiceTypeCache(ref _prevVoiceTableOffset, _voiceTypeCache);
         _loadedSong.SetTicks();
+
+        MContext.PCM8Channels.Clear();
+        MContext.Square1Channels.Clear();
+        MContext.Square2Channels.Clear();
+        MContext.PCM4Channels.Clear();
+        MContext.NoiseChannels.Clear();
     }
     public override void LoadSong(LoadedSong song)
     {
@@ -98,6 +106,12 @@ public sealed partial class MP2KPlayer : Player
         {
             tracks[i].Init();
         }
+
+        MContext.PCM8Channels.Clear();
+        MContext.Square1Channels.Clear();
+        MContext.Square2Channels.Clear();
+        MContext.PCM4Channels.Clear();
+        MContext.NoiseChannels.Clear();
     }
     protected override void SetCurTick(long ticks)
     {
@@ -134,11 +148,11 @@ public sealed partial class MP2KPlayer : Player
         {
             TempoStack += Tempo;
         }
-        for (int i = 0; i < s.Tracks.Length; i++)
-        {
-            MMixer.SetReverb(s.Tracks[i]);
-        }
-        MMixer.Process(playing, recording);
+        // for (int i = 0; i < s.Tracks.Length; i++)
+        // {
+        //     MMixer.SetReverb(s.Tracks[i]);
+        // }
+        MMixer.Process(this, s.Tracks, playing, recording);
         return allDone;
     }
     private void TickTrack(MP2KLoadedSong s, MP2KTrack track, ref bool allDone)
@@ -165,6 +179,10 @@ public sealed partial class MP2KPlayer : Player
                 track.UpdateChannels();
             }
         }
+        if (track.Stopped is true)
+        {
+            track.Channels.Clear();
+        }
     }
     private void HandleTicksAndLoop(MP2KLoadedSong s, MP2KTrack track)
     {
@@ -181,7 +199,7 @@ public sealed partial class MP2KPlayer : Player
         }
 
         _elapsedLoops++;
-        UpdateElapsedTicksAfterLoop(s.Events[track.Index], track.DataOffset, track.Rest);
+        UpdateElapsedTicksAfterLoop(s.Events[track.Index], track.Position, track.Rest);
         if (ShouldFadeOut && _elapsedLoops > NumLoops && !MMixer.IsFading())
         {
             MMixer.BeginFadeOut();

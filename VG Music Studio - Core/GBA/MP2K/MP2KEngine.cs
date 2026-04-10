@@ -11,8 +11,11 @@ public sealed class MP2KEngine : Engine
     public override MP2KConfig Config { get; }
     public override MP2KMixer Mixer { get; }
     public override MP2KPlayer Player { get; }
+    internal MP2KContext Context { get; }
 
     public override bool IsFileSystemFormat { get; } = false;
+
+    internal MP2KSoundMode SoundMode = new();
 
     private ICommand[]? _allowedCommands;
 
@@ -24,8 +27,9 @@ public sealed class MP2KEngine : Engine
         }
 
         Config = new MP2KConfig(rom, mainPlaylistFirst);
+        Context = new(Config.SampleRate, (ushort)Config.SongTableSizes.Length);
         Mixer = new MP2KMixer(Config);
-        Player = new MP2KPlayer(Config, Mixer);
+        Player = new MP2KPlayer(Config, Context, Mixer);
 
         MP2KInstance = this;
         Instance = this;

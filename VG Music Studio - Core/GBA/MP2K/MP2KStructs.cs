@@ -79,6 +79,25 @@ internal readonly struct SongHeader
     }
 }
 
+internal struct SongTableInfo
+{
+    public const int PosAuto = 0;
+    public const ushort CountAuto = 0xFFFF;
+
+    public int Position = PosAuto;
+    public ushort Count = CountAuto;
+    public int TableIndex = 0;
+
+    public SongTableInfo()
+    {
+    }
+
+    public readonly bool IsAuto()
+    {
+        return Position == PosAuto || Count == CountAuto;
+    }
+}
+
 internal struct WrappedVoice : IVoice
 {
     public VoiceEntry? VoiceEntry { get; private set; }
@@ -118,7 +137,7 @@ internal struct WrappedVoice : IVoice
                     VoiceEntry = voice;
                     Name = voice.Name;
                     RootNote = (sbyte)voice.RootNote;
-                    Sweep = voice.Pan;
+                    Sweep = voice.PanSweep;
                     IsValidVoiceEntry = IsValidADSR();
                     break;
                 }
@@ -367,13 +386,13 @@ internal struct VoiceEntry
     public byte RootNote; // 1
     /// <summary>Hardware microseconds for Square1, Square2 and Noise PSG types only, while all other types set it to 0 because it's skipped</summary>
     public byte TimeLength; // 2
-    public byte Pan; // 3
+    public byte PanSweep; // 3
     /// <summary>SquarePattern for Square1/Square2, NoisePattern for Noise, Address for PCM8/PCM4/KeySplit/Drum</summary>
     public int Int4; // 4
     /// <summary>ADSR for PCM8/Square1/Square2/PCM4/Noise, KeysAddress for KeySplit</summary>
     public ADSR ADSR; // 8
 
-    public readonly int Int8 => (ADSR.R << 24) | (ADSR.S << 16) | (ADSR.D << 8) | (ADSR.A);
+    public readonly int Int8 => (ADSR.R << 24) | (ADSR.S << 16) | (ADSR.D << 8) | ADSR.A;
 
     public readonly string? Name
     {
@@ -392,7 +411,7 @@ internal struct VoiceEntry
             {
                 switch ((VoiceType)(Type & 0x7))
                 {
-                    case VoiceType.PCM8: name = IsGoldenSunPSG() ? $"GS {GoldenSunPSG.Get(Engine.Instance!.Config.ROM!.AsSpan(Int8 /*- GBAUtils.CARTRIDGE_OFFSET*/ + 0x10)).Type}" : "PCM8"; break;
+                    case VoiceType.PCM8: name = IsGoldenSunPSG() ? $"GS {SynthPSG.Get(Engine.Instance!.Config.ROM!.AsSpan(Int8 /*- GBAUtils.CARTRIDGE_OFFSET*/ + 0x10)).Type}" : "PCM8"; break;
                     case VoiceType.Square1: name = "Square 1"; break;
                     case VoiceType.Square2: name = "Square 2"; break;
                     case VoiceType.PCM4: name = "PCM4"; break;
@@ -417,7 +436,7 @@ internal struct VoiceEntry
             Type = src[0];
             RootNote = src[1];
             TimeLength = src[2];
-            Pan = src[3];
+            PanSweep = src[3];
             Int4 = ReadInt32LittleEndian(src.Slice(4));
             ADSR = ADSR.Get(src.Slice(8));
         }
@@ -452,8 +471,8 @@ internal struct VoiceEntry
     }
     public string GetBytesToString()
     {
-        return $"{Type:X2} {RootNote:X2} {TimeLength:X2} {Pan:X2} " +
-            $"{(byte)(Int8):X2} {(byte)(Int8 >> 8):X2} {(byte)(Int8 >> 16):X2} {(byte)(Int8 >> 24):X2} " +
+        return $"{Type:X2} {RootNote:X2} {TimeLength:X2} {PanSweep:X2} " +
+            $"{(byte)Int8:X2} {(byte)(Int8 >> 8):X2} {(byte)(Int8 >> 16):X2} {(byte)(Int8 >> 24):X2} " +
             $"{ADSR.A:X2} {ADSR.D:X2} {ADSR.S:X2} {ADSR.R:X2}";
     }
 }
@@ -474,31 +493,32 @@ public struct ADSR
 }
 
 [StructLayout(LayoutKind.Sequential, Pack = 4, Size = SIZE)]
-internal readonly struct GoldenSunPSG
+internal readonly struct SynthPSG
 {
     public const int SIZE = 6;
 
     /// <summary>Always 0x80</summary>
     public readonly byte Unknown;
-    public readonly GoldenSunPSGType Type;
+    public readonly SynthType Type;
     public readonly byte InitialCycle;
     public readonly byte CycleSpeed;
     public readonly byte CycleAmplitude;
     public readonly byte MinimumCycle;
 
-    public static ref readonly GoldenSunPSG Get(ReadOnlySpan<byte> src)
+    public static ref readonly SynthPSG Get(ReadOnlySpan<byte> src)
     {
-        return ref MemoryMarshal.AsRef<GoldenSunPSG>(src);
+        return ref MemoryMarshal.AsRef<SynthPSG>(src);
     }
 }
 [StructLayout(LayoutKind.Sequential, Pack = 4, Size = SIZE)]
 internal struct SampleHeader
 {
     public const int SIZE = 16;
-    public const int LOOP_TRUE = 0x40_000_000;
+    public const short LOOP_TRUE = 0x4_000;
 
-    /// <summary>0x40_000_000 if True</summary>
-    public int DoesLoop;
+    public CodecType Codec;
+    /// <summary>0x4_000 if True</summary>
+    public short DoesLoop;
     /// <summary>Right shift 10 for value</summary>
     public int SampleRate;
     public int LoopOffset;
@@ -513,7 +533,8 @@ internal struct SampleHeader
         }
         else
         {
-            DoesLoop = ReadInt32LittleEndian(src.Slice(0, 4));
+            Codec = (CodecType)ReadInt16LittleEndian(src[..2]);
+            DoesLoop = ReadInt16LittleEndian(src.Slice(2, 2));
             SampleRate = ReadInt32LittleEndian(src.Slice(4, 4));
             LoopOffset = ReadInt32LittleEndian(src.Slice(8, 4));
             Length = ReadInt32LittleEndian(src.Slice(12, 4));
@@ -527,15 +548,102 @@ internal struct SampleHeader
     }
 }
 
+internal struct SampleInfo
+{
+    public SampleHeader Header;
+    public sbyte[] SampleData;
+
+    public int SampleOffset;
+    public int Position;
+    public float MidCFrequency;
+    public bool LoopEnabled;
+
+    internal SampleInfo(byte[] src, int offset)
+    {
+        Header = SampleHeader.Get(src, offset, out SampleOffset);
+        SampleData = new sbyte[Header.Length];
+        Span<byte> samples = src.AsSpan(offset + 16, Header.Length);
+        for (int i = 0; i < Header.Length; i++)
+        {
+            SampleData[i] = (sbyte)samples[i];
+        }
+        Position = 0;
+        MidCFrequency = Header.SampleRate / 1024.0f;
+        LoopEnabled = Convert.ToBoolean(Header.DoesLoop);
+
+        if (Header.LoopOffset > Header.Length)
+        {
+        	Header.LoopOffset = 0;
+        }
+        if (Header.LoopOffset == Header.Length)
+        {
+        	LoopEnabled = false;
+        }
+    }
+}
+
+internal struct MixingArgs
+{
+    public float Volume;
+    public int FixedModeRate;
+    public float SampleRateInv;
+    public float SamplesPerBufferInv;
+};
+
 internal struct ChannelVolume
 {
-    public float LeftVol, RightVol;
+    public float FromVolLeft, FromVolRight;
+    public float ToVolLeft, ToVolRight;
 }
 internal struct NoteInfo
 {
-    public byte Note, OriginalNote;
-    public byte Velocity;
     /// <summary>-1 if forever</summary>
     public int Duration;
+    public byte Note, OriginalNote;
+    public byte Velocity;
+    public byte Priority;
+    public sbyte RhythmPan;
     public byte PseudoEchoVolume, PseudoEchoLength;
+    public byte TrackIndex, PlayerIndex;
+    public byte PSGLength;
+}
+
+internal struct MP2KSoundMode
+{
+    public const byte VOL_AUTO = 0xFF;
+    public const byte REV_MASK_VAL = 0x7F;
+    public const byte REV_MASK_SET = 0x80;
+    public const byte FREQ_AUTO = 0xFF;
+    public const byte CHN_AUTO = 0xFF;
+    public const byte DAC_AUTO = 0xFF;
+
+    public byte Volume = VOL_AUTO;
+    public byte Reverb = 0;
+    public byte Frequency = FREQ_AUTO;
+    public byte MaxChannels = CHN_AUTO;    // currently unused
+    public byte DACConfig = DAC_AUTO;      // currently unused
+
+    public MP2KSoundMode() { }
+
+    public readonly bool IsAuto()
+    {
+        return Volume == VOL_AUTO || Reverb == REV_MASK_VAL || Frequency == FREQ_AUTO || MaxChannels == CHN_AUTO || DACConfig == DAC_AUTO;
+    }
+}
+
+internal struct PlayerSoundMode
+{
+    internal ResamplerType ResamplerTypeNormal = ResamplerType.Linear;
+    internal ResamplerType ResamplerTypeFixed = ResamplerType.Nearest;
+    internal ReverbType ReverbType = ReverbType.Normal;
+    internal byte ReverbForce = 0;
+    internal PSGPolyphony PSGPolyphony = PSGPolyphony.MONO_STRICT;
+    internal uint DMABufferLength = 0x630;
+    internal bool AccurateCh3Quantization = true;
+    internal bool AccurateCh3Volume = true;
+    internal bool EmulatePSGSustainBug = true;
+
+    public PlayerSoundMode()
+    {
+    }
 }
