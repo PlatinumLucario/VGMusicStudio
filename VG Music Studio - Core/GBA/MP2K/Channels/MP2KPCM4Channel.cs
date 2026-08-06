@@ -9,24 +9,28 @@ internal sealed class MP2KPCM4Channel : MP2KPSGChannel
 	private float _dcCorrection75;
 	private float _dcCorrection50;
 	private float _dcCorrection25;
-	private byte[] _pcm4Buf;
+	private byte[] _pcm4Buf = new byte[16];
 	private readonly float[] _samples = new float[0x20];
 
-	internal MP2KPCM4Channel(MP2KContext context, MP2KMixer mixer, MP2KTrack track, int instrPCM4, ADSR env, NoteInfo note, bool useStairstep)
+	internal MP2KPCM4Channel(MP2KContext context, MP2KMixer mixer, MP2KTrack track, MP2KSample pcm4, ADSR env, NoteInfo note, bool useStairstep)
 		: base(context, mixer, track, env, note, useStairstep)
 	{
-		byte[] dummyPCM4 = new byte[16];
-		if (instrPCM4 < GBAUtils.CARTRIDGE_OFFSET)
+		// byte[] dummyPCM4 = new byte[16];
+		// if (instrPCM4 < GBAUtils.CARTRIDGE_OFFSET)
+		// {
+		// 	_pcm4Buf = dummyPCM4;
+		// }
+		// else
+		// {
+		// 	instrPCM4 -= GBAUtils.CARTRIDGE_OFFSET;
+		// 	if (instrPCM4 + 16 < MP2KEngine.MP2KInstance!.Config.ROM.Length)
+		// 		_pcm4Buf = MP2KEngine.MP2KInstance!.Config.ROM.AsSpan()[instrPCM4..].ToArray();
+		// 	else
+		// 		_pcm4Buf = dummyPCM4;
+		// }
+		for (int i = 0; i < 16; i++)
 		{
-			_pcm4Buf = dummyPCM4;
-		}
-		else
-		{
-			instrPCM4 -= GBAUtils.CARTRIDGE_OFFSET;
-			if (instrPCM4 + 16 < MP2KEngine.MP2KInstance!.Config.ROM.Length)
-				_pcm4Buf = MP2KEngine.MP2KInstance!.Config.ROM.AsSpan()[instrPCM4..].ToArray();
-			else
-				_pcm4Buf = dummyPCM4;
+			_pcm4Buf[i] = (byte)pcm4.PCMData[i];
 		}
 
 		// MP2KUtils.PCM4ToFloat(_pcm4Buf, _sample);

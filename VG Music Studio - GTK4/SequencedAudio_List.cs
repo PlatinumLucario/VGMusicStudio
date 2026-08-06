@@ -9,59 +9,66 @@ using static Gtk.SignalListItemFactory;
 
 namespace Kermalis.VGMusicStudio.GTK4;
 
-internal class SequencedAudio_List : Viewport
+[GObject.Subclass<Viewport>]
+internal partial class SequencedAudio_List
 {
-	private GObject.Value? Id { get; set; }
-	private GObject.Value? InternalName { get; set; }
-	private GObject.Value? PlaylistName { get; set; }
-	private GObject.Value? SongTableOffset { get; set; }
-	private GObject.Value? SequenceOffset { get; set; }
-
-	private bool IsSongTable = false;
+	private bool _isSongTable = false;
 	internal bool IsInitialized = false;
 	public bool HasSelectedRow = false;
 	private string? _selectedRowName;
 
-	private EndianBinaryReader? Reader { get; set; }
+	private int _curSong = 0;
 
-	private readonly Gio.ListStore Model = Gio.ListStore.New(GetGType());
-	private SignalListItemFactory? SeqListItemFactory { get; set; }
-	private SingleSelection? SelectionModel { get; set; }
-	// private SortListModel? SortModel { get; set; }
-	private ColumnViewSorter? ColumnSorter { get; set; }
+	private EndianBinaryReader? _reader;
 
-	private GestureClick? ColumnViewGestureClick { get; set; }
+	private readonly Gio.ListStore _model = Gio.ListStore.New<Data>();
+	private SignalListItemFactory? _seqListItemFactory;
+	private SingleSelection? _selectionModel;
+	private ScrollInfo? _scrollInfo = ScrollInfo.New();
 
-	internal ColumnView? ColumnView { get; set; }
+	private GestureClick? _columnViewGestureClick;
+
+	private ColumnView? _columnView;
 
 	private ColumnViewColumn _columnName = null!;
 	private ColumnViewColumn _columnPlist = null!;
 	private ColumnViewColumn _columnSongTableOffset = null!;
 	private ColumnViewColumn _columnSequenceOffset = null!;
 
-	public SequencedAudio_List[]? SoundData { get; set; }
+	public Data[]? SoundData { get; set; }
 
-	public SequencedAudio_List(int id, string name, string plistname, string songTableOffset, string seqOffset)
-		: base()
+	[GObject.Subclass<GObject.Object>]
+	internal partial class Data
 	{
-		Id = new GObject.Value(id);
-		InternalName = new GObject.Value(name);
-		PlaylistName = new GObject.Value(plistname);
-		if (songTableOffset is not null)
+		internal int Id { get; private set; }
+		internal string? InternalName { get; private set; }
+		internal string? PlaylistName { get; private set; }
+		internal string? SongTableOffset { get; private set; }
+		internal string? SequenceOffset { get; private set; }
+
+		internal static Data AddEntry(int id, string name, string plistname, string songTableOffset, string seqOffset)
 		{
-			SongTableOffset = new GObject.Value(songTableOffset);
-			SequenceOffset = new GObject.Value(seqOffset);
+			var dat = NewWithProperties([]);
+			dat.Id = id;
+			dat.InternalName = name;
+			dat.PlaylistName = plistname;
+			if (songTableOffset is not null)
+			{
+				dat.SongTableOffset = songTableOffset;
+				dat.SequenceOffset = seqOffset;
+			}
+			return dat;
 		}
 	}
 
 	public void AddEntries(long numSongs, Config config)
 	{
-		if (Model.GetNItems() is not 0)
+		if (_model.GetNItems() is not 0)
 		{
-			Model.RemoveAll();
+			_model.RemoveAll();
 		}
 
-		SoundData = new SequencedAudio_List[numSongs];
+		SoundData = new Data[numSongs];
 		var sNames = new string[numSongs];
 		for (int i = 0; i < sNames.Length; i++)
 		{
@@ -98,13 +105,13 @@ internal class SequencedAudio_List : Viewport
 		var seqOffsetString = new string[numSongs];
 		if (config.SongTableOffset is not null)
 		{
-			IsSongTable = true;
-			Reader ??= new EndianBinaryReader(new MemoryStream(config.ROM!));
+			_isSongTable = true;
+			_reader ??= new EndianBinaryReader(new MemoryStream(config.ROM!));
 			for (int i = 0, s = 0; i < SoundData.Length; i++)
 			{
 				sTEntryOffsetString[i] = string.Format("0x{0:X}", config.SongTableOffset[s] + (i * 8));
-				Reader.Stream.Position = config.SongTableOffset[s] + (i * 8);
-				var seqOffset = (Reader.ReadUInt32() << 8) >> 8; // To remove the "08" modifier value from the offset (which that value is only for memory usage anyways)
+				_reader.Stream.Position = config.SongTableOffset[s] + (i * 8);
+				var seqOffset = (_reader.ReadUInt32() << 8) >> 8; // To remove the "08" modifier value from the offset (which that value is only for memory usage anyways)
 				seqOffsetString[i] = string.Format("0x{0:X}", seqOffset);
 				if (s < config.SongTableOffset.Length - 1)
 				{
@@ -114,45 +121,42 @@ internal class SequencedAudio_List : Viewport
 		}
 		else
 		{
-			IsSongTable = false;
+			_isSongTable = false;
 		}
 		for (int i = 0; i < SoundData!.Length; i++)
 		{
-			SoundData[i] = new SequencedAudio_List(i, sNames[i], plistNames[i], sTEntryOffsetString[i], seqOffsetString[i]);
+			SoundData[i] = Data.AddEntry(i, sNames[i], plistNames[i], sTEntryOffsetString[i], seqOffsetString[i]);
 		}
 
 		foreach (var data in SoundData!)
 		{
-			Model.Append(data);
+			_model.Append(data);
 		}
 	}
 
-	internal SequencedAudio_List()
+	partial void Initialize()
 	{
 		var scrolledWindow = ScrolledWindow.New();
 		scrolledWindow.SetSizeRequest(600, 200);
 		scrolledWindow.SetHexpand(true);
 
-		SelectionModel = SingleSelection.New(Model);
-		SelectionModel.OnNotify += SelectionModel_Notified;
+		_columnViewGestureClick = GestureClick.New();
+		_columnViewGestureClick.Button = 1;
+		_columnViewGestureClick.OnPressed += ColumnViewGestureClick_LeftClick;
 
-		ColumnViewGestureClick = GestureClick.New();
-		ColumnViewGestureClick.Button = 1;
-		ColumnViewGestureClick.OnPressed += ColumnViewGestureClick_LeftClick;
-
-		ColumnView = ColumnView.New(SelectionModel);
-		ColumnView.AddCssClass("data-table");
-		ColumnView.AddController(ColumnViewGestureClick);
-		ColumnView.SetShowColumnSeparators(true);
-		ColumnView.SetShowRowSeparators(true);
-		ColumnView.SetReorderable(false);
-		ColumnView.SetHexpand(true);
+		_columnView = ColumnView.New(null);
+		_columnView.AddCssClass("data-table");
+		_columnView.AddController(_columnViewGestureClick);
+		_columnView.SetShowColumnSeparators(true);
+		_columnView.SetShowRowSeparators(true);
+		_columnView.SetReorderable(false);
+		_columnView.SetHexpand(true);
 
 		// ColumnSorter = (ColumnViewSorter)ColumnView.GetSorter()!;
 		// ColumnSorter.GetPrimarySortColumn();
 		// SortModel = SortListModel.New(Model, ColumnSorter);
 
-		scrolledWindow.SetChild(ColumnView);
+		scrolledWindow.SetChild(_columnView);
 
 		Child = scrolledWindow;
 
@@ -162,14 +166,11 @@ internal class SequencedAudio_List : Viewport
 
 	private void ColumnViewGestureClick_LeftClick(GestureClick sender, GestureClick.PressedSignalArgs args)
 	{
-		if (SelectionModel?.GetSelectedItem() is SequencedAudio_List list)
+		if (_selectionModel?.GetSelectedItem() is Data data)
 		{
-			if (list.Id is not null)
+			if (IsInitialized)
 			{
-				if (IsInitialized)
-				{
-					MainWindow.Instance!.ChangeIndex(list.Id.GetInt());
-				}
+				MainWindow.Instance!.ChangeIndex(data.Id);
 			}
 		}
 	}
@@ -184,87 +185,122 @@ internal class SequencedAudio_List : Viewport
 		IsInitialized = false;
 
 		// ID Column
-		SeqListItemFactory = SignalListItemFactory.New();
-		SeqListItemFactory.OnSetup += OnSetupIDLabel;
-		SeqListItemFactory.OnBind += OnBindIDText;
+		_seqListItemFactory = SignalListItemFactory.New();
+		_seqListItemFactory.OnSetup += OnSetupIDLabel;
+		_seqListItemFactory.OnBind += OnBindIDText;
 
-		var idColumn = ColumnViewColumn.New("#", SeqListItemFactory);
+		var idColumn = ColumnViewColumn.New("#", _seqListItemFactory);
 		idColumn.SetResizable(true);
 		// NewWithProperties(GetGType(), ["id", "internalName", "playlistName", "offset"], [Id, InternalName, PlaylistName, Offset]);
 		// var idExpression = Gtk.Internal.PropertyExpression.New(GetGType(), nint.Zero, GLib.Internal.NonNullableUtf8StringOwnedHandle.Create("Id"));
 		// var idSorter = NumericSorter.New(new PropertyExpression(idExpression));
 		// idColumn.SetSorter(idSorter);
-		ColumnView!.AppendColumn(idColumn);
+		static int SortByID(Data a, Data b)
+		{
+			return a.Id.CompareTo(b.Id);
+		}
+		var idSorter = CustomSorter.New<Data>(SortByID);
+		idColumn.SetSorter(idSorter);
+		_columnView!.AppendColumn(idColumn);
 
 		// Internal Name Column
-		SeqListItemFactory = SignalListItemFactory.New();
-		SeqListItemFactory.OnSetup += OnSetupNameLabel;
-		SeqListItemFactory.OnBind += OnBindNameText;
+		_seqListItemFactory = SignalListItemFactory.New();
+		_seqListItemFactory.OnSetup += OnSetupNameLabel;
+		_seqListItemFactory.OnBind += OnBindNameText;
 
-		_columnName = ColumnViewColumn.New("Internal Name", SeqListItemFactory);
+		_columnName = ColumnViewColumn.New("Internal Name", _seqListItemFactory);
 		_columnName.SetFixedWidth(160);
 		_columnName.SetExpand(true);
 		_columnName.SetResizable(true);
+		static int SortByName(Data a, Data b)
+		{
+			return string.CompareOrdinal(a.InternalName, b.InternalName);
+		}
+		var nameSorter = CustomSorter.New<Data>(SortByName);
+		_columnName.SetSorter(nameSorter);
 		// nameColumn.SetSorter(ColumnSorter);
-		ColumnView.AppendColumn(_columnName);
+		_columnView.AppendColumn(_columnName);
+
+		_selectionModel = SingleSelection.New(SortListModel.New(_model, _columnView.GetSorter()));
+		_selectionModel.OnNotify += SelectionModel_Notified;
+
+		_columnView.SetModel(_selectionModel);
 
 		IsInitialized = true;
 	}
 
 	internal void ChangeColumns(bool isSongTable = false)
 	{
-		IsSongTable = isSongTable;
-		if (IsSongTable)
+		_isSongTable = isSongTable;
+		if (_isSongTable)
 		{
 			_columnName.SetExpand(false);
 
 			// Playlist Name Column
-			SeqListItemFactory = SignalListItemFactory.New();
-			SeqListItemFactory.OnSetup += OnSetupPlistLabel;
-			SeqListItemFactory.OnBind += OnBindPlistText;
+			_seqListItemFactory = SignalListItemFactory.New();
+			_seqListItemFactory.OnSetup += OnSetupPlistLabel;
+			_seqListItemFactory.OnBind += OnBindPlistText;
 
-			_columnPlist = ColumnViewColumn.New("Playlist Name", SeqListItemFactory);
+			_columnPlist = ColumnViewColumn.New("Playlist Name", _seqListItemFactory);
 			_columnPlist.SetFixedWidth(160);
 			_columnPlist.SetResizable(true);
+			static int SortByPlistName(Data a, Data b)
+			{
+				return string.CompareOrdinal(a.PlaylistName, b.PlaylistName);
+			}
+			var plistSorter = CustomSorter.New<Data>(SortByPlistName);
+			_columnPlist.SetSorter(plistSorter);
 			// plistColumn.SetSorter(ColumnSorter);
-			ColumnView!.AppendColumn(_columnPlist);
+			_columnView!.AppendColumn(_columnPlist);
 
 			// Song Table Offset Column
-			SeqListItemFactory = SignalListItemFactory.New();
-			SeqListItemFactory.OnSetup += OnSetupSongTableOffsetLabel;
-			SeqListItemFactory.OnBind += OnBindSongTableOffsetText;
+			_seqListItemFactory = SignalListItemFactory.New();
+			_seqListItemFactory.OnSetup += OnSetupSongTableOffsetLabel;
+			_seqListItemFactory.OnBind += OnBindSongTableOffsetText;
 
-			_columnSongTableOffset = ColumnViewColumn.New("Song Table Offset", SeqListItemFactory);
+			_columnSongTableOffset = ColumnViewColumn.New("Song Table Offset", _seqListItemFactory);
 			_columnSongTableOffset.SetFixedWidth(80);
 			_columnSongTableOffset.SetResizable(true);
+			static int SortBySongTableOffset(Data a, Data b)
+			{
+				return string.CompareOrdinal(a.SongTableOffset, b.SongTableOffset);
+			}
+			var songTableOffsetSorter = CustomSorter.New<Data>(SortBySongTableOffset);
+			_columnSongTableOffset.SetSorter(songTableOffsetSorter);
 			// offsetColumn.SetSorter(ColumnSorter);
-			ColumnView.AppendColumn(_columnSongTableOffset);
+			_columnView.AppendColumn(_columnSongTableOffset);
 
 			// Sequence Offset Column
-			SeqListItemFactory = SignalListItemFactory.New();
-			SeqListItemFactory.OnSetup += OnSetupSeqOffsetLabel;
-			SeqListItemFactory.OnBind += OnBindSeqOffsetText;
+			_seqListItemFactory = SignalListItemFactory.New();
+			_seqListItemFactory.OnSetup += OnSetupSeqOffsetLabel;
+			_seqListItemFactory.OnBind += OnBindSeqOffsetText;
 
-			_columnSequenceOffset = ColumnViewColumn.New("Sequence Offset", SeqListItemFactory);
+			_columnSequenceOffset = ColumnViewColumn.New("Sequence Offset", _seqListItemFactory);
 			_columnSequenceOffset.SetFixedWidth(80);
 			_columnSequenceOffset.SetExpand(true);
 			_columnSequenceOffset.SetResizable(true);
+			static int SortBySeqOffset(Data a, Data b)
+			{
+				return string.CompareOrdinal(a.SequenceOffset, b.SequenceOffset);
+			}
+			var seqOffsetSorter = CustomSorter.New<Data>(SortBySeqOffset);
+			_columnSequenceOffset.SetSorter(seqOffsetSorter);
 			// offsetColumn.SetSorter(ColumnSorter);
-			ColumnView.AppendColumn(_columnSequenceOffset);
+			_columnView.AppendColumn(_columnSequenceOffset);
 		}
 		else
 		{
 			if (_columnPlist is not null)
 			{
-				ColumnView!.RemoveColumn(_columnPlist);
+				_columnView!.RemoveColumn(_columnPlist);
 			}
 			if (_columnSongTableOffset is not null)
 			{
-				ColumnView!.RemoveColumn(_columnSongTableOffset);
+				_columnView!.RemoveColumn(_columnSongTableOffset);
 			}
 			if (_columnSequenceOffset is not null)
 			{
-				ColumnView!.RemoveColumn(_columnSequenceOffset);
+				_columnView!.RemoveColumn(_columnSequenceOffset);
 			}
 			_columnName.SetExpand(true);
 		}
@@ -273,7 +309,20 @@ internal class SequencedAudio_List : Viewport
 	internal void SelectRow(int index)
 	{
 		HasSelectedRow = true;
-		SelectionModel?.SelectItem((uint)index, true);
+		for (uint i = 0; i < _selectionModel!.GetNItems(); i++)
+		{
+			var obj = _selectionModel?.GetObject(i);
+			if (obj is Data data)
+			{
+				if (data.Id == index)
+				{
+					_selectionModel?.SelectItem(i, true);
+					_columnView!.ScrollTo(i, null, ListScrollFlags.Select, _scrollInfo);
+					_curSong = data.Id;
+					break;
+				}
+			}
+		}
 		HasSelectedRow = false;
 	}
 
@@ -291,13 +340,14 @@ internal class SequencedAudio_List : Viewport
 
 	private bool ListCallback()
 	{
-		if (SelectionModel?.GetSelectedItem() is SequencedAudio_List list)
+		if (_selectionModel!.GetSelected() != _curSong)
 		{
-			if (list.Id is not null)
+			if (_selectionModel?.GetSelectedItem() is Data list)
 			{
 				if (IsInitialized)
 				{
-					MainWindow.Instance!.CheckIndex(list.Id.GetInt());
+					MainWindow.Instance!.CheckIndex(list.Id);
+					_curSong = list.Id;
 				}
 			}
 		}
@@ -381,15 +431,12 @@ internal class SequencedAudio_List : Viewport
 			return;
 		}
 
-		if (listItem.Item is not SequencedAudio_List userData)
+		if (listItem.Item is not Data userData)
 		{
 			return;
 		}
 
-		if (userData.Id is not null)
-		{
-			label.SetText(userData.Id.GetInt().ToString());
-		}
+		label.SetText(userData.Id.ToString());
 	}
 
 	private void OnBindNameText(SignalListItemFactory sender, BindSignalArgs args)
@@ -404,14 +451,14 @@ internal class SequencedAudio_List : Viewport
 			return;
 		}
 
-		if (listItem.Item is not SequencedAudio_List userData)
+		if (listItem.Item is not Data userData)
 		{
 			return;
 		}
 
-		if (userData.InternalName is not null && userData.InternalName.GetString != null)
+		if (userData.InternalName is not null)
 		{
-			label.SetText(userData.InternalName.GetString()!);
+			label.SetText(userData.InternalName);
 		}
 	}
 
@@ -427,14 +474,14 @@ internal class SequencedAudio_List : Viewport
 			return;
 		}
 
-		if (listItem.Item is not SequencedAudio_List userData)
+		if (listItem.Item is not Data userData)
 		{
 			return;
 		}
 
-		if (userData.PlaylistName is not null && userData.PlaylistName.GetString != null)
+		if (userData.PlaylistName is not null)
 		{
-			label.SetText(userData.PlaylistName.GetString()!);
+			label.SetText(userData.PlaylistName);
 		}
 	}
 
@@ -450,14 +497,14 @@ internal class SequencedAudio_List : Viewport
 			return;
 		}
 
-		if (listItem.Item is not SequencedAudio_List userData)
+		if (listItem.Item is not Data userData)
 		{
 			return;
 		}
 
-		if (userData.SongTableOffset is not null && userData.SongTableOffset.GetString != null)
+		if (userData.SongTableOffset is not null)
 		{
-			label.SetText(userData.SongTableOffset.GetString()!);
+			label.SetText(userData.SongTableOffset);
 		}
 	}
 
@@ -473,14 +520,14 @@ internal class SequencedAudio_List : Viewport
 			return;
 		}
 
-		if (listItem.Item is not SequencedAudio_List userData)
+		if (listItem.Item is not Data userData)
 		{
 			return;
 		}
 
-		if (userData.SequenceOffset is not null && userData.SequenceOffset.GetString != null)
+		if (userData.SequenceOffset is not null)
 		{
-			label.SetText(userData.SequenceOffset.GetString()!);
+			label.SetText(userData.SequenceOffset);
 		}
 	}
 }

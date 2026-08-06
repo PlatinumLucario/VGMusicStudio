@@ -7,42 +7,41 @@ using PlatinumLucario.MIDI.GBA.MP2K;
 
 namespace Kermalis.VGMusicStudio.GTK4;
 
-internal class MIDIConverterDialog : Adw.Dialog
+[GObject.Subclass<Adw.Dialog>]
+internal partial class MIDIConverterDialog
 {
-    private readonly Gtk.Label _midiFilePathLabel = Gtk.Label.New("");
-    private readonly Gtk.Button _buttonSaveASM = Gtk.Button.NewWithLabel(Strings.TitleSaveASM);
+    private Gtk.Label _midiFilePathLabel = Gtk.Label.New("");
+    private Gtk.Button _buttonSaveASM = Gtk.Button.NewWithLabel(Strings.TitleSaveASM);
 
     // MP2K param config
-    private readonly Gtk.Box _engineBox = Gtk.Box.New(Gtk.Orientation.Horizontal, 5);
-    private readonly Gtk.Box _mp2kParamBox = Gtk.Box.New(Gtk.Orientation.Vertical, 5);
-    private readonly Gtk.Box _masterVolumeBox = Gtk.Box.New(Gtk.Orientation.Horizontal, 5);
+    private Gtk.Box _engineBox = Gtk.Box.New(Gtk.Orientation.Horizontal, 5);
+    private Gtk.Box _mp2kParamBox = Gtk.Box.New(Gtk.Orientation.Vertical, 5);
+    private Gtk.Box _masterVolumeBox = Gtk.Box.New(Gtk.Orientation.Horizontal, 5);
     private Gtk.Label? _masterVolumeLabel;
     private Gtk.SpinButton? _masterVolume;
-    private readonly Gtk.Box _voiceGroupBox = Gtk.Box.New(Gtk.Orientation.Horizontal, 5);
+    private Gtk.Box _voiceGroupBox = Gtk.Box.New(Gtk.Orientation.Horizontal, 5);
     private Gtk.Label? _voiceGroupLabel;
     private Gtk.Entry? _voiceGroup;
-    private readonly Gtk.Box _priorityBox = Gtk.Box.New(Gtk.Orientation.Horizontal, 5);
+    private Gtk.Box _priorityBox = Gtk.Box.New(Gtk.Orientation.Horizontal, 5);
     private Gtk.Label? _priorityLabel;
     private Gtk.SpinButton? _priority;
-    private readonly Gtk.Box _reverbBox = Gtk.Box.New(Gtk.Orientation.Horizontal, 5);
+    private Gtk.Box _reverbBox = Gtk.Box.New(Gtk.Orientation.Horizontal, 5);
     private Gtk.Label? _reverbLabel;
     private Gtk.SpinButton? _reverb;
-    private readonly Gtk.Box _clocksPerBeatBox = Gtk.Box.New(Gtk.Orientation.Horizontal, 5);
+    private Gtk.Box _clocksPerBeatBox = Gtk.Box.New(Gtk.Orientation.Horizontal, 5);
     private Gtk.Label? _clocksPerBeatLabel;
     private Gtk.SpinButton? _clocksPerBeat;
-    private readonly Gtk.Box _gateTimeBox = Gtk.Box.New(Gtk.Orientation.Horizontal, 5);
+    private Gtk.Box _gateTimeBox = Gtk.Box.New(Gtk.Orientation.Horizontal, 5);
     private Gtk.Label? _gateTimeLabel;
     private Gtk.CheckButton? _gateTime;
-    private readonly Gtk.Box _compressionBox = Gtk.Box.New(Gtk.Orientation.Horizontal, 5);
+    private Gtk.Box _compressionBox = Gtk.Box.New(Gtk.Orientation.Horizontal, 5);
     private Gtk.Label? _compressionLabel;
     private Gtk.CheckButton? _compression;
 
     private MP2KConverter? _converter;
 
-    internal MIDIConverterDialog()
+    partial void Initialize()
     {
-        New();
-
         Title = $"{MainWindow.GetProgramName()} — {Strings.MIDIConverterTitle}";
 
         var mainBox = Gtk.Box.New(Gtk.Orientation.Vertical, 5);

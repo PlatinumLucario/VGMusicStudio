@@ -199,7 +199,7 @@ public sealed partial class MP2KPlayer : Player
         }
 
         _elapsedLoops++;
-        UpdateElapsedTicksAfterLoop(s.Events[track.Index], track.Position, track.Rest);
+        UpdateElapsedTicksAfterLoop(s.Events[track.Index], track.ROMOffset, track.Rest);
         if (ShouldFadeOut && _elapsedLoops > NumLoops && !MMixer.IsFading())
         {
             MMixer.BeginFadeOut();

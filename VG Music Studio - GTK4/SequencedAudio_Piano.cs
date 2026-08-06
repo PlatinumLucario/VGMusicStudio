@@ -6,16 +6,17 @@ using System.Runtime.InteropServices;
 
 namespace Kermalis.VGMusicStudio.GTK4;
 
-internal class SequencedAudio_Piano : DrawingArea
+[GObject.Subclass<DrawingArea>]
+internal partial class SequencedAudio_Piano
 {
     private SongState.Track[]? Tracks;
     private bool[]? EnabledTracks;
-    private readonly HSLColor[] Colors;
+    private HSLColor[] Colors;
     private double R;
     private double G;
     private double B;
 
-    internal SequencedAudio_Piano()
+    partial void Initialize()
     {
         Colors = new HSLColor[SongState.MAX_TRACKS];
         HeightRequest = 60;

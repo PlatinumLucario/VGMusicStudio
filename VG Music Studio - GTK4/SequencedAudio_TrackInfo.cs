@@ -9,12 +9,13 @@ using Kermalis.VGMusicStudio.Core.Util;
 
 namespace Kermalis.VGMusicStudio.GTK4;
 
-internal class SequencedAudio_TrackInfo : Box
+[GObject.Subclass<Box>]
+internal partial class SequencedAudio_TrackInfo
 {
-    private readonly Label? _tempoLabel;
+    private Label? _tempoLabel;
     private ushort _baseTempo;
-    private readonly Label? _baseTempoLabel;
-    private readonly SpinButton _tempoSpinButton;
+    private Label? _baseTempoLabel;
+    private SpinButton _tempoSpinButton;
 
     private CheckButton? _trackToggleCheckButtonHeader;
     private Label? _velocityHeader;
@@ -32,16 +33,16 @@ internal class SequencedAudio_TrackInfo : Box
     private VelocityBar[]? _velocity;
     private Label[]? _labelType;
 
-    private readonly ListBox? _listBox;
-    private static readonly List<string> _keysCache = new(128);
+    private ListBox? _listBox;
+    private static List<string> _keysCache = new(128);
 
-    public readonly bool[]? NumTracks;
-    public readonly SongState? Info;
+    public bool[]? NumTracks;
+    public SongState? Info;
     internal static int NumTracksToDraw;
 
     internal SequencedAudio_TrackInfo[]? TrackInfo { get; set; }
 
-    internal SequencedAudio_TrackInfo()
+    partial void Initialize()
     {
         NumTracks = new bool[SongState.MAX_TRACKS];
         for (int i = 0; i < SongState.MAX_TRACKS; i++)
@@ -204,12 +205,13 @@ internal class SequencedAudio_TrackInfo : Box
         return true;
     }
 
-    private class VelocityBar : DrawingArea
+    [GObject.Subclass<DrawingArea>]
+    internal partial class VelocityBar
     {
         private SongState.Track? _track;
         private HSLColor _color;
         private HSLColor _overampColor;
-        internal VelocityBar()
+        partial void Initialize()
         {
             _color = new HSLColor();
             _overampColor = new HSLColor(0, 1, 0.5);
@@ -635,7 +637,7 @@ internal class SequencedAudio_TrackInfo : Box
             _labelExtra[i].SetHexpand(true);
             columns.Append(_labelExtra[i]);
 
-            _velocity[i] = new VelocityBar();
+            _velocity[i] = VelocityBar.NewWithProperties([]);
             _velocity[i].SetHalign(Align.Center);
             _velocity[i].WidthRequest = GetWidth() / 4;
             _velocity[i].SetHexpand(true);

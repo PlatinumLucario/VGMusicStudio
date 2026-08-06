@@ -156,7 +156,7 @@ internal enum CodecType : ushort
 	/// </summary>
 	IMAADPCM = 4,
 }
-internal enum MemoryAccessType : byte
+internal enum MemoryOperatorType : byte
 {
 	MemSet,
 	MemAdd,
@@ -191,10 +191,6 @@ internal enum ExtendedCommandType : byte
 	xSWEE = 11,
 	xWAIT = 12,
 	xSOFF = 13,
-}
-internal enum MemoryOperatorType : byte
-{
-	mem_set = 0,
 }
 internal enum PSGPolyphony : byte
 {

@@ -2,7 +2,7 @@ A2NE_00:
   Name: "Sonic Advance 2 (USA)"
   SongTableOffsets: 0xAD4F4C
   SongTableSizes: 507
-  SampleRate: 2
+  FrequencyIndex: 2
   ReverbType: "Normal"
   Reverb: 0
   Volume: 15
@@ -20,7 +20,7 @@ A2UJ_00:
   Name: "Mother 1 + 2 (Japan)"
   SongTableOffsets: 0x10B530
   SongTableSizes: 451
-  SampleRate: 2
+  FrequencyIndex: 2
   ReverbType: "Normal"
   Reverb: 0
   Volume: 15
@@ -30,7 +30,7 @@ A3UJ_00:
   Name: "Mother 3 (Japan)"
   SongTableOffsets: 0x120E94
   SongTableSizes: 1968
-  SampleRate: 4
+  FrequencyIndex: 4
   ReverbType: "Normal"
   Reverb: 0
   Volume: 15
@@ -40,7 +40,7 @@ A4AE_00:
   Name: "The Simpson's Road Rage (USA)"
   SongTableOffsets: 0x125FD8
   SongTableSizes: 112
-  SampleRate: 2
+  FrequencyIndex: 2
   ReverbType: "Normal"
   Reverb: 0
   Volume: 11
@@ -55,7 +55,7 @@ A7KE_00:
   Name: "Kirby: Nightmare in Dream Land (USA)"
   SongTableOffsets: 0x60B460
   SongTableSizes: 579
-  SampleRate: 4
+  FrequencyIndex: 4
   ReverbType: "Normal"
   Reverb: 0
   Volume: 15
@@ -131,7 +131,7 @@ A88E_00:
   Name: "Mario Bros. (Mario & Luigi: Superstar Saga) (USA)"
   SongTableOffsets: 0xFB5DA4
   SongTableSizes: 323
-  SampleRate: 2
+  FrequencyIndex: 2
   ReverbType: "Normal"
   Reverb: 0
   Volume: 15
@@ -148,7 +148,7 @@ AE7E_00:
   Name: "Fire Emblem: The Blazing Blade (USA)"
   SongTableOffsets: 0x69D6D8
   SongTableSizes: 1001
-  SampleRate: 3
+  FrequencyIndex: 3
   ReverbType: "Normal"
   Reverb: 0
   Volume: 13
@@ -169,7 +169,7 @@ AEFJ_00:
   Name: "Fire Emblem: The Binding Blade (Japan)"
   SongTableOffsets: 0x3994D8
   SongTableSizes: 621
-  SampleRate: 3
+  FrequencyIndex: 3
   ReverbType: "Normal"
   Reverb: 0
   Volume: 13
@@ -179,7 +179,7 @@ AFXE_00:
   Name: "Final Fantasy Tactics Advance (USA)"
   SongTableOffsets: 0x14BB48
   SongTableSizes: 640
-  SampleRate: 4
+  FrequencyIndex: 4
   ReverbType: "Normal"
   Reverb: 0
   Volume: 15
@@ -245,7 +245,7 @@ AFZE_00:
   Name: "F-Zero: Maximum Velocity (USA)"
   SongTableOffsets: 0x54BF8
   SongTableSizes: 72
-  SampleRate: 2
+  FrequencyIndex: 2
   ReverbType: "Normal"
   Reverb: 0
   Volume: 10
@@ -262,7 +262,7 @@ AGFE_00:
   Name: "Golden Sun: The Lost Age (USA)"
   SongTableOffsets: 0x1C4530
   SongTableSizes: 800
-  SampleRate: 8
+  FrequencyIndex: 8
   ReverbType: "Camelot2"
   Reverb: 0
   Volume: 15
@@ -284,7 +284,7 @@ AGLJ_00:
   Name: "Tomato Adventure (Japan)"
   SongTableOffsets: 0x4B11A4
   SongTableSizes: 244
-  SampleRate: 4
+  FrequencyIndex: 4
   ReverbType: "Normal"
   Reverb: 0
   Volume: 15
@@ -298,7 +298,7 @@ AGSE_00:
   Name: "Golden Sun (USA)"
   SongTableOffsets: 0xFC684
   SongTableSizes: 312
-  SampleRate: 6
+  FrequencyIndex: 6
   ReverbType: "Camelot1"
   Reverb: 0
   Volume: 15
@@ -323,7 +323,7 @@ AINJ_00:
   Name: "Initial D: Another Stage (Japan)"
   SongTableOffsets: 0x648B38
   SongTableSizes: 88
-  SampleRate: 2
+  FrequencyIndex: 2
   ReverbType: "Normal"
   Reverb: 0
   Volume: 13
@@ -345,7 +345,7 @@ AMKE_00:
   Name: "Mario Kart: Super Circuit (USA)"
   SongTableOffsets: 0x102498
   SongTableSizes: 403
-  SampleRate: 2
+  FrequencyIndex: 2
   ReverbType: "Normal"
   Reverb: 0
   Volume: 15
@@ -420,7 +420,7 @@ AMTE_00:
   Name: "Metroid Fusion (USA)"
   SongTableOffsets: 0xA8D3C
   SongTableSizes: 745
-  SampleRate: 2
+  FrequencyIndex: 2
   ReverbType: "Normal"
   Reverb: 0
   Volume: 15
@@ -505,7 +505,7 @@ AMZE_00:
   Name: "Super Mario Advance (USA)"
   SongTableOffsets: 0xF40D4
   SongTableSizes: 447
-  SampleRate: 2
+  FrequencyIndex: 2
   ReverbType: "Normal"
   Reverb: 0
   Volume: 15
@@ -519,7 +519,7 @@ AWAE_00:
   Name: "Wario Land 4 (USA)"
   SongTableOffsets: 0x98028
   SongTableSizes: 819
-  SampleRate: 3
+  FrequencyIndex: 3
   ReverbType: "Normal"
   Reverb: 0
   Volume: 15
@@ -699,7 +699,7 @@ AXVE_00:
   Name: "Pokémon Ruby Version (USA)"
   SongTableOffsets: 0x45548C
   SongTableSizes: 468
-  SampleRate: 3
+  FrequencyIndex: 3
   ReverbType: "Normal"
   Reverb: 0
   Volume: 12
@@ -859,7 +859,7 @@ AZLE_00:
   Name: "The Legend of Zelda: Four Swords (The Legend of Zelda: A Link to the Past and Four Swords) (USA)"
   SongTableOffsets: 0x3C3BBC
   SongTableSizes: 545
-  SampleRate: 3
+  FrequencyIndex: 3
   ReverbType: "Normal"
   Reverb: 0
   Volume: 15
@@ -877,7 +877,7 @@ B24E_00:
   Name: "Pokémon Mystery Dungeon: Red Rescue Team (USA)"
   SongTableOffsets: 0x1E866BC
   SongTableSizes: 940
-  SampleRate: 5
+  FrequencyIndex: 5
   ReverbType: "Normal"
   Reverb: 0
   Volume: 14
@@ -998,7 +998,7 @@ B8KE_00:
   Name: "Kirby & The Amazing Mirror (USA)"
   SongTableOffsets: 0xB59ED0
   SongTableSizes: 620
-  SampleRate: 4
+  FrequencyIndex: 4
   ReverbType: "Normal"
   Reverb: 0
   Volume: 15
@@ -1016,7 +1016,7 @@ BE8E_00:
   Name: "Fire Emblem: The Sacred Stones (USA)"
   SongTableOffsets: 0x224470
   SongTableSizes: 1000
-  SampleRate: 3
+  FrequencyIndex: 3
   ReverbType: "Normal"
   Reverb: 0
   Volume: 13
@@ -1034,7 +1034,7 @@ BFFE_00:
   Name: "Final Fantasy I & II - Dawn of Souls (USA)"
   SongTableOffsets: 0x8D3058
   SongTableSizes: 717
-  SampleRate: 5
+  FrequencyIndex: 5
   ReverbType: "Normal"
   Reverb: 0
   Volume: 15
@@ -1052,7 +1052,7 @@ BFTJ_00:
   Name: "F-Zero Climax (Japan)"
   SongTableOffsets: 0x9EE84
   SongTableSizes: 439
-  SampleRate: 5
+  FrequencyIndex: 5
   ReverbType: "Normal"
   Reverb: 0
   Volume: 14
@@ -1062,7 +1062,7 @@ BFZE_00:
   Name: "F-Zero: GP Legend (USA)"
   SongTableOffsets: 0x97B44
   SongTableSizes: 352
-  SampleRate: 5
+  FrequencyIndex: 5
   ReverbType: "Normal"
   Reverb: 0
   Volume: 14
@@ -1084,7 +1084,7 @@ BMXE_00:
   Name: "Metroid: Zero Mission (USA)"
   SongTableOffsets: 0x8F2C0
   SongTableSizes: 708
-  SampleRate: 3
+  FrequencyIndex: 3
   ReverbType: "Normal"
   Reverb: 0
   Volume: 15
@@ -1168,7 +1168,7 @@ BPEE_00:
   Name: "Pokémon Emerald Version (USA)"
   SongTableOffsets: 0x6B49F0
   SongTableSizes: 610
-  SampleRate: 3
+  FrequencyIndex: 3
   ReverbType: "Normal"
   Reverb: 0
   Volume: 12
@@ -1430,7 +1430,7 @@ BPFP_00:
   Name: "Puyo Pop Fever (USA)"
   SongTableOffsets: 0xA0994
   SongTableSizes: 1436
-  SampleRate: 2
+  FrequencyIndex: 2
   ReverbType: "Normal"
   Reverb: 0
   Volume: 15
@@ -1467,7 +1467,7 @@ BPPE_00:
   Name: "Pokémon Pinball: Ruby and Sapphire (USA)"
   SongTableOffsets: 0x534E04
   SongTableSizes: 333
-  SampleRate: 3
+  FrequencyIndex: 3
   ReverbType: "Normal"
   Reverb: 0
   Volume: 14
@@ -1492,7 +1492,7 @@ BPRE_00:
   Name: "Pokémon Fire Red Version (USA)"
   SongTableOffsets: 0x4A32CC
   SongTableSizes: 347
-  SampleRate: 3
+  FrequencyIndex: 3
   ReverbType: "Normal"
   Reverb: 0
   Volume: 12
@@ -1967,7 +1967,7 @@ BZ4E_00:
   Name: "Final Fantasy IV Advance (USA)"
   SongTableOffsets: 0x3DC894
   SongTableSizes: 221
-  SampleRate: 5
+  FrequencyIndex: 5
   ReverbType: "Normal"
   Reverb: 0
   Volume: 15
@@ -1988,7 +1988,7 @@ BZ5E_00:
   Name: "Final Fantasy V Advance (USA)"
   SongTableOffsets: 0x3F2CB4
   SongTableSizes: 290
-  SampleRate: 5
+  FrequencyIndex: 5
   ReverbType: "Normal"
   Reverb: 0
   Volume: 15
@@ -2006,7 +2006,7 @@ BZ6E_00:
   Name: "Final Fantasy VI Advance (USA)"
   SongTableOffsets: 0x1C6A94
   SongTableSizes: 371
-  SampleRate: 5
+  FrequencyIndex: 5
   ReverbType: "Normal"
   Reverb: 0
   Volume: 15
@@ -2024,7 +2024,7 @@ BZME_00:
   Name: "The Legend of Zelda: The Minish Cap (USA)"
   SongTableOffsets: 0xA11DBC
   SongTableSizes: 546
-  SampleRate: 3
+  FrequencyIndex: 3
   ReverbType: "Normal"
   Reverb: 0
   Volume: 15
@@ -2042,7 +2042,7 @@ KYGE_00:
   Name: "Yoshi Topsy-Turvy (USA)"
   SongTableOffsets: 0x4A5E94
   SongTableSizes: 347
-  SampleRate: 2
+  FrequencyIndex: 2
   ReverbType: "Normal"
   Reverb: 0
   Volume: 10
@@ -2060,7 +2060,7 @@ U32E_00:
   Name: "Boktai 2 - Solar Boy Django (USA)"
   SongTableOffsets: 0x25EEA8
   SongTableSizes: 1000
-  SampleRate: 6
+  FrequencyIndex: 6
   ReverbType: "Normal"
   Reverb: 0
   Volume: 15
@@ -2074,7 +2074,7 @@ U3IE_00:
   Name: "Boktai - The Sun is in Your Hand (USA)"
   SongTableOffsets: 0x1EC904
   SongTableSizes: 906
-  SampleRate: 6
+  FrequencyIndex: 6
   ReverbType: "Normal"
   Reverb: 0
   Volume: 15
@@ -2088,7 +2088,7 @@ U33J_00:
   Name: "Boktai 3 - Sabata's Counterattack (Japan)"
   SongTableOffsets: 0x26456C
   SongTableSizes: 1483
-  SampleRate: 6
+  FrequencyIndex: 6
   ReverbType: "Normal"
   Reverb: 0
   Volume: 15
@@ -2098,7 +2098,7 @@ V49E_00:
   Name: "Drill Dozer (USA)"
   SongTableOffsets: 0x5079B8
   SongTableSizes: 387
-  SampleRate: 3
+  FrequencyIndex: 3
   ReverbType: "Normal"
   Reverb: 0
   Volume: 10

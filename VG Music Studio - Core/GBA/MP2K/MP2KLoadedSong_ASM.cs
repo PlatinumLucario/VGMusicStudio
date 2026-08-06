@@ -118,17 +118,17 @@ internal sealed partial class MP2KLoadedSong
                         //    }
                         case JumpCommand j:
                             {
-                                if (!labelsGOTO.ContainsKey(j.Offset))
+                                if (!labelsGOTO.ContainsKey((int)j.Pointer.Offset))
                                 {
-                                    labelsGOTO.Add(j.Offset, $"{label}_{num}_B{jumps++}");
+                                    labelsGOTO.Add((int)j.Pointer.Offset, $"{label}_{num}_B{jumps++}");
                                 }
                                 break;
                             }
                         case RepeatCommand r:
                             {
-                                if (!labelsREPT.ContainsKey(r.Offset))
+                                if (!labelsREPT.ContainsKey((int)r.Pointer.Offset))
                                 {
-                                    labelsREPT.Add(r.Offset, $"{label}_{num}_L{repeats++}");
+                                    labelsREPT.Add((int)r.Pointer.Offset, $"{label}_{num}_L{repeats++}");
                                 }
                                 break;
                             }
@@ -240,7 +240,7 @@ internal sealed partial class MP2KLoadedSong
                     }
                     foreach (SongEvent ev in evts)
                     {
-                        if (ev.Command is RepeatCommand r && r.Offset == eOffset)
+                        if (ev.Command is RepeatCommand r && r.Pointer.Offset == eOffset)
                         {
                             trackEventsEX.Insert(0, new SongEvent(eOffset, new RepeatFlag()));
                             break;
@@ -248,7 +248,7 @@ internal sealed partial class MP2KLoadedSong
                     }
                     foreach (SongEvent ev in evts)
                     {
-                        if (ev.Command is CallCommand c && c.Offset == eOffset)
+                        if (ev.Command is CallCommand c && c.Pointer.Offset == eOffset)
                         {
                             trackEventsEX.Insert(0, new SongEvent(eOffset, new CallFlag()));
                             wholeNoteMarkDisplayed = true;
@@ -261,7 +261,7 @@ internal sealed partial class MP2KLoadedSong
                     }
                     foreach (SongEvent ev in evts)
                     {
-                        if (ev.Command is JumpCommand j && j.Offset == eOffset)
+                        if (ev.Command is JumpCommand j && j.Pointer.Offset == eOffset)
                         {
                             if (!wholeNoteMarkDisplayed)
                             {
@@ -766,7 +766,7 @@ internal sealed partial class MP2KLoadedSong
                         case JumpCommand c:
                             {
                                 file.WriteLine("\t.byte\tGOTO");
-                                file.WriteLine($"\t .word\t{labelsGOTO[c.Offset]}");
+                                file.WriteLine($"\t .word\t{labelsGOTO[(int)c.Pointer.Offset]}");
                                 if (labelsGOTO.TryGetValue(eOffset, out string? value))
                                 {
                                     file.WriteLine($"{value}:");
@@ -787,7 +787,7 @@ internal sealed partial class MP2KLoadedSong
                         case RepeatCommand c:
                             {
                                 file.WriteLine($"\t.byte\t\tREPT  , {c.Times}");
-                                file.WriteLine($"\t .word\t{labelsREPT[c.Offset]}");
+                                file.WriteLine($"\t .word\t{labelsREPT[(int)c.Pointer.Offset]}");
                                 file.WriteLine($"@ {wholeNoteNum++:D3}   ----------------------------------------");
                                 wholeNoteMarkDisplayed = true;
                                 prevParam1 = "REPT";
@@ -813,7 +813,7 @@ internal sealed partial class MP2KLoadedSong
                         case CallCommand c:
                             {
                                 file.WriteLine("\t.byte\tPATT");
-                                file.WriteLine($"\t .word\t{labelsPATT[c.Offset]}");
+                                file.WriteLine($"\t .word\t{labelsPATT[(int)c.Pointer.Offset]}");
                                 //file.WriteLine($"@ {separatorNum++:D3}   ----------------------------------------");
                                 //displayed = true;
                                 wholeNoteMarkDisplayed = false;
@@ -836,10 +836,10 @@ internal sealed partial class MP2KLoadedSong
                             }
                         case MemoryAccessCommand c:
                             {
-                                file.WriteLine($"\t.byte\tMEMACC, {c.Operator}, 0x{c.Address:X2}, {c.Data}");
+                                file.WriteLine($"\t.byte\tMEMACC, {c.Operator}, 0x{c.MemoryAreaAddress:X2}, {c.Data}");
                                 prevParam1 = "MEMACC";
                                 prevParam2 = $"{c.Operator,4}";
-                                prevParam3 = $"{c.Address,4}";
+                                prevParam3 = $"{c.MemoryAreaAddress,4}";
                                 prevParam4 = $"{c.Data}";
                                 prevCommand = c;
                                 break;

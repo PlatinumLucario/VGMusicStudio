@@ -14,15 +14,21 @@ public static class GBAUtils
     public const int CARTRIDGE_CAPACITY = 0x02_000_000;
 
     public static ReadOnlySpan<string> PSGTypes => new string[4] { "Square 1", "Square 2", "PCM4", "Noise" };
-    public static bool IsValidRomOffset(int offset)
+    public static bool IsValidRange(ReadOnlySpan<byte> rom, int offset, int length)
+    {
+        if (offset + length >= rom.Length)
+            return false;
+        return true;
+    }
+    public static bool IsValidRomOffset(ReadOnlySpan<byte> rom, int offset)
     {
         return
-            (offset >= 0 && offset < Math.Min(CARTRIDGE_CAPACITY, Engine.Instance!.Config.ROM!.Length)) // 0 <= Offset < min(0x2000000, ROM.Length)
-            || (offset >= CARTRIDGE_OFFSET && offset < Math.Min(CARTRIDGE_CAPACITY + CARTRIDGE_OFFSET, Engine.Instance!.Config.ROM!.Length + CARTRIDGE_OFFSET)); // 0x8000000 <= Offset < min(0xA000000, ROM.Length + 0x8000000)
+            (offset >= 0 && offset < Math.Min(CARTRIDGE_CAPACITY, rom.Length)) // 0 <= Offset < min(0x2000000, ROM.Length)
+            || (offset >= CARTRIDGE_OFFSET && offset < Math.Min(CARTRIDGE_CAPACITY + CARTRIDGE_OFFSET, rom.Length + CARTRIDGE_OFFSET)); // 0x8000000 <= Offset < min(0xA000000, ROM.Length + 0x8000000)
     }
-    public static int SanitizeOffset(int offset)
+    public static int SanitizeOffset(ReadOnlySpan<byte> rom, int offset)
     {
-        if (!IsValidRomOffset(offset))
+        if (!IsValidRomOffset(rom, offset))
         {
             throw new ArgumentOutOfRangeException($"Offset 0x{offset:X} was invalid.");
         }
@@ -32,8 +38,8 @@ public static class GBAUtils
         }
         return offset;
     }
-    public static int ReadOffsetData(ReadOnlySpan<byte> data)
+    public static int ReadOffsetData(ReadOnlySpan<byte> rom, ReadOnlySpan<byte> data)
     {
-        return SanitizeOffset(BinaryPrimitives.ReadInt32LittleEndian(data));
+        return SanitizeOffset(rom, BinaryPrimitives.ReadInt32LittleEndian(data));
     }
 }

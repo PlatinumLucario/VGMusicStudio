@@ -1,22 +1,22 @@
 using System;
 using System.Runtime.InteropServices;
 using Adw;
+using GObject;
 using Kermalis.VGMusicStudio.Core;
 
 namespace Kermalis.VGMusicStudio.GTK4;
 
-internal class Preferences : Window
+[Subclass<Window>]
+internal partial class Preferences
 {
     private Mixer.AudioBackend PlaybackBackend;
 
     private Gtk.CheckButton RadioButtonPortAudio { get; set; }
     private Gtk.CheckButton RadioButtonMiniAudio { get; set; }
     private Gtk.CheckButton RadioButtonNAudio { get; set; }
-
-    internal Preferences()
+    
+    partial void Initialize()
     {
-        New();
-
         Title = $"Preferences - {MainWindow.GetProgramName()}";
         FocusVisible = true;
         FocusOnClick = true;

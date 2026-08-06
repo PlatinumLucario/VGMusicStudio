@@ -92,8 +92,7 @@ public sealed class AlphaDreamMixer : Mixer
 					}
 					_bufferNAudio = new BufferedWaveProvider(WaveFormat.CreateIeeeFloatWaveFormat(sampleRate, 2)) // TODO
 					{
-						DiscardOnBufferOverflow = true,
-						BufferLength = SamplesPerBuffer * 64
+						DiscardOnBufferOverflow = true
 					};
 					Init(waveProvider: _bufferNAudio);
 					break;

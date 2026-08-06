@@ -3,24 +3,37 @@ using System;
 
 namespace Kermalis.VGMusicStudio.GTK4.Util;
 
-internal class OffsetEntry : Gtk.Box
+[GObject.Subclass<Gtk.Box>]
+internal partial class OffsetEntry
 {
     private Gtk.Label _hexLabel;
-    internal Gtk.Entry Entry;
-    internal OffsetEntry(int offset = 0)
+    // internal Gtk.Entry Entry;
+    internal HexSpinButton Entry;
+
+    [GObject.Subclass<Gtk.SpinButton>]
+    internal partial class HexSpinButton
     {
-        New(Gtk.Orientation.Horizontal, 3);
-        _hexLabel = Gtk.Label.New("0x");
-        Entry = Gtk.Entry.New();
-        Entry.Text_ = $"{offset:X7}";
-        Entry.OnChanged += Offset_OnChanged;
-        Append(_hexLabel);
-        Append(Entry);
+        partial void Initialize()
+        {
+            Text_ = $"{Text_:X7}";
+        }
+    }
+    internal static OffsetEntry Initialize(int offset = 0)
+    {
+        OffsetEntry args = NewWithProperties([new GObject.ConstructArgument("orientation", new GObject.Value(0)), new GObject.ConstructArgument("halign", new GObject.Value(Gtk.Align.Center)), new GObject.ConstructArgument("spacing", new GObject.Value(3))]);
+        args._hexLabel = Gtk.Label.New("0x");
+        args.Entry = HexSpinButton.NewWithProperties([]);
+        args.Entry.Text_ = $"{offset:X7}";
+        args.Entry.OnValueChanged += args.OffsetChanged;
+        args.Entry.OnChangeValue += args.OffsetChanged;
+        args.Append(args._hexLabel);
+        args.Append(args.Entry);
+        return args;
     }
 
-    private void Offset_OnChanged(Gtk.Editable sender, EventArgs args)
+    private void OffsetChanged(Gtk.Editable sender, EventArgs args)
     {
-        Entry.OnChanged -= Offset_OnChanged;
+        Entry.OnChanged -= OffsetChanged;
         var text = sender.GetText();
         for (int i = 0; i < text.Length; i++)
         {
@@ -67,7 +80,7 @@ internal class OffsetEntry : Gtk.Box
 
             Entry.Text_ = $"{text:X7}";
         }
-        Entry.OnChanged += Offset_OnChanged;
+        Entry.OnChanged += OffsetChanged;
     }
 
     internal void SetValue(long offset)

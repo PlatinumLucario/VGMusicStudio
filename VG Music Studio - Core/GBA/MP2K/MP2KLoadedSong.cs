@@ -9,11 +9,12 @@ internal sealed partial class MP2KLoadedSong : LoadedSong
     public override long MaxTicks { get; protected set; }
     public override int HeaderOffset { get; protected set; }
     public override SoundBank Bank { get; protected set; }
+    public MP2KSoundBank Voicegroup => (MP2KSoundBank)Bank;
     public int LongestTrack;
 
     private readonly MP2KPlayer _player;
     public readonly SongHeader Header;
-    private readonly int _soundBankOffset;
+    private readonly int _voicegroupOffset;
     public readonly MP2KTrack[] Tracks;
 
     public MP2KLoadedSong(MP2KPlayer player, int index)
@@ -25,8 +26,8 @@ internal sealed partial class MP2KLoadedSong : LoadedSong
         HeaderOffset = entry.HeaderOffset - GBAUtils.CARTRIDGE_OFFSET;
 
         Header = SongHeader.Get(cfg.ROM, HeaderOffset, out int tracksOffset);
-        _soundBankOffset = Header.SoundBankOffset - GBAUtils.CARTRIDGE_OFFSET;
-        Bank = MP2KSoundBank.LoadTable<MP2KSoundBank>(_soundBankOffset);
+        _voicegroupOffset = Header.SoundBankOffset - GBAUtils.CARTRIDGE_OFFSET;
+        Bank = MP2KSoundBank.LoadTable<MP2KSoundBank>(_voicegroupOffset);
 
         Tracks = new MP2KTrack[Header.NumTracks];
         Events = new List<SongEvent>[Header.NumTracks];
@@ -46,9 +47,9 @@ internal sealed partial class MP2KLoadedSong : LoadedSong
 
     public void CheckVoiceTypeCache(ref int? old, string?[] voiceTypeCache)
     {
-        if (old != _soundBankOffset)
+        if (old != _voicegroupOffset)
         {
-            old = _soundBankOffset;
+            old = _voicegroupOffset;
             Array.Clear(voiceTypeCache);
         }
     }

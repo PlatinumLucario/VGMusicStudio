@@ -35,9 +35,9 @@ internal readonly struct SongEntry
         }
     }
 
-    public static SongEntry Get(byte[] rom, int songTableOffset, int songNum)
+    public static SongEntry Get(byte[] rom, long songTableOffset, int songNum)
     {
-        return new SongEntry(rom.AsSpan(songTableOffset + (songNum * SIZE)));
+        return new SongEntry(rom.AsSpan((int)songTableOffset + (songNum * SIZE)));
     }
 }
 [StructLayout(LayoutKind.Sequential, Pack = 4, Size = SIZE)]
@@ -84,7 +84,7 @@ internal struct SongTableInfo
     public const int PosAuto = 0;
     public const ushort CountAuto = 0xFFFF;
 
-    public int Position = PosAuto;
+    public long Position = PosAuto;
     public ushort Count = CountAuto;
     public int TableIndex = 0;
 
@@ -98,9 +98,15 @@ internal struct SongTableInfo
     }
 }
 
+internal struct PlayerInfo
+{
+    public byte MaxTracks;
+    public byte UsePriority;
+}
+
 internal struct WrappedVoice : IVoice
 {
-    public VoiceEntry? VoiceEntry { get; private set; }
+    public VoiceEntry VoiceEntry { get; private set; }
 
     public int Offset { get; set; }
     public readonly string? Name { get; }
@@ -109,7 +115,7 @@ internal struct WrappedVoice : IVoice
     public bool IsValidVoiceEntry { get; }
 
     public readonly MP2KSoundBank? Table;
-    public readonly Tuple<byte, byte, byte>[]? Keys;
+    public readonly byte[]? Keys;
     public readonly MP2KSample? Sample;
 
     internal WrappedVoice(VoiceEntry voice, bool isSubVoiceGroup = false)
@@ -234,19 +240,16 @@ internal struct WrappedVoice : IVoice
                         try
                         {
                             Table = MP2KSoundBank.LoadTable<MP2KSoundBank>(voice.Int4 - GBAUtils.CARTRIDGE_OFFSET, true, true);
-                            Keys = Table.GetKeys(voice.Int8 - GBAUtils.CARTRIDGE_OFFSET);
+                            Keys = Table.GetKeys(voice.Int8 - GBAUtils.CARTRIDGE_OFFSET).ToArray();
                         }
                         catch
                         {
                             Table = null;
                             Keys = null;
                         }
-                        Name = $"Key Split ({Keys!.Select(k => k.Item1).Distinct().Count()})";
+                        // Name = $"Key Split ({Keys!.Select(k => k.Item1).Distinct().Count()})";
                     }
-                    else
-                    {
-                        Name = $"Key Split";
-                    }
+                    Name = $"Key Split";
                     IsValidVoiceEntry = IsValidTableOffset();
                     break;
                 }
@@ -302,8 +305,8 @@ internal struct WrappedVoice : IVoice
     }
     private readonly bool IsValidTableOffset()
     {
-        var offset = VoiceEntry!.Value.Int4 - GBAUtils.CARTRIDGE_OFFSET;
-        if (GBAUtils.IsValidRomOffset(offset))
+        var offset = VoiceEntry.Int4 - GBAUtils.CARTRIDGE_OFFSET;
+        if (GBAUtils.IsValidRomOffset(Engine.Instance!.Config.ROM!, offset))
         {
             VoiceEntry[] vTable = new VoiceEntry[128];
             for (int i = 0; i < vTable.Length; i++)
@@ -323,7 +326,7 @@ internal struct WrappedVoice : IVoice
     }
     private readonly bool IsValidADSR()
     {
-        switch (VoiceEntry!.Value.Type)
+        switch (VoiceEntry.Type)
         {
             case (byte)VoiceType.PCM8:
                 {
@@ -334,7 +337,7 @@ internal struct WrappedVoice : IVoice
             case (byte)VoiceType.PCM4:
             case (byte)VoiceType.Noise:
                 {
-                    return (VoiceEntry!.Value.ADSR.A <= 0x7) && (VoiceEntry.Value.ADSR.D <= 0x7) && (VoiceEntry.Value.ADSR.S <= 0xF) && (VoiceEntry.Value.ADSR.R <= 0x7);
+                    return (VoiceEntry.ADSR.A <= 0x7) && (VoiceEntry.ADSR.D <= 0x7) && (VoiceEntry.ADSR.S <= 0xF) && (VoiceEntry.ADSR.R <= 0x7);
                 }
 
             case (byte)VoiceType.Invalid5:
@@ -573,11 +576,11 @@ internal struct SampleInfo
 
         if (Header.LoopOffset > Header.Length)
         {
-        	Header.LoopOffset = 0;
+            Header.LoopOffset = 0;
         }
         if (Header.LoopOffset == Header.Length)
         {
-        	LoopEnabled = false;
+            LoopEnabled = false;
         }
     }
 }
@@ -619,7 +622,7 @@ internal struct MP2KSoundMode
 
     public byte Volume = VOL_AUTO;
     public byte Reverb = 0;
-    public byte Frequency = FREQ_AUTO;
+    public byte FrequencyIndex = FREQ_AUTO;
     public byte MaxChannels = CHN_AUTO;    // currently unused
     public byte DACConfig = DAC_AUTO;      // currently unused
 
@@ -627,7 +630,7 @@ internal struct MP2KSoundMode
 
     public readonly bool IsAuto()
     {
-        return Volume == VOL_AUTO || Reverb == REV_MASK_VAL || Frequency == FREQ_AUTO || MaxChannels == CHN_AUTO || DACConfig == DAC_AUTO;
+        return Volume == VOL_AUTO || Reverb == REV_MASK_VAL || FrequencyIndex == FREQ_AUTO || MaxChannels == CHN_AUTO || DACConfig == DAC_AUTO;
     }
 }
 
@@ -647,3 +650,11 @@ internal struct PlayerSoundMode
     {
     }
 }
+
+internal struct ScanResult
+{
+    internal MP2KSoundMode MP2KSoundMode;
+    internal List<PlayerInfo> PlayerTableInfo;
+    internal SongTableInfo SongTableInfo;
+}
+

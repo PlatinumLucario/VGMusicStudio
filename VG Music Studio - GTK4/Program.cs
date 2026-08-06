@@ -16,7 +16,7 @@ namespace Kermalis.VGMusicStudio.GTK4
 
 		static void OnActivate(Gio.Application sender, EventArgs e)
 		{
-
+			//
 		}
 
 		[STAThread]
@@ -71,7 +71,8 @@ namespace Kermalis.VGMusicStudio.GTK4
 				initial = args[0].Trim();
 
 			// Add Main Window
-			var win = new MainWindow(_app);
+			var win = MainWindow.NewWithProperties([]);
+			win.CreateWindow(_app);
 			_app.AddWindow(win);
 			win.Present();
 			_app.Run(args);

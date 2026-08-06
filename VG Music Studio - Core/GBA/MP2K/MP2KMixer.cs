@@ -52,7 +52,7 @@ public sealed class MP2KMixer : Mixer
     internal MP2KMixer(MP2KConfig config)
     {
         Config = config;
-        (SampleRate, SamplesPerBuffer) = MP2KUtils.FrequencyTable[config.SampleRate];
+        (SampleRate, SamplesPerBuffer) = MP2KUtils.FrequencyTable[config.FrequencyIndex];
         SampleRateReciprocal = 1f / SampleRate;
         _samplesReciprocal = 1f / SamplesPerBuffer;
         // PCM8MasterVolume = config.Volume / 15f;
@@ -97,8 +97,7 @@ public sealed class MP2KMixer : Mixer
                     _audioNAudio = new WaveBuffer(amt * sizeof(float)) { FloatBufferCount = amt };
                     _bufferNAudio = new BufferedWaveProvider(WaveFormat.CreateIeeeFloatWaveFormat(SampleRate, 2))
                     {
-                        DiscardOnBufferOverflow = true,
-                        BufferLength = SamplesPerBuffer * 64,
+                        DiscardOnBufferOverflow = true
                     };
                     Init(waveProvider: _bufferNAudio);
                     break;
@@ -224,7 +223,7 @@ public sealed class MP2KMixer : Mixer
 
         MP2KContext ctx = MP2KEngine.MP2KInstance!.Context;
 
-        _fixedModeRate = rateTable[ctx.MP2KSoundMode.Frequency % rateTable.Length];
+        _fixedModeRate = rateTable[ctx.MP2KSoundMode.FrequencyIndex % rateTable.Length];
 
         byte numDmaBuffers = Math.Max(
             (byte)2, (byte)(ctx.PlayerSoundMode.DMABufferLength / (float)(_fixedModeRate / GBAUtils.AGB_APPROX_FPS))
@@ -307,7 +306,7 @@ public sealed class MP2KMixer : Mixer
 
         MixingArgs margs = new()
         {
-            Volume = (MP2KEngine.MP2KInstance!.SoundMode.Volume + 1) / 16.0f,
+            Volume = (MP2KEngine.MP2KInstance!.Context.MP2KSoundMode.Volume + 1) / 16.0f,
             FixedModeRate = SampleRate,
             SampleRateInv = 1.0f / SampleRate,
             SamplesPerBufferInv = 1.0f / SamplesPerBuffer

@@ -2,23 +2,25 @@ using Adw;
 
 namespace Kermalis.VGMusicStudio.GTK4;
 
-internal class WidgetWindow : Window
+[GObject.Subclass<Window>]
+internal partial class WidgetWindow
 {
     internal Gtk.Box WidgetBox;
-    internal WidgetWindow(Gtk.Widget widget)
+    internal static WidgetWindow CreateWindow(Gtk.Widget widget)
     {
-        New();
-
-        Title = MainWindow.GetProgramName();
+        WidgetWindow args = NewWithProperties([]);
+        args.Title = MainWindow.GetProgramName();
 
         var header = HeaderBar.New();
-        WidgetBox = Gtk.Box.New(Gtk.Orientation.Vertical, 0);
-        WidgetBox.Append(widget);
+        args.WidgetBox = Gtk.Box.New(Gtk.Orientation.Vertical, 0);
+        args.WidgetBox.Append(widget);
 
         var box = Gtk.Box.New(Gtk.Orientation.Vertical, 0);
         box.Append(header);
-        box.Append(WidgetBox);
+        box.Append(args.WidgetBox);
         
-        SetContent(box);
+        args.SetContent(box);
+
+        return args;
     }
 }

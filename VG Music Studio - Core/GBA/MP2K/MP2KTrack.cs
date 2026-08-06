@@ -24,12 +24,13 @@ internal sealed class MP2KTrack
 	public sbyte Transpose;
 	public bool Ready;
 	public bool Stopped;
-	public int Position;
-	public int[] CallStack = new int[3];
+	public long ROMOffset;
+	public int EventPosition;
+	public long[][] CallStack = new long[2][];
 	public byte CallStackDepth;
 	public bool RepeatActivated = false;
 	public byte RepeatTimes;
-	public byte RunCmd;
+	public ICommand RunCmd = null!;
 	public byte PrevNote;
 	public byte PrevVelocity;
 	public byte PrevDuration;
@@ -95,6 +96,8 @@ internal sealed class MP2KTrack
 		Index = i;
 		_startOffset = startOffset;
 		Buffer = new float[samplesPerBuffer * 2];
+		CallStack[0] = new long[3];
+		CallStack[1] = new long[3];
 	}
 	public void Init()
 	{
@@ -113,8 +116,8 @@ internal sealed class MP2KTrack
 		Tune = 0;
 		Panpot = 0;
 		Transpose = 0;
-		Position = _startOffset;
-		RunCmd = 0;
+		ROMOffset = _startOffset;
+		EventPosition = 0;
 		PrevNote = 0;
 		PrevVelocity = 0x7F;
 		PrevDuration = 0;
@@ -204,7 +207,7 @@ internal sealed class MP2KTrack
 
 	public void UpdateSongState(SongState.Track tin, MP2KLoadedSong loadedSong, string?[] voiceTypeCache)
 	{
-		tin.Position = Position;
+		tin.Position = ROMOffset;
 		tin.Rest = Rest;
 		tin.Voice = Voice;
 		tin.LFO = LFODepth;

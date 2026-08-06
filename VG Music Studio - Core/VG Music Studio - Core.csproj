@@ -16,12 +16,13 @@
 		<!-- <ProjectReference Include="../../KMIDI/KMIDI/KMIDI.csproj" /> -->
 
 		<!-- Comment out these lines below if debugging and researching NAudio.Core and NAudio.Wasapi and using as Project References -->
-		<PackageReference Include="NAudio.Core" Version="2.2.1" /> 
-		<PackageReference Include="NAudio.Wasapi" Version="2.2.1" />
+		<PackageReference Include="NAudio.Core" Version="3.0.0-preview.19" /> 
+		<PackageReference Include="NAudio.Wasapi" Version="3.0.0-preview.19" />
+		<PackageReference Include="NAudio.Alsa" Version="3.0.0-preview.19" />
 
-		<PackageReference Include="SoundFlow" Version="1.2.1" />
+		<PackageReference Include="SoundFlow" Version="1.4.1" />
 
-		<PackageReference Include="YamlDotNet" Version="16.3.0" />
+		<PackageReference Include="YamlDotNet" Version="18.1.0" />
 
 		<PackageReference Condition="$([MSBuild]::IsOSPlatform('Linux')) And '$(Platform)' != 'ARM64'" Include="org.portaudio.runtime.linux-x64" Version="19.7.5.1" />
 		<PackageReference Condition="$([MSBuild]::IsOSPlatform('OSX')) And '$(Platform)' != 'ARM64'" Include="org.portaudio.runtime.osx-x64" Version="19.7.5" />

@@ -14,6 +14,7 @@ using SoundFlow.Providers;
 using SoundFlow.Structs;
 using SoundFlow.Abstracts.Devices;
 using SoundFlow.Interfaces;
+using NAudio.Wave.Alsa;
 
 namespace Kermalis.VGMusicStudio.Core;
 
@@ -47,7 +48,8 @@ public abstract class Mixer : IAudioSessionEventsHandler, IDisposable
     #region NAudio Fields
     // NAudio Fields
     public static event Action<float>? VolumeChanged;
-    private WasapiOut? _out;
+    private WasapiOut? _wasapiOut;
+    private AlsaOut? _alsaOut;
     private AudioSessionControl? _appVolume;
 
     private bool _shouldSendVolUpdateEvent = true;
@@ -71,7 +73,7 @@ public abstract class Mixer : IAudioSessionEventsHandler, IDisposable
         Mutes = new bool[SongState.MAX_TRACKS];
         if (PlaybackBackend is AudioBackend.NAudio)
         {
-            _out = null!;
+            _wasapiOut = null!;
             _appVolume = null!;
         }
     }
@@ -109,24 +111,33 @@ public abstract class Mixer : IAudioSessionEventsHandler, IDisposable
                 }
             case AudioBackend.NAudio:
                 {
-                    _out = new WasapiOut();
-                    _out.Init(waveProvider);
-                    using (var en = new MMDeviceEnumerator())
+                    if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                     {
-                        SessionCollection sessions = en.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia).AudioSessionManager.Sessions;
-                        int id = Environment.ProcessId;
-                        for (int i = 0; i < sessions.Count; i++)
+                        _wasapiOut = new WasapiOut();
+                        _wasapiOut.Init(waveProvider);
+                        using (var en = new MMDeviceEnumerator())
                         {
-                            AudioSessionControl session = sessions[i];
-                            if (session.GetProcessID == id)
+                            SessionCollection sessions = en.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia).AudioSessionManager.Sessions;
+                            int id = Environment.ProcessId;
+                            for (int i = 0; i < sessions.Count; i++)
                             {
-                                _appVolume = session;
-                                _appVolume.RegisterEventClient(this);
-                                break;
+                                AudioSessionControl session = sessions[i];
+                                if (session.GetProcessID == id)
+                                {
+                                    _appVolume = session;
+                                    _appVolume.RegisterEventClient(this);
+                                    break;
+                                }
                             }
                         }
+                        _wasapiOut.Play();
                     }
-                    _out.Play();
+                    else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                    {
+                        _alsaOut = new AlsaOut();
+                        _alsaOut.Init(waveProvider);
+                        _alsaOut.Play();
+                    }
                     break;
                 }
         }
@@ -224,7 +235,7 @@ public abstract class Mixer : IAudioSessionEventsHandler, IDisposable
 
                     _soundFlowFileStream = new FileStream(fileName, FileMode.Create, FileAccess.Write, FileShare.None);
 
-                    _soundFlowEncoder = _soundFlowEngine.CreateEncoder(_soundFlowFileStream, EncodingFormat.Wav, SoundFlowFormat);
+                    _soundFlowEncoder = _soundFlowEngine.CreateEncoder(_soundFlowFileStream, "wav", SoundFlowFormat);
                     break;
                 }
             case AudioBackend.PortAudio:
@@ -294,10 +305,10 @@ public abstract class Mixer : IAudioSessionEventsHandler, IDisposable
                 }
             case AudioBackend.NAudio:
                 {
-                    if (_out is not null && _appVolume is not null)
+                    if (_wasapiOut is not null && _appVolume is not null)
                     {
-                        _out.Stop();
-                        _out.Dispose();
+                        _wasapiOut.Stop();
+                        _wasapiOut.Dispose();
                         _appVolume.Dispose();
                     }
                     break;

@@ -11,34 +11,33 @@ using Kermalis.VGMusicStudio.GTK4.Util;
 
 namespace Kermalis.VGMusicStudio.GTK4;
 
-internal sealed class SoundBankEditor : Adw.Window
+[GObject.Subclass<Adw.Window>]
+internal sealed partial class SoundBankEditor
 {
     private IVoiceInfo? _voiceInfo;
 
     private SoundBank? _bank;
-    private readonly Gio.ListStore _voicesModel = Gio.ListStore.New(GetGType());
+    private Gio.ListStore _voicesModel = Gio.ListStore.New(GetGType());
     private Gtk.SingleSelection? _singleSelectionModel;
     private Gtk.ColumnView? _voicesColumnView;
     internal List<SoundBankEditor>? VoicesData { get; set; } = [];
 
     private int _voicesClickSelectionIndex = 0;
 
-    private readonly Gtk.Box? _voicesEditorBox;
+    private Gtk.Box? _voicesEditorBox;
     private Gtk.Box[]? _voicesEditorParamBox;
     private Gtk.SpinButton[]? _voiceParamValue;
     private Gtk.Label[]? _voiceParamLabel;
     private OffsetEntry? _voiceParamOffset;
     private Gtk.Button? _buttonSubVoicesOffset;
 
-    private SoundBankEditor(IVoiceInfo voiceInfo)
-    : base()
+    private SoundBankEditor AddEntry(IVoiceInfo voiceInfo)
     {
         _voiceInfo = voiceInfo;
+        return this;
     }
-    internal SoundBankEditor()
+    partial void Initialize()
     {
-        New();
-
         _voicesEditorBox = Gtk.Box.New(Gtk.Orientation.Vertical, 6);
         var viewportBox = Gtk.Box.New(Gtk.Orientation.Vertical, 6);
         var contentBox = Gtk.Box.New(Gtk.Orientation.Horizontal, 6);
@@ -255,7 +254,7 @@ internal sealed class SoundBankEditor : Adw.Window
             {
                 _voiceParamLabel[0] = Gtk.Label.New("Sample Offset");
             }
-            _voiceParamOffset = new(_bank.GetVoiceAddress((int)_singleSelectionModel.Selected));
+            _voiceParamOffset = OffsetEntry.Initialize(_bank.GetVoiceAddress((int)_singleSelectionModel.Selected));
             _voicesEditorParamBox[0].Append(_voiceParamLabel[0]);
             _voicesEditorParamBox[0].Append(_voiceParamOffset);
             if (_bank.IsTableAddress((int)_singleSelectionModel.Selected))
@@ -319,7 +318,7 @@ internal sealed class SoundBankEditor : Adw.Window
     {
         var subBank = _bank!.LoadFromAddress(_bank.GetVoiceAddress((int)_singleSelectionModel.Selected));
 
-        var soundBankEditor = new SoundBankEditor();
+        var soundBankEditor = NewWithProperties([]);
         if (Engine.Instance is not null)
         {
             soundBankEditor.Init();
@@ -371,7 +370,7 @@ internal sealed class SoundBankEditor : Adw.Window
 
         foreach (var voice in instance)
         {
-            voicesData.Add(new SoundBankEditor(voice));
+            voicesData.Add(AddEntry(voice));
         }
         if (voicesData.Count is not 0)
         {

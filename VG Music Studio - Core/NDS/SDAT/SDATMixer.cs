@@ -79,8 +79,7 @@ public sealed class SDATMixer : Mixer
 				{
 					_bufferNAudio = new BufferedWaveProvider(new WaveFormat(sampleRate, 16, 2))
 					{
-						DiscardOnBufferOverflow = true,
-						BufferLength = SamplesPerBuffer * 64
+						DiscardOnBufferOverflow = true
 					};
 					Init(waveProvider: _bufferNAudio);
 					break;

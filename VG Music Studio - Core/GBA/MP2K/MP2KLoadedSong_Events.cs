@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 
 namespace Kermalis.VGMusicStudio.Core.GBA.MP2K;
 
@@ -30,6 +31,91 @@ internal sealed partial class MP2KLoadedSong
         Events[trackIndex].RemoveAt(eventIndex);
         CalculateTicks(trackIndex);
     }
+    public override CommandArg[] GetCommandMembers(int trackIndex, int eventIndex)
+    {
+        var se = MP2KEngine.MP2KInstance!.Player.LoadedSong!.Events[trackIndex]![eventIndex]!;
+        MemberInfo[] ic = typeof(ICommand).GetMembers();
+        MemberInfo[] iseq = typeof(ISequenceCommand).GetMembers();
+        MemberInfo[] irun = typeof(IRunCommand).GetMembers();
+        MemberInfo[] ignore = ic.Combine(iseq).Combine(irun);
+        bool FindMembers(MemberInfo m)
+        {
+            bool ByName(MemberInfo a)
+            {
+                return m.Name == a.Name;
+            }
+            return !ignore.Any(ByName) && (m is FieldInfo || m is PropertyInfo);
+        }
+        MemberInfo[] mi = se.Command == null ? [] : [.. se.Command.GetType().GetMembers().Where(FindMembers)];
+        CommandArg[] args = new CommandArg[mi.Length];
+        for (int i = 0; i < mi.Length; i++)
+        {
+            TypeInfo valueType;
+            object value;
+            args[i].Name = mi[i].Name;
+            if (mi[i].MemberType == MemberTypes.Field)
+            {
+                valueType = (TypeInfo)((FieldInfo)mi[i]).FieldType;
+                value = ((FieldInfo)mi[i]).GetValue(se.Command)!;
+            }
+            else
+            {
+                valueType = (TypeInfo)((PropertyInfo)mi[i]).PropertyType;
+                value = ((PropertyInfo)mi[i]).GetValue(se.Command)!;
+            }
+
+            switch (valueType.Name)
+            {
+                case "CommandPointer":
+                    {
+                        CommandPointer ptr = (CommandPointer)value;
+                        args[i].Type = CommandArg.ValueType.Pointer;
+                        args[i].Value = ptr.Index;
+                        args[i].Offset = ptr.Offset;
+                        break;
+                    }
+                case "Boolean":
+                    {
+                        args[i].Type = CommandArg.ValueType.Boolean;
+                        args[i].Value = (int)Convert.ChangeType(value, TypeCode.Int32);
+                        break;
+                    }
+                default:
+                    {
+                        args[i].Type = CommandArg.ValueType.Number;
+                        args[i].Value = (int)Convert.ChangeType(value, TypeCode.Int32);
+                        break;
+                    }
+            }
+
+            object lower = null!;
+            object upper = null!;
+            foreach (var val in valueType.DeclaredFields)
+            {
+                if (val.Name == "MinValue")
+                {
+                    lower = val.GetValue(mi[i])!;
+                }
+                if (val.Name == "MaxValue")
+                {
+                    upper = val.GetValue(mi[i])!;
+                }
+            }
+
+            if (lower is not null && upper is not null)
+            {
+                args[i].MinValue = (int)Convert.ChangeType(lower, TypeCode.Int32);
+                args[i].MaxValue = (int)Convert.ChangeType(upper, TypeCode.Int32);
+            }
+            else
+            {
+                args[i].MinValue = -100;
+                args[i].MaxValue = 100;
+            }
+        }
+        return args;
+    }
+
     public override bool CallOrJumpCommand(SongEvent e)
     {
         return e.Command is CallCommand || e.Command is JumpCommand;
@@ -53,6 +139,7 @@ internal sealed partial class MP2KLoadedSong
             Note = key,
             Velocity = velocity,
             Duration = runCmd == 0xCF ? -1 : (MP2KUtils.RestTable[runCmd - 0xCF] + addedDuration),
+            IsRepeated = runCmd >= 0xCF && key <= 0x7F,
         });
     }
 
@@ -163,7 +250,7 @@ internal sealed partial class MP2KLoadedSong
                             {
                                 if (!EventExists(trackIndex, offset))
                                 {
-                                    AddEvent(trackIndex, offset, new VoiceCommand { Voice = cmd });
+                                    AddEvent(trackIndex, offset, new VoiceCommand { Voice = cmd, IsRepeated = true });
                                 }
                                 break;
                             }
@@ -171,7 +258,7 @@ internal sealed partial class MP2KLoadedSong
                             {
                                 if (!EventExists(trackIndex, offset))
                                 {
-                                    AddEvent(trackIndex, offset, new VolumeCommand { Volume = cmd });
+                                    AddEvent(trackIndex, offset, new VolumeCommand { Volume = cmd, IsRepeated = true });
                                 }
                                 break;
                             }
@@ -179,7 +266,7 @@ internal sealed partial class MP2KLoadedSong
                             {
                                 if (!EventExists(trackIndex, offset))
                                 {
-                                    AddEvent(trackIndex, offset, new PanpotCommand { Panpot = (sbyte)(cmd - 0x40) });
+                                    AddEvent(trackIndex, offset, new PanpotCommand { Panpot = (sbyte)(cmd - 0x40), IsRepeated = true });
                                 }
                                 break;
                             }
@@ -187,7 +274,7 @@ internal sealed partial class MP2KLoadedSong
                             {
                                 if (!EventExists(trackIndex, offset))
                                 {
-                                    AddEvent(trackIndex, offset, new PitchBendCommand { Bend = (sbyte)(cmd - 0x40) });
+                                    AddEvent(trackIndex, offset, new PitchBendCommand { Bend = (sbyte)(cmd - 0x40), IsRepeated = true });
                                 }
                                 break;
                             }
@@ -195,7 +282,7 @@ internal sealed partial class MP2KLoadedSong
                             {
                                 if (!EventExists(trackIndex, offset))
                                 {
-                                    AddEvent(trackIndex, offset, new PitchBendRangeCommand { Range = cmd });
+                                    AddEvent(trackIndex, offset, new PitchBendRangeCommand { Range = cmd, IsRepeated = true });
                                 }
                                 break;
                             }
@@ -203,7 +290,7 @@ internal sealed partial class MP2KLoadedSong
                             {
                                 if (!EventExists(trackIndex, offset))
                                 {
-                                    AddEvent(trackIndex, offset, new LFOSpeedCommand { Speed = cmd });
+                                    AddEvent(trackIndex, offset, new LFOSpeedCommand { Speed = cmd, IsRepeated = true });
                                 }
                                 break;
                             }
@@ -211,7 +298,7 @@ internal sealed partial class MP2KLoadedSong
                             {
                                 if (!EventExists(trackIndex, offset))
                                 {
-                                    AddEvent(trackIndex, offset, new LFODelayCommand { Delay = cmd });
+                                    AddEvent(trackIndex, offset, new LFODelayCommand { Delay = cmd, IsRepeated = true });
                                 }
                                 break;
                             }
@@ -219,7 +306,7 @@ internal sealed partial class MP2KLoadedSong
                             {
                                 if (!EventExists(trackIndex, offset))
                                 {
-                                    AddEvent(trackIndex, offset, new LFODepthCommand { Depth = cmd });
+                                    AddEvent(trackIndex, offset, new LFODepthCommand { Depth = cmd, IsRepeated = true });
                                 }
                                 break;
                             }
@@ -227,7 +314,7 @@ internal sealed partial class MP2KLoadedSong
                             {
                                 if (!EventExists(trackIndex, offset))
                                 {
-                                    AddEvent(trackIndex, offset, new LFOTypeCommand { Type = (LFOType)cmd });
+                                    AddEvent(trackIndex, offset, new LFOTypeCommand { Type = (LFOType)cmd, IsRepeated = true });
                                 }
                                 break;
                             }
@@ -235,7 +322,7 @@ internal sealed partial class MP2KLoadedSong
                             {
                                 if (!EventExists(trackIndex, offset))
                                 {
-                                    AddEvent(trackIndex, offset, new TuneCommand { Tune = (sbyte)(cmd - 0x40) });
+                                    AddEvent(trackIndex, offset, new TuneCommand { Tune = (sbyte)(cmd - 0x40), IsRepeated = true });
                                 }
                                 break;
                             }
@@ -244,7 +331,7 @@ internal sealed partial class MP2KLoadedSong
                                 byte arg = r.ReadByte();
                                 if (!EventExists(trackIndex, offset))
                                 {
-                                    AddEvent(trackIndex, offset, new LibraryCommand { LibraryCommandType = (ExtendedCommandType)cmd, Argument = arg });
+                                    AddEvent(trackIndex, offset, new LibraryCommand { LibraryCommandType = (ExtendedCommandType)cmd, Argument = arg, IsRepeated = true });
                                 }
                                 break;
                             }
@@ -253,7 +340,7 @@ internal sealed partial class MP2KLoadedSong
                                 prevKey = cmd;
                                 if (!EventExists(trackIndex, offset))
                                 {
-                                    AddEvent(trackIndex, offset, new EndOfTieCommand { Note = cmd });
+                                    AddEvent(trackIndex, offset, new EndOfTieCommand { Note = cmd, IsRepeated = true });
                                 }
                                 break;
                             }
@@ -276,29 +363,45 @@ internal sealed partial class MP2KLoadedSong
                             }
                         case 0xB2:
                             {
-                                int jumpOffset = r.ReadInt32() - GBAUtils.CARTRIDGE_OFFSET;
+                                CommandPointer pointer = new()
+                                {
+                                    Offset = r.ReadInt32() - GBAUtils.CARTRIDGE_OFFSET
+                                };
+                                bool GetSongEvent(SongEvent ev)
+                                {
+                                    return ev.Offset == pointer.Offset;
+                                }
+                                pointer.Index = Events[trackIndex].FindIndex(GetSongEvent);
                                 if (!EventExists(trackIndex, offset))
                                 {
-                                    AddEvent(trackIndex, offset, new JumpCommand { Offset = jumpOffset });
-                                    if (!EventExists(trackIndex, jumpOffset))
+                                    AddEvent(trackIndex, offset, new JumpCommand { Pointer = pointer });
+                                    if (!EventExists(trackIndex, pointer.Offset))
                                     {
-                                        AddEvents(trackIndex, jumpOffset, ref runCmd, ref prevKey, ref prevVelocity, ref callStackDepth);
+                                        AddEvents(trackIndex, pointer.Offset, ref runCmd, ref prevKey, ref prevVelocity, ref callStackDepth);
                                     }
                                 }
                                 break;
                             }
                         case 0xB3:
                             {
-                                int callOffset = r.ReadInt32() - GBAUtils.CARTRIDGE_OFFSET;
+                                CommandPointer pointer = new()
+                                {
+                                    Offset = r.ReadInt32() - GBAUtils.CARTRIDGE_OFFSET
+                                };
+                                bool GetSongEvent(SongEvent ev)
+                                {
+                                    return ev.Offset == pointer.Offset;
+                                }
+                                pointer.Index = Events[trackIndex].FindIndex(GetSongEvent);
                                 if (!EventExists(trackIndex, offset))
                                 {
-                                    AddEvent(trackIndex, offset, new CallCommand { Offset = callOffset });
+                                    AddEvent(trackIndex, offset, new CallCommand { Pointer = pointer });
                                 }
                                 if (callStackDepth < 3)
                                 {
                                     long backup = r.Stream.Position;
                                     callStackDepth++;
-                                    AddEvents(trackIndex, callOffset, ref runCmd, ref prevKey, ref prevVelocity, ref callStackDepth);
+                                    AddEvents(trackIndex, pointer.Offset, ref runCmd, ref prevKey, ref prevVelocity, ref callStackDepth);
                                     r.Stream.Position = backup;
                                 }
                                 else
@@ -320,13 +423,21 @@ internal sealed partial class MP2KLoadedSong
                                 }
                                 break;
                             }
-                        case 0xB5: // TODO: Logic so this isn't an infinite loop
+                        case 0xB5:
                             {
                                 byte times = r.ReadByte();
-                                int repeatOffset = r.ReadInt32() - GBAUtils.CARTRIDGE_OFFSET;
+                                CommandPointer pointer = new()
+                                {
+                                    Offset = r.ReadInt32() - GBAUtils.CARTRIDGE_OFFSET
+                                };
+                                bool GetSongEvent(SongEvent ev)
+                                {
+                                    return ev.Offset == pointer.Offset;
+                                }
+                                pointer.Index = Events[trackIndex].FindIndex(GetSongEvent);
                                 if (!EventExists(trackIndex, offset))
                                 {
-                                    AddEvent(trackIndex, offset, new RepeatCommand { Times = times, Offset = repeatOffset });
+                                    AddEvent(trackIndex, offset, new RepeatCommand { Times = times, Pointer = pointer });
                                 }
                                 break;
                             }
@@ -335,9 +446,23 @@ internal sealed partial class MP2KLoadedSong
                                 byte op = r.ReadByte();
                                 byte address = r.ReadByte();
                                 byte data = r.ReadByte();
+                                CommandPointer pointer = new()
+                                {
+                                    Offset = -1,
+                                    Index = -1
+                                };
+                                if (op >= (byte)MemoryOperatorType.MemBEq && op <= (byte)MemoryOperatorType.MemMemBLo)
+                                {
+                                    pointer.Offset = r.ReadInt32() - GBAUtils.CARTRIDGE_OFFSET;
+                                    bool GetSongEvent(SongEvent ev)
+                                    {
+                                        return ev.Offset == pointer.Offset;
+                                    }
+                                    pointer.Index = Events[trackIndex].FindIndex(GetSongEvent);
+                                }
                                 if (!EventExists(trackIndex, offset))
                                 {
-                                    AddEvent(trackIndex, offset, new MemoryAccessCommand { Operator = (MemoryOperatorType)op, Address = address, Data = data });
+                                    AddEvent(trackIndex, offset, new MemoryAccessCommand { Operator = (MemoryOperatorType)op, MemoryAreaAddress = address, Data = data, Pointer = pointer });
                                 }
                                 break;
                             }
@@ -374,7 +499,7 @@ internal sealed partial class MP2KLoadedSong
                                 byte voice = r.ReadByte();
                                 if (!EventExists(trackIndex, offset))
                                 {
-                                    AddEvent(trackIndex, offset, new VoiceCommand { Voice = voice });
+                                    AddEvent(trackIndex, offset, new VoiceCommand { Voice = voice, IsRepeated = false });
                                 }
                                 break;
                             }
@@ -383,7 +508,7 @@ internal sealed partial class MP2KLoadedSong
                                 byte volume = r.ReadByte();
                                 if (!EventExists(trackIndex, offset))
                                 {
-                                    AddEvent(trackIndex, offset, new VolumeCommand { Volume = volume });
+                                    AddEvent(trackIndex, offset, new VolumeCommand { Volume = volume, IsRepeated = false });
                                 }
                                 break;
                             }
@@ -392,7 +517,7 @@ internal sealed partial class MP2KLoadedSong
                                 byte panArg = r.ReadByte();
                                 if (!EventExists(trackIndex, offset))
                                 {
-                                    AddEvent(trackIndex, offset, new PanpotCommand { Panpot = (sbyte)(panArg - 0x40) });
+                                    AddEvent(trackIndex, offset, new PanpotCommand { Panpot = (sbyte)(panArg - 0x40), IsRepeated = false });
                                 }
                                 break;
                             }
@@ -401,7 +526,7 @@ internal sealed partial class MP2KLoadedSong
                                 byte bendArg = r.ReadByte();
                                 if (!EventExists(trackIndex, offset))
                                 {
-                                    AddEvent(trackIndex, offset, new PitchBendCommand { Bend = (sbyte)(bendArg - 0x40) });
+                                    AddEvent(trackIndex, offset, new PitchBendCommand { Bend = (sbyte)(bendArg - 0x40), IsRepeated = false });
                                 }
                                 break;
                             }
@@ -410,7 +535,7 @@ internal sealed partial class MP2KLoadedSong
                                 byte range = r.ReadByte();
                                 if (!EventExists(trackIndex, offset))
                                 {
-                                    AddEvent(trackIndex, offset, new PitchBendRangeCommand { Range = range });
+                                    AddEvent(trackIndex, offset, new PitchBendRangeCommand { Range = range, IsRepeated = false });
                                 }
                                 break;
                             }
@@ -419,7 +544,7 @@ internal sealed partial class MP2KLoadedSong
                                 byte speed = r.ReadByte();
                                 if (!EventExists(trackIndex, offset))
                                 {
-                                    AddEvent(trackIndex, offset, new LFOSpeedCommand { Speed = speed });
+                                    AddEvent(trackIndex, offset, new LFOSpeedCommand { Speed = speed, IsRepeated = false });
                                 }
                                 break;
                             }
@@ -428,7 +553,7 @@ internal sealed partial class MP2KLoadedSong
                                 byte delay = r.ReadByte();
                                 if (!EventExists(trackIndex, offset))
                                 {
-                                    AddEvent(trackIndex, offset, new LFODelayCommand { Delay = delay });
+                                    AddEvent(trackIndex, offset, new LFODelayCommand { Delay = delay, IsRepeated = false });
                                 }
                                 break;
                             }
@@ -437,7 +562,7 @@ internal sealed partial class MP2KLoadedSong
                                 byte depth = r.ReadByte();
                                 if (!EventExists(trackIndex, offset))
                                 {
-                                    AddEvent(trackIndex, offset, new LFODepthCommand { Depth = depth });
+                                    AddEvent(trackIndex, offset, new LFODepthCommand { Depth = depth, IsRepeated = false });
                                 }
                                 break;
                             }
@@ -446,7 +571,7 @@ internal sealed partial class MP2KLoadedSong
                                 byte type = r.ReadByte();
                                 if (!EventExists(trackIndex, offset))
                                 {
-                                    AddEvent(trackIndex, offset, new LFOTypeCommand { Type = (LFOType)type });
+                                    AddEvent(trackIndex, offset, new LFOTypeCommand { Type = (LFOType)type, IsRepeated = false });
                                 }
                                 break;
                             }
@@ -455,7 +580,7 @@ internal sealed partial class MP2KLoadedSong
                                 byte tuneArg = r.ReadByte();
                                 if (!EventExists(trackIndex, offset))
                                 {
-                                    AddEvent(trackIndex, offset, new TuneCommand { Tune = (sbyte)(tuneArg - 0x40) });
+                                    AddEvent(trackIndex, offset, new TuneCommand { Tune = (sbyte)(tuneArg - 0x40), IsRepeated = false });
                                 }
                                 break;
                             }
@@ -465,7 +590,7 @@ internal sealed partial class MP2KLoadedSong
                                 byte arg = r.ReadByte();
                                 if (!EventExists(trackIndex, offset))
                                 {
-                                    AddEvent(trackIndex, offset, new LibraryCommand { LibraryCommandType = (ExtendedCommandType)command, Argument = arg });
+                                    AddEvent(trackIndex, offset, new LibraryCommand { LibraryCommandType = (ExtendedCommandType)command, Argument = arg, IsRepeated = false });
                                 }
                                 break;
                             }
@@ -474,7 +599,7 @@ internal sealed partial class MP2KLoadedSong
                                 int key = r.PeekByte() <= 0x7F ? (prevKey = r.ReadByte()) : -1;
                                 if (!EventExists(trackIndex, offset))
                                 {
-                                    AddEvent(trackIndex, offset, new EndOfTieCommand { Note = key });
+                                    AddEvent(trackIndex, offset, new EndOfTieCommand { Note = key, IsRepeated = false });
                                 }
                                 break;
                             }
@@ -505,7 +630,11 @@ internal sealed partial class MP2KLoadedSong
             }
             else if (e.Command is CallCommand call)
             {
-                int jumpCmd = track.FindIndex(c => c.Offset == call.Offset);
+                bool FindByOffset(SongEvent c)
+                {
+                    return c.Offset == call.Pointer.Offset;
+                }
+                int jumpCmd = track.FindIndex(FindByOffset);
                 endOfPattern = i;
                 i = jumpCmd - 1;
             }
@@ -523,7 +652,11 @@ internal sealed partial class MP2KLoadedSong
         for (int trackIndex = 0; trackIndex < Events.Length; trackIndex++)
         {
             List<SongEvent> evs = Events[trackIndex];
-            evs.Sort((e1, e2) => e1.Offset.CompareTo(e2.Offset));
+            int SortByOffset(SongEvent ev1, SongEvent ev2)
+            {
+                return ev1.Offset.CompareTo(ev2.Offset);
+            }
+            evs.Sort(SortByOffset);
 
             MP2KTrack track = Tracks[trackIndex];
             track.Init();
@@ -533,7 +666,7 @@ internal sealed partial class MP2KLoadedSong
             {
                 bool GetSongEvent(SongEvent ev)
                 {
-                    return ev.Offset == track.Position;
+                    return ev.Offset == track.ROMOffset;
                 }
                 SongEvent e = evs.Single(GetSongEvent);
                 if (track.CallStackDepth == 0 && e.Ticks.Count > 0)

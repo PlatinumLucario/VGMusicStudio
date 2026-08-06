@@ -10,44 +10,52 @@ using Kermalis.VGMusicStudio.GTK4.Util;
 
 namespace Kermalis.VGMusicStudio.GTK4;
 
-internal sealed class TrackEditor : Adw.Window
+[GObject.Subclass<Adw.Window>]
+internal sealed partial class TrackEditor
 {
-    private event Action? OnArgsChanged;
     private Gtk.CssProvider? _cssProvider;
-    private ICommand? _command;
-    private long _offset;
-    private long[]? _ticks;
 
-    private readonly Gtk.Button _buttonEventAdd = Gtk.Button.New();
-    private readonly Gtk.Button _buttonEventRemove = Gtk.Button.New();
-    private readonly Gtk.Box? _paramEditorBox;
+    private Gtk.Button _buttonEventAdd = Gtk.Button.New();
+    private Gtk.Button _buttonEventRemove = Gtk.Button.New();
+    private Gtk.Box? _paramEditorBox;
     private Gtk.Box[]? _paramEditorParamBox;
-    private Gtk.SpinButton[]? _eventParamNum;
+    private Gtk.SpinButton[] _eventParamNum;
+    private Gtk.CheckButton[] _eventParamCheck;
     private Gtk.Label[]? _eventParamLabel;
     private OffsetEntry? _eventParamOffset;
-    private readonly Gtk.StringList? _eventList;
-    private readonly Gtk.StringList? _trackList;
-    private readonly Gtk.DropDown? _trackDropDown;
-    private readonly Gtk.DropDown? _eventDropDown;
+    private Gtk.StringList? _eventList;
+    private Gtk.StringList? _trackList;
+    private Gtk.DropDown? _trackDropDown;
+    private Gtk.DropDown? _eventDropDown;
 
-    private readonly Gio.ListStore _eventsModel = Gio.ListStore.New(GetGType());
-    private readonly Gtk.SingleSelection? _selectionModel;
+    private Gio.ListStore _eventsModel = Gio.ListStore.New<TrackData>();
+    private Gtk.SingleSelection? _selectionModel;
     internal Gtk.ColumnView? EventsColumnView { get; set; }
-    internal List<TrackEditor>? EventsData { get; set; } = [];
+    internal List<TrackData> EventsData { get; set; } = [];
 
     private int _clickSelectionIndex = 0;
 
-    private TrackEditor(ICommand command, long offset, Span<long> ticks)
-    : base()
+    [GObject.Subclass<GObject.Object>]
+    internal partial class TrackData
     {
-        _command = command;
-        _offset = offset;
-        _ticks = ticks.ToArray();
-    }
-    internal TrackEditor()
-    {
-        New();
+        internal event Action? OnArgsChanged;
 
+        internal ICommand Command;
+        internal long Offset;
+        internal long[]? Ticks;
+
+        internal static TrackData AddEntry(ICommand command, long offset, Span<long> ticks)
+        {
+            var dat = NewWithProperties([]);
+            dat.Command = command;
+            dat.Offset = offset;
+            dat.Ticks = ticks.ToArray();
+            return dat;
+        }
+    }
+
+    partial void Initialize()
+    {
         Title = $"{MainWindow.GetProgramName()} — {Strings.TrackEditorTitle}";
 
         var header = Adw.HeaderBar.New();
@@ -55,18 +63,12 @@ internal sealed class TrackEditor : Adw.Window
         header.SetShowStartTitleButtons(true);
 
         _trackList = Gtk.StringList.New(null);
-        _trackDropDown = new Gtk.DropDown
-        {
-            WidthRequest = 100
-        };
+        _trackDropDown = Gtk.DropDown.NewWithProperties([new GObject.ConstructArgument("width_request", new GObject.Value(100))]);
         _trackDropDown.SetModel(_trackList);
         _trackDropDown.OnNotify += TrackSelected;
 
         _eventList = Gtk.StringList.New(null);
-        _eventDropDown = new Gtk.DropDown
-        {
-            WidthRequest = 50
-        };
+        _eventDropDown = Gtk.DropDown.NewWithProperties([new GObject.ConstructArgument("width_request", new GObject.Value(50))]);
         _eventDropDown.SetModel(_eventList);
 
         _buttonEventAdd.SetLabel(Strings.TrackEditorAddEvent);
@@ -197,9 +199,9 @@ internal sealed class TrackEditor : Adw.Window
 
     private bool EventsCallback()
     {
-        if (_selectionModel?.GetSelectedItem() is TrackEditor row && _clickSelectionIndex != (int)_selectionModel.Selected)
+        if (_selectionModel?.GetSelectedItem() is TrackData row && _clickSelectionIndex != (int)_selectionModel.Selected)
         {
-            if (row._command is not null)
+            if (row.Command is not null)
             {
                 UpdateParamBoxes();
                 _clickSelectionIndex = (int)_selectionModel.Selected;
@@ -214,8 +216,8 @@ internal sealed class TrackEditor : Adw.Window
         var ev = new SongEvent(int.MaxValue, cmd);
         int index = (int)(_selectionModel!.Selected + 1);
         Engine.Instance.Player.LoadedSong!.InsertEvent(ev, (int)_trackDropDown!.Selected, index);
-        EventsData!.Insert(index, new TrackEditor(ev.Command, ev.Offset, ev.Ticks.ToArray()));
-        _eventsModel.Insert((uint)index, new TrackEditor(ev.Command, ev.Offset, ev.Ticks.ToArray()));
+        EventsData!.Insert(index, TrackData.AddEntry(ev.Command, ev.Offset, ev.Ticks.ToArray()));
+        _eventsModel.Insert((uint)index, TrackData.AddEntry(ev.Command, ev.Offset, ev.Ticks.ToArray()));
     }
 
     private void ButtonEventRemove_OnClicked(Gtk.Button sender, EventArgs args)
@@ -264,84 +266,150 @@ internal sealed class TrackEditor : Adw.Window
             eventIndex = (int)_selectionModel.Selected;
         }
         var se = Engine.Instance!.Player.LoadedSong!.Events[trackIndex]![eventIndex]!;
-        MemberInfo[] ignore = typeof(ICommand).GetMembers();
-        MemberInfo[] mi = se.Command == null ? [] : se.Command.GetType().GetMembers().Where(m => !ignore.Any(a => m.Name == a.Name) && (m is FieldInfo || m is PropertyInfo)).ToArray();
-        _paramEditorParamBox = new Gtk.Box[mi.Length];
-        _eventParamLabel = new Gtk.Label[mi.Length];
+        CommandArg[] ca = Engine.Instance!.Player.LoadedSong!.GetCommandMembers(trackIndex, eventIndex);
+        _paramEditorParamBox = new Gtk.Box[ca.Length];
+        _eventParamLabel = new Gtk.Label[ca.Length];
         var isAnOffset = Engine.Instance!.Player.LoadedSong!.CallOrJumpCommand(se);
-        if (isAnOffset)
-        {
-            _eventParamOffset = new OffsetEntry
-            {
-                Halign = Gtk.Align.Center,
-                Spacing = 3
-            };
-        }
-        else
-        {
-            _eventParamNum = new Gtk.SpinButton[mi.Length];
-        }
-        for (int i = 0; i < mi.Length; i++)
+        // if (isAnOffset)
+        // {
+        //     _eventParamOffset = OffsetEntry.Initialize();
+        // }
+        // else
+        // {
+        //     _eventParamNum = new Gtk.SpinButton[mi.Length];
+        // }
+        _eventParamNum = new Gtk.SpinButton[ca.Length];
+        _eventParamCheck = new Gtk.CheckButton[ca.Length];
+        for (int i = 0; i < ca.Length; i++)
         {
             _paramEditorParamBox[i] = Gtk.Box.New(Gtk.Orientation.Vertical, 6);
-            _eventParamLabel[i] = Gtk.Label.New(mi[i].Name);
+            _eventParamLabel[i] = Gtk.Label.New(ca[i].Name);
             _paramEditorParamBox[i].Append(_eventParamLabel[i]);
             if (_eventParamNum is not null && _eventParamNum[i] is not null)
             {
                 _eventParamNum[i].OnValueChanged -= ArgumentChanged;
             }
 
-            TypeInfo valueType;
-            object value;
-            if (mi[i].MemberType == MemberTypes.Field)
+            switch (ca[i].Type)
             {
-                valueType = (TypeInfo)((FieldInfo)mi[i]).FieldType;
-                value = ((FieldInfo)mi[i]).GetValue(se.Command)!;
-            }
-            else
-            {
-                valueType = (TypeInfo)((PropertyInfo)mi[i]).PropertyType;
-                value = ((PropertyInfo)mi[i]).GetValue(se.Command)!;
-            }
-            object lower = null!;
-            object upper = null!;
-            foreach (var val in valueType.DeclaredFields)
-            {
-                if (val.Name == "MinValue")
-                {
-                    lower = val.GetValue(mi[i])!;
-                }
-                if (val.Name == "MaxValue")
-                {
-                    upper = val.GetValue(mi[i])!;
-                }
+                case CommandArg.ValueType.Pointer:
+                    {
+                        _eventParamLabel[i].SetLabel($"{ca[i].Name} | 0x{ca[i].Offset:X7}");
+                        _eventParamNum![i] = Gtk.SpinButton.New(Gtk.Adjustment.New(ca[i].Value, ca[i].MinValue, ca[i].MaxValue, 1, 1, 1), 1, 0);
+                        _eventParamNum[i].OnValueChanged += ArgumentChanged;
+                        _eventParamNum[i].SetNumeric(true);
+                        _paramEditorParamBox[i].Append(_eventParamNum[i]);
+                        break;
+                    }
+                case CommandArg.ValueType.Boolean:
+                    {
+                        _eventParamCheck[i] = Gtk.CheckButton.New();
+                        _eventParamCheck[i].Active = ca[i].Value != 0;
+                        _eventParamCheck[i].OnToggled += ArgumentToggled;
+                        _paramEditorParamBox[i].Append(_eventParamCheck[i]);
+                        break;
+                    }
+                case CommandArg.ValueType.Number:
+                    {
+                        _eventParamNum![i] = Gtk.SpinButton.New(Gtk.Adjustment.New(ca[i].Value, ca[i].MinValue, ca[i].MaxValue, 1, 1, 1), 1, 0);
+                        _eventParamNum[i].OnValueChanged += ArgumentChanged;
+                        _eventParamNum[i].SetNumeric(true);
+                        _paramEditorParamBox[i].Append(_eventParamNum[i]);
+                        break;
+                    }
             }
 
-            if (isAnOffset)
-            {
-                _eventParamOffset!.SetValue((long)Convert.ChangeType(value, TypeCode.Int64));
-                _paramEditorParamBox[i].Append(_eventParamOffset);
-            }
-            else
-            {
-                value = (double)Convert.ChangeType(value, TypeCode.Double);
-                if (lower is not null && upper is not null)
-                {
-                    lower = (double)Convert.ChangeType(lower, TypeCode.Double);
-                    upper = (double)Convert.ChangeType(upper, TypeCode.Double);
-                }
-                else
-                {
-                    lower = -100d;
-                    upper = 100d;
-                }
-                _eventParamNum![i] = Gtk.SpinButton.New(Gtk.Adjustment.New((double)value, (double)lower, (double)upper, 1, 1, 1), 1, 0);
-                _eventParamNum[i].OnValueChanged += ArgumentChanged;
-                _eventParamNum[i].SetNumeric(true);
-                _paramEditorParamBox[i].Append(_eventParamNum[i]);
-            }
+            // TypeInfo valueType;
+            // object value;
+            // if (ca[i].MemberType == MemberTypes.Field)
+            // {
+            //     valueType = (TypeInfo)((FieldInfo)ca[i]).FieldType;
+            //     value = ((FieldInfo)ca[i]).GetValue(se.Command)!;
+            // }
+            // else
+            // {
+            //     valueType = (TypeInfo)((PropertyInfo)ca[i]).PropertyType;
+            //     value = ((PropertyInfo)ca[i]).GetValue(se.Command)!;
+            // }
+            // object lower = null!;
+            // object upper = null!;
+            // foreach (var val in valueType.DeclaredFields)
+            // {
+            //     if (val.Name == "MinValue")
+            //     {
+            //         lower = val.GetValue(ca[i])!;
+            //     }
+            //     if (val.Name == "MaxValue")
+            //     {
+            //         upper = val.GetValue(ca[i])!;
+            //     }
+            // }
+
+            // if (isAnOffset)
+            // {
+            //     _eventParamOffset!.SetValue((long)Convert.ChangeType(value, TypeCode.Int64));
+            //     _paramEditorParamBox[i].Append(_eventParamOffset);
+            // }
+            // else
+            // {
+            //     value = (double)Convert.ChangeType(value, TypeCode.Double);
+            //     if (lower is not null && upper is not null)
+            //     {
+            //         lower = (double)Convert.ChangeType(lower, TypeCode.Double);
+            //         upper = (double)Convert.ChangeType(upper, TypeCode.Double);
+            //     }
+            //     else
+            //     {
+            //         lower = -100d;
+            //         upper = 100d;
+            //     }
+            //     _eventParamNum![i] = Gtk.SpinButton.New(Gtk.Adjustment.New((double)value, (double)lower, (double)upper, 1, 1, 1), 1, 0);
+            //     _eventParamNum[i].OnValueChanged += ArgumentChanged;
+            //     _eventParamNum[i].SetNumeric(true);
+            //     _paramEditorParamBox[i].Append(_eventParamNum[i]);
+            // }
+            // value = (double)Convert.ChangeType(value, TypeCode.Double);
+            // if (lower is not null && upper is not null)
+            // {
+            //     lower = (double)Convert.ChangeType(lower, TypeCode.Double);
+            //     upper = (double)Convert.ChangeType(upper, TypeCode.Double);
+            // }
+            // else
+            // {
+            //     lower = -100d;
+            //     upper = 100d;
+            // }
+            // _eventParamNum![i] = Gtk.SpinButton.New(Gtk.Adjustment.New(ca[i].Value, ca[i].MinValue, ca[i].MaxValue, 1, 1, 1), 1, 0);
+            // _eventParamNum[i].OnValueChanged += ArgumentChanged;
+            // _eventParamNum[i].SetNumeric(true);
+            // _paramEditorParamBox[i].Append(_eventParamNum[i]);
 
             _paramEditorBox!.Append(_paramEditorParamBox[i]);
+        }
+    }
+
+    private void ArgumentToggled(Gtk.CheckButton sender, EventArgs args)
+    {
+        for (int i = 0; i < _paramEditorParamBox!.Length; i++)
+        {
+            if (sender == _eventParamCheck![i])
+            {
+                SongEvent se = Engine.Instance!.Player.LoadedSong!.Events[_trackDropDown!.Selected]![(int)_selectionModel!.Selected];
+                object value = _eventParamCheck[i].Active;
+                MemberInfo m = se.Command.GetType().GetMember(_eventParamLabel![i].Label_!)[0];
+                if (m is FieldInfo f)
+                {
+                    f.SetValue(se.Command, Convert.ChangeType(value, f.FieldType));
+                }
+                else if (m is PropertyInfo p)
+                {
+                    p.SetValue(se.Command, Convert.ChangeType(value, p.PropertyType));
+                }
+
+                // ((TrackData)_eventsModel.GetObject(_selectionModel.Selected)!).OnArgsChanged!.Invoke();
+
+                return;
+            }
         }
     }
 
@@ -363,7 +431,7 @@ internal sealed class TrackEditor : Adw.Window
                     p.SetValue(se.Command, Convert.ChangeType(value, p.PropertyType));
                 }
 
-                ((TrackEditor)_eventsModel.GetObject(_selectionModel.Selected)!).OnArgsChanged!.Invoke();
+                // ((TrackData)_eventsModel.GetObject(_selectionModel.Selected)!).OnArgsChanged!.Invoke();
 
                 return;
             }
@@ -453,7 +521,7 @@ internal sealed class TrackEditor : Adw.Window
             {
                 numTicks[t++] = ticks;
             }
-            EventsData!.Add(new TrackEditor(trackEvent.Command, trackEvent.Offset, numTicks));
+            EventsData!.Add(TrackData.AddEntry(trackEvent.Command, trackEvent.Offset, numTicks));
         }
 
         foreach (var data in EventsData!)
@@ -479,14 +547,14 @@ internal sealed class TrackEditor : Adw.Window
 
     private void OnSetupRow(Gtk.SignalListItemFactory sender, Gtk.SignalListItemFactory.SetupSignalArgs args)
     {
-
+        //
     }
 
     private void OnBindRow(Gtk.SignalListItemFactory sender, Gtk.SignalListItemFactory.BindSignalArgs args)
     {
         if (args.Object is Gtk.ColumnViewRow row)
         {
-            
+            //
         }
     }
 
@@ -511,14 +579,14 @@ internal sealed class TrackEditor : Adw.Window
         }
 
         if (listItem.Child is not Gtk.Label label) return;
-        if (listItem.Item is not TrackEditor userData) return;
-        if (userData._command is null) return;
+        if (listItem.Item is not TrackData userData) return;
+        if (userData.Command is null) return;
 
-        var eventClass = $"{userData._command.Label}command".ToLower().Replace(' ', '-');
+        var eventClass = $"{userData.Command.Label}command".ToLower().Replace(' ', '-');
 
         label.GetParent()!.GetParent()!.SetName($"row-{eventClass}");
 
-        label.SetText(userData._command.Label);
+        label.SetText(userData.Command.Label);
     }
     private void OnBindArgumentsText(Gtk.SignalListItemFactory sender, Gtk.SignalListItemFactory.BindSignalArgs args)
     {
@@ -528,16 +596,16 @@ internal sealed class TrackEditor : Adw.Window
         }
 
         if (listItem.Child is not Gtk.Label label) return;
-        if (listItem.Item is not TrackEditor userData) return;
-        if (userData._command is null) return;
+        if (listItem.Item is not TrackData userData) return;
+        if (userData.Command is null) return;
 
-        label.SetText(userData._command.Arguments);
+        label.SetText(userData.Command.Arguments);
 
         userData.OnArgsChanged += ChangeArguments;
 
         void ChangeArguments()
         {
-            label.SetText(userData._command.Arguments);
+            label.SetText(userData.Command.Arguments);
         }
     }
     private void OnUnbindArgumentsText(Gtk.SignalListItemFactory sender, Gtk.SignalListItemFactory.UnbindSignalArgs args)
@@ -548,10 +616,10 @@ internal sealed class TrackEditor : Adw.Window
         }
 
         if (listItem.Child is not Gtk.Label label) return;
-        if (listItem.Item is not TrackEditor userData) return;
-        if (userData._command is null) return;
+        if (listItem.Item is not TrackData userData) return;
+        if (userData.Command is null) return;
 
-        userData.OnArgsChanged = null;
+        // userData.OnArgsChanged = null;
     }
     private void OnBindOffsetText(Gtk.SignalListItemFactory sender, Gtk.SignalListItemFactory.BindSignalArgs args)
     {
@@ -561,9 +629,9 @@ internal sealed class TrackEditor : Adw.Window
         }
 
         if (listItem.Child is not Gtk.Label label) return;
-        if (listItem.Item is not TrackEditor userData) return;
+        if (listItem.Item is not TrackData userData) return;
 
-        label.SetText(string.Format("0x{0:X}", userData._offset));
+        label.SetText(string.Format("0x{0:X}", userData.Offset));
     }
     private void OnBindTicksText(Gtk.SignalListItemFactory sender, Gtk.SignalListItemFactory.BindSignalArgs args)
     {
@@ -573,10 +641,10 @@ internal sealed class TrackEditor : Adw.Window
         }
 
         if (listItem.Child is not Gtk.Label label) return;
-        if (listItem.Item is not TrackEditor userData) return;
-        if (userData._ticks is null) return;
+        if (listItem.Item is not TrackData userData) return;
+        if (userData.Ticks is null) return;
 
-        var array = userData._ticks;
+        var array = userData.Ticks;
         var str = "";
         foreach (var val in array)
         {

@@ -11,7 +11,7 @@ internal class MP2KSoundBank : SoundBank
 {
     public override int Offset { get; set; }
     public int Length { get; private set; }
-    protected readonly IVoice[] Voices;
+    public IVoice[] Voices;
     private static readonly Dictionary<int, SoundBank> _cache = new Dictionary<int, SoundBank>();
     public static void ClearCache() => _cache.Clear();
 
@@ -29,7 +29,7 @@ internal class MP2KSoundBank : SoundBank
             while (true)
             {
                 int off = Offset + (i++ * 0xC);
-                if (!GBAUtils.IsValidRomOffset(off))
+                if (!GBAUtils.IsValidRomOffset(Engine.Instance!.Config.ROM!, off))
                 {
                     break;
                 }
@@ -54,27 +54,27 @@ internal class MP2KSoundBank : SoundBank
     }
     public override IEnumerator<IVoiceInfo> GetEnumerator() => ((IEnumerable<IVoiceInfo>)Voices).GetEnumerator();
 
-    public Tuple<byte, byte, byte>[] GetKeys(int offset)
+    public ReadOnlySpan<byte> GetKeys(int offset)
     {
         Span<byte> keys = stackalloc byte[128];
         Engine.Instance!.Config.ROM!.AsSpan(offset, 128).CopyTo(keys);
-        var loading = new List<Tuple<byte, byte, byte>>(); // Key, min, max
-        int prev = -1;
-        for (int i = 0; i < 128; i++)
-        {
-            byte a = keys[i];
-            byte bi = (byte)i;
-            if (prev == a)
-            {
-                loading[loading.Count - 1] = new(loading[loading.Count - 1].Item1, loading[loading.Count - 1].Item2, bi);
-            }
-            else
-            {
-                prev = a;
-                loading.Add(new Tuple<byte, byte, byte>(a, bi, bi));
-            }
-        }
-        return [.. loading];
+        // var loading = new List<Tuple<byte, byte, byte>>(); // Key, min, max
+        // int prev = -1;
+        // for (int i = 0; i < 128; i++)
+        // {
+        //     byte a = keys[i];
+        //     byte bi = (byte)i;
+        //     if (prev == a)
+        //     {
+        //         loading[loading.Count - 1] = new(loading[loading.Count - 1].Item1, loading[loading.Count - 1].Item2, bi);
+        //     }
+        //     else
+        //     {
+        //         prev = a;
+        //         loading.Add(new Tuple<byte, byte, byte>(a, bi, bi));
+        //     }
+        // }
+        return keys.ToArray();
     }
 
     public static T LoadTable<T>(int tableOffset, bool shouldCache = false, bool isSubVoiceGroup = false) where T : MP2KSoundBank
@@ -100,7 +100,7 @@ internal class MP2KSoundBank : SoundBank
         for (int i = 0; i < Length; i++)
         {
             int off = Offset + (i * 0xC);
-            if (!GBAUtils.IsValidRomOffset(off))
+            if (!GBAUtils.IsValidRomOffset(Engine.Instance!.Config.ROM!, off))
             {
                 break;
             }
@@ -128,12 +128,12 @@ internal class MP2KSoundBank : SoundBank
         }
         else
         {
-            return Voices[voiceIndex].VoiceEntry!.Value.GetBytesToString();
+            return Voices[voiceIndex].VoiceEntry.GetBytesToString();
         }
     }
     public override bool IsTableAddress(int voiceIndex)
     {
-        if (Voices[voiceIndex].VoiceEntry!.Value.Type is (byte)VoiceFlags.KeySplit || Voices[voiceIndex].VoiceEntry!.Value.Type is (byte)VoiceFlags.Drum)
+        if (Voices[voiceIndex].VoiceEntry.Type is (byte)VoiceFlags.KeySplit || Voices[voiceIndex].VoiceEntry.Type is (byte)VoiceFlags.Drum)
         {
             return true;
         }
@@ -144,7 +144,7 @@ internal class MP2KSoundBank : SoundBank
     }
     public override bool HasADSR(int voiceIndex)
     {
-        switch (Voices[voiceIndex].VoiceEntry!.Value.Type)
+        switch (Voices[voiceIndex].VoiceEntry.Type)
         {
             case (byte)VoiceFlags.Drum:
                 {
@@ -162,34 +162,34 @@ internal class MP2KSoundBank : SoundBank
     }
     public override bool IsValidVoiceAddress(int voiceIndex)
     {
-        var flags = (VoiceFlags)Voices[voiceIndex].VoiceEntry!.Value.Type;
-        var type = (VoiceType)(Voices[voiceIndex].VoiceEntry!.Value.Type & 0x7);
+        var flags = (VoiceFlags)Voices[voiceIndex].VoiceEntry.Type;
+        var type = (VoiceType)(Voices[voiceIndex].VoiceEntry.Type & 0x7);
         return type == VoiceType.PCM8 || type == VoiceType.PCM4 || flags == VoiceFlags.KeySplit || flags == VoiceFlags.Drum;
     }
     public override int GetVoiceAddress(int voiceIndex)
     {
-        return Voices[voiceIndex].VoiceEntry!.Value.Int4 - GBAUtils.CARTRIDGE_OFFSET;
+        return Voices[voiceIndex].VoiceEntry.Int4 - GBAUtils.CARTRIDGE_OFFSET;
     }
 
     public override bool IsValidADSR(int voiceIndex)
     {
-        var flags = Voices[voiceIndex].VoiceEntry!.Value.Type;
-        return flags != (byte)VoiceFlags.KeySplit && flags != (byte)VoiceFlags.Drum && !Voices[voiceIndex].VoiceEntry!.Value.IsInvalid();
+        var flags = Voices[voiceIndex].VoiceEntry.Type;
+        return flags != (byte)VoiceFlags.KeySplit && flags != (byte)VoiceFlags.Drum && !Voices[voiceIndex].VoiceEntry.IsInvalid();
     }
     public override bool IsPSGInstrument(int voiceIndex)
     {
-        return Voices[voiceIndex].VoiceEntry!.Value.IsPSGInstrument();
+        return Voices[voiceIndex].VoiceEntry.IsPSGInstrument();
     }
     public override void GetADSRValues(int voiceIndex, out byte attackValue, out byte decayValue, out byte sustainValue, out byte releaseValue)
     {
-        attackValue = Voices[voiceIndex].VoiceEntry!.Value.ADSR.A;
-        decayValue = Voices[voiceIndex].VoiceEntry!.Value.ADSR.D;
-        sustainValue = Voices[voiceIndex].VoiceEntry!.Value.ADSR.S;
-        releaseValue = Voices[voiceIndex].VoiceEntry!.Value.ADSR.R;
+        attackValue = Voices[voiceIndex].VoiceEntry.ADSR.A;
+        decayValue = Voices[voiceIndex].VoiceEntry.ADSR.D;
+        sustainValue = Voices[voiceIndex].VoiceEntry.ADSR.S;
+        releaseValue = Voices[voiceIndex].VoiceEntry.ADSR.R;
     }
     public override void SetADSRValues(int voiceIndex, in byte attackValue, in byte decayValue, in byte sustainValue, in byte releaseValue)
     {
-        var adsr = Voices[voiceIndex].VoiceEntry!.Value.ADSR;
+        var adsr = Voices[voiceIndex].VoiceEntry.ADSR;
         adsr.A = attackValue;
         adsr.D = decayValue;
         adsr.S = sustainValue;
@@ -197,7 +197,7 @@ internal class MP2KSoundBank : SoundBank
     }
     public override void SetAddressPointer(int voiceIndex, int address)
     {
-        Voices[voiceIndex].VoiceEntry!.Value.SetAddressPointer(address);
+        Voices[voiceIndex].VoiceEntry.SetAddressPointer(address);
         // Engine.Instance!.Config.ROM.AsSpan(address + GBAUtils.CARTRIDGE_CAPACITY);
     }
     public WrappedVoice GetVoiceFromNote(byte voice, sbyte note, out bool fromDrum)

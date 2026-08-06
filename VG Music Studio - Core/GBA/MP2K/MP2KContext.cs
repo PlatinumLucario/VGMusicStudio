@@ -12,7 +12,7 @@ internal sealed partial class MP2KContext
     internal MP2KSoundMode MP2KSoundMode = new();
     internal PlayerSoundMode PlayerSoundMode = new();
     internal SongTableInfo SongTableInfo;
-    // internal List<PlayerInfo> PlayerTableInfo = [];
+    internal List<PlayerInfo> PlayerTableInfo = [];
 
     internal Memory<byte> MemAccArea = new byte[256];
 
@@ -26,13 +26,12 @@ internal sealed partial class MP2KContext
     internal static bool Playing = false;
     internal static bool Recording = false;
 
-    internal MP2KContext(int sampleRate, ushort songTableLength)
+    internal MP2KContext(MP2KConfig config)
     {
-        (SampleRate, SamplesPerBuffer) = MP2KUtils.FrequencyTable[sampleRate];
-        SongTableInfo = new()
-        {
-            Count = songTableLength
-        };
+        (SampleRate, SamplesPerBuffer) = MP2KUtils.FrequencyTable[config.Results[0].MP2KSoundMode.FrequencyIndex];
+        MP2KSoundMode = config.Results[0].MP2KSoundMode;
+        PlayerTableInfo = config.Results[0].PlayerTableInfo;
+        SongTableInfo = config.Results[0].SongTableInfo;
 
         // LoadedSong = new(this);
 

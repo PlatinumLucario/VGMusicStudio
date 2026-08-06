@@ -8,7 +8,7 @@ namespace Kermalis.VGMusicStudio.Core.GBA.MP2K;
 internal sealed class MP2KPCM8Channel : MP2KChannel
 {
 	private MP2KMixer _mixer;
-	private SampleInfo _sInfo;
+	private MP2KSample _sInfo;
 	private bool _isFixed;
 	private bool _isSynth = false;
 	private short _levelMPTcompressed = 0;
@@ -33,7 +33,7 @@ internal sealed class MP2KPCM8Channel : MP2KChannel
 		internal float InterStep;
 	};
 
-	internal MP2KPCM8Channel(MP2KContext context, MP2KMixer mixer, MP2KTrack track, SampleInfo sInfo, ADSR env, NoteInfo note, bool isFixed)
+	internal MP2KPCM8Channel(MP2KContext context, MP2KMixer mixer, MP2KTrack track, MP2KSample sInfo, ADSR env, NoteInfo note, bool isFixed)
 		: base(track, note, env)
 	{
 		_mixer = mixer;
@@ -41,18 +41,18 @@ internal sealed class MP2KPCM8Channel : MP2KChannel
 		_isFixed = isFixed;
 		if (sInfo.Header.LoopOffset == 0 && sInfo.Header.Length == 0)
 		{
-			if (!((sInfo.Position + 16 + 8) >= MP2KEngine.MP2KInstance!.Config.ROM.Length))
-			{
-				Debug.WriteLine($"Sample Error: Sample data reaches beyond end of file: [{sInfo.Position:X8}]");
-				State = EnvelopeState.Dead;
-				return;
-			}
+			// if (!((sInfo.Position + 16 + 8) >= MP2KEngine.MP2KInstance!.Config.ROM.Length))
+			// {
+			// 	Debug.WriteLine($"Sample Error: Sample data reaches beyond end of file: [{sInfo.Position:X8}]");
+			// 	State = EnvelopeState.Dead;
+			// 	return;
+			// }
 
-			if (sInfo.SampleData[1] == 0)
+			if (sInfo.PCMData[1] == 0)
 			{
 				_type = VoiceConfigType.SynthPWM;
 			}
-			else if (sInfo.SampleData[1] == 1)
+			else if (sInfo.PCMData[1] == 1)
 			{
 				_type = VoiceConfigType.SynthSawtooth;
 			}
@@ -72,12 +72,12 @@ internal sealed class MP2KPCM8Channel : MP2KChannel
 		{
 			_type = VoiceConfigType.DPCM;
 			long realEndPos = (sInfo.Header.Length + 63) / 64 * 0x21;
-			if (sInfo.Position + 16 + (realEndPos - sInfo.Position) >= MP2KEngine.MP2KInstance!.Config.ROM.Length)
-			{
-				Debug.WriteLine($"Sample Error: DPCM data reaches beyond end of file: [{sInfo.Position:X8}]");
-				State = EnvelopeState.Dead;
-				return;
-			}
+			// if (sInfo.Position + 16 + (realEndPos - sInfo.Position) >= MP2KEngine.MP2KInstance!.Config.ROM.Length)
+			// {
+			// 	Debug.WriteLine($"Sample Error: DPCM data reaches beyond end of file: [{sInfo.Position:X8}]");
+			// 	State = EnvelopeState.Dead;
+			// 	return;
+			// }
 		}
 		else if ((uint)sInfo.Header.Length >= 0x80000000)
 		{
@@ -93,12 +93,12 @@ internal sealed class MP2KPCM8Channel : MP2KChannel
 		else
 		{
 			_type = VoiceConfigType.PCM;
-			if (sInfo.Position + 16 + sInfo.Header.Length >= MP2KEngine.MP2KInstance!.Config.ROM.LongLength)
-			{
-				Debug.WriteLine($"Sample Error: PCM data reaches beyond end of file: [{sInfo.Position:X8}]");
-				State = EnvelopeState.Dead;
-				return;
-			}
+			// if (sInfo.Position + 16 + sInfo.Header.Length >= MP2KEngine.MP2KInstance!.Config.ROM.LongLength)
+			// {
+			// 	Debug.WriteLine($"Sample Error: PCM data reaches beyond end of file: [{sInfo.Position:X8}]");
+			// 	State = EnvelopeState.Dead;
+			// 	return;
+			// }
 		}
 	}
 
@@ -374,7 +374,7 @@ internal sealed class MP2KPCM8Channel : MP2KChannel
 		if (_type == VoiceConfigType.PCM)
 		{
 			// cb = new(SampleFetchCallback);
-			Process_Standard(buffer, GetVolume(), cargs.InterStep, MP2KEngine.MP2KInstance!.Config.ROM);
+			Process_Standard(buffer, GetVolume(), cargs.InterStep);
 		}
 		else if (_type == VoiceConfigType.DPCM)
 		{
@@ -415,14 +415,14 @@ internal sealed class MP2KPCM8Channel : MP2KChannel
 
 		if (_envInterStep == 0)
 		{
-			fromPos = Pos += (uint)(_sInfo.SampleData[DUTY_STEP] << 24);
+			fromPos = Pos += (uint)(_sInfo.PCMData[DUTY_STEP] << 24);
 		}
 		else
 		{
 			fromPos = (uint)Pos;
 		}
 
-		long toPos = fromPos + (uint)(_sInfo.SampleData[DUTY_STEP] << 24);
+		long toPos = fromPos + (uint)(_sInfo.PCMData[DUTY_STEP] << 24);
 
 		static float CalcThresh(long val, byte bbase, byte depth, byte init)
 		{
@@ -434,15 +434,15 @@ internal sealed class MP2KPCM8Channel : MP2KChannel
 
 		float fromThresh = CalcThresh(
 			fromPos,
-			(byte)_sInfo.SampleData[DUTY_BASE],
-			(byte)_sInfo.SampleData[DEPTH],
-			(byte)_sInfo.SampleData[INIT_DUTY]
+			(byte)_sInfo.PCMData[DUTY_BASE],
+			(byte)_sInfo.PCMData[DEPTH],
+			(byte)_sInfo.PCMData[INIT_DUTY]
 		);
 		float toThresh = CalcThresh(
 			toPos,
-			(byte)_sInfo.SampleData[DUTY_BASE],
-			(byte)_sInfo.SampleData[DEPTH],
-			(byte)_sInfo.SampleData[INIT_DUTY]
+			(byte)_sInfo.PCMData[DUTY_BASE],
+			(byte)_sInfo.PCMData[DEPTH],
+			(byte)_sInfo.PCMData[INIT_DUTY]
 		);
 
 		float deltaThresh = toThresh - fromThresh;
@@ -524,7 +524,7 @@ internal sealed class MP2KPCM8Channel : MP2KChannel
 		}
 	}
 
-	private void Process_Standard(Span<float> buffer, ChannelVolume vol, float interStep, byte[] rom)
+	private void Process_Standard(Span<float> buffer, ChannelVolume vol, float interStep)
 	{
 		int bufPos = 0;
 		int samplesPerBuffer;
@@ -532,7 +532,7 @@ internal sealed class MP2KPCM8Channel : MP2KChannel
 
 		do
 		{
-			float samp = (sbyte)rom[Pos + _sInfo.SampleOffset] / (float)0x80;
+			float samp = _sInfo.PCMData[Pos] / (float)0x80;
 
 			buffer[bufPos++] += samp * vol.FromVolLeft;
 			buffer[bufPos++] += samp * vol.FromVolRight;
@@ -574,12 +574,12 @@ internal sealed class MP2KPCM8Channel : MP2KChannel
 			{
 				if (i >= fetchBuffer.Count)
 				{
-					fetchBuffer.Add(_sInfo.SampleData[Pos++] / 128.0f);
+					fetchBuffer.Add(_sInfo.PCMData[Pos++] / 128.0f);
 					i++;
 				}
 				else
 				{
-					fetchBuffer[i++] = _sInfo.SampleData[Pos++] / 128.0f;
+					fetchBuffer[i++] = _sInfo.PCMData[Pos++] / 128.0f;
 				}
 			} while (--thisFetch > 0);
 
@@ -630,15 +630,15 @@ internal sealed class MP2KPCM8Channel : MP2KChannel
 
 					int currentBlockPos = currentBlock * 0x21;
 
-					sbyte acc = _sInfo.SampleData[currentBlockPos];
+					sbyte acc = _sInfo.PCMData[currentBlockPos];
 					decodeBuffer[0] = acc;
-					acc += deltaTable[_sInfo.SampleData[currentBlockPos + 1] & 0xF];
+					acc += deltaTable[_sInfo.PCMData[currentBlockPos + 1] & 0xF];
 					decodeBuffer[1] = acc;
 					for (int j = 2, h = 2; j < DPCM_BLOCK_SIZE; j += 2, h++)
 					{
-						acc += deltaTable[(_sInfo.SampleData[currentBlockPos + h] & 0xF0) >> 4];
+						acc += deltaTable[(_sInfo.PCMData[currentBlockPos + h] & 0xF0) >> 4];
 						decodeBuffer[j + 0] = acc;
-						acc += deltaTable[_sInfo.SampleData[currentBlockPos + h] & 0xF];
+						acc += deltaTable[_sInfo.PCMData[currentBlockPos + h] & 0xF];
 						decodeBuffer[j + 1] = acc;
 					}
 					decodedBlockIdx = currentBlock;
@@ -683,7 +683,7 @@ internal sealed class MP2KPCM8Channel : MP2KChannel
 			{
 				bool loNibble = (Pos & 1) != 0;
 				long samplePos = Pos++ >> (int)1u;
-				sbyte data = _sInfo.SampleData[samplePos];
+				sbyte data = _sInfo.PCMData[samplePos];
 
 				uint nibble;
 				if (loNibble)

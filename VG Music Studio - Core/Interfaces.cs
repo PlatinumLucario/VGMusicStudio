@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using System.Reflection;
 
 namespace Kermalis.VGMusicStudio.Core;
 
@@ -25,6 +26,7 @@ public interface ILoadedSong
     long MaxTicks { get; }
     SoundBank Bank { get; }
 
+    virtual CommandArg[] GetCommandMembers(int trackIndex, int eventIndex) { return null!; }
     virtual bool CallOrJumpCommand(SongEvent se) { return false; }
     virtual void ChangeEvent(SongEvent ev, decimal vArgsVal1, byte vArgsVal2, bool changed) { }
     virtual void InsertEvent(SongEvent e, int trackIndex, int insertIndex) { }
