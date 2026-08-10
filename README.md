@@ -5,9 +5,15 @@
 [![Releases](https://img.shields.io/github/downloads/Kermalis/VGMusicStudio/total.svg)](https://github.com/Kermalis/VGMusicStudio/releases/latest)
 [![License](https://img.shields.io/badge/License-LGPLv3-blue.svg)](LICENSE.md)
 
-VG Music Studio is a cross-platform music player and visualizer for the most common GBA music format (MP2K), AlphaDream's GBA music format, the most common NDS music format (SDAT), and a less common PS1/PS2/NDS/Wii music format (DSE) [found in PMD2 among others] (developed by Hidenori Suzuki and used internally at Square as 'Square Digital Sound Elements' and then licensed as 'Procyon Studio Digital Sound Elements' after moving to Procyon Studio).
+VG Music Studio is a cross-platform music player and visualizer for various video game sound formats, including:
+* Music Player 2000 (MP2K), the most common GBA music format used by the official MKS4AGB toolkit.
+* AlphaDream's GBA music format.
+* Nitro SoundPlayer Sound Data (SDAT), the most common music format for Nintendo DS.
+* Digital Sound Elements (DSE), developed by Hidenori Suzuki, a less common PS1/PS2/NDS/Wii music format [found in PMD2 among others], originally used internally at Square as 'Square Digital Sound Elements' and then licensed out as 'Procyon Studio Digital Sound Elements' after moving to Procyon Studio. Currently, only the DS and Wii versions are supported.
 
-[![VG Music Studio Preview](https://i.imgur.com/hWJGG83.png)](https://www.youtube.com/watch?v=s1BZ7cRbtBU "VG Music Studio Preview")
+![VG Music Studio](.github/data/vgms-gui.png)
+
+VG Music Studio can now automatically detect MP2K sound tables and player data without the need for configs. Config files can still be used to manually override any detected entries.
 
 If you want to talk or would like a game added to our configs, join our [Discord server][Discord]
 
@@ -37,13 +43,13 @@ If you want to talk or would like a game added to our configs, join our [Discord
 ### MP2K Engine
 * Add Golden Sun 2 reverb effect
 * Add reverse playback
-* Add SquareWave sweeping
-* XCMD command
-* REPT command
+* Fix Square1 PSG sweeping issues
 * Support pret dissassembly projects
 * Running status in song disassembler
 * Add "Metroid Fusion" & "Metroid: Zero Mission" engine information
 * Mario Power Tennis compressed samples
+* MP2K.yaml editor
+* Automatically create MP2K YAML entries for games without a MP2K entry
 
 ### SDAT Engine
 * Find proper formulas for LFO
